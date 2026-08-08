@@ -1,0 +1,197 @@
+/* style.css — dark military-adjacent palette, matching the placeholder
+   colors already baked into render.js (khaki text, olive/brown/teal
+   building fills, red/green status accents). No design system yet, no
+   real art — this just makes Phase 0/1 usable, per README. */
+
+:root {
+  --bg: #14160f;
+  --panel: #1f2318;
+  --panel-border: #3a3f2e;
+  --text: #d8d8c8;
+  --text-dim: #9a9c88;
+  --accent: #7fae4a;
+  --danger: #b4444a;
+  --highlight: #f2e9a8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+button {
+  font-family: inherit;
+  font-size: 0.85rem;
+  background: var(--panel);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.hidden {
+  display: none !important;
+}
+
+/* ---------- HUD ---------- */
+
+#hud {
+  width: 960px;
+  max-width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.hud-block {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.hud-label {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
+
+/* ---------- Game area ---------- */
+
+#gameArea {
+  position: relative;
+}
+
+#gameCanvas {
+  display: block;
+  background: #1a1d14;
+  cursor: pointer;
+}
+
+/* ---------- Unit profile panel ---------- */
+
+#profilePanel {
+  position: fixed;
+  top: 80px;
+  right: 16px;
+  width: 260px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 10px;
+}
+
+.profile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.profile-header input {
+  flex: 1;
+  margin-right: 8px;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 0.9rem;
+}
+
+#closeProfile {
+  padding: 2px 8px;
+  line-height: 1;
+}
+
+.profile-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.85rem;
+}
+
+.profile-row > span:first-child {
+  color: var(--text-dim);
+  min-width: 70px;
+}
+
+.bar {
+  flex: 1;
+  height: 8px;
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--accent);
+}
+
+.bar-fill.energy {
+  background: #d8b04a;
+}
+
+.bar-fill.hp {
+  background: var(--danger);
+}
+
+.profile-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.profile-actions button {
+  flex: 1;
+}
+
+/* ---------- Recruit popup ---------- */
+
+#recruitPopup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 16px;
+  text-align: center;
+  min-width: 220px;
+}
+
+#recruitPopup p {
+  margin: 0 0 12px;
+}
+
+#recruitPopup button {
+  margin: 0 4px;
+}
