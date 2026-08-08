@@ -11,6 +11,12 @@ const buildBarracksBtn = document.getElementById('buildBarracksBtn');
 const barracksCostEl = document.getElementById('barracksCost');
 const buildRangeBtn = document.getElementById('buildRangeBtn');
 const rangeCostEl = document.getElementById('rangeCost');
+const buildWeightRoomBtn = document.getElementById('buildWeightRoomBtn');
+const weightRoomCostEl = document.getElementById('weightRoomCost');
+const buildObstacleCourseBtn = document.getElementById('buildObstacleCourseBtn');
+const obstacleCourseCostEl = document.getElementById('obstacleCourseCost');
+const buildDrillYardBtn = document.getElementById('buildDrillYardBtn');
+const drillYardCostEl = document.getElementById('drillYardCost');
 const buildMessHallBtn = document.getElementById('buildMessHallBtn');
 const buyFoodBtn = document.getElementById('buyFoodBtn');
 
@@ -25,10 +31,19 @@ const profileHpBar = document.getElementById('profileHpBar');
 const profileHpText = document.getElementById('profileHpText');
 const profileStrength = document.getElementById('profileStrength');
 const profileAccuracy = document.getElementById('profileAccuracy');
+const profileEndurance = document.getElementById('profileEndurance');
 const profileEquipment = document.getElementById('profileEquipment');
 const closeProfileBtn = document.getElementById('closeProfile');
-const assignTrainingBtn = document.getElementById('assignTrainingBtn');
 const recallBtn = document.getElementById('recallBtn');
+
+// One entry per TrainingBuilding (building.js) — drives both the assign
+// buttons in the profile panel and the build/upgrade buttons in the HUD.
+const trainingBuildingUi = [
+  { key: 'shootingRange', label: 'Shooting Range', assignBtn: document.getElementById('assignShootingRangeBtn'), buildBtn: buildRangeBtn, costEl: rangeCostEl },
+  { key: 'weightRoom', label: 'Weight Room', assignBtn: document.getElementById('assignWeightRoomBtn'), buildBtn: buildWeightRoomBtn, costEl: weightRoomCostEl },
+  { key: 'obstacleCourse', label: 'Obstacle Course', assignBtn: document.getElementById('assignObstacleCourseBtn'), buildBtn: buildObstacleCourseBtn, costEl: obstacleCourseCostEl },
+  { key: 'drillYard', label: 'Combat Drill Yard', assignBtn: document.getElementById('assignDrillYardBtn'), buildBtn: buildDrillYardBtn, costEl: drillYardCostEl },
+];
 
 const recruitPopup = document.getElementById('recruitPopup');
 const recruitText = document.getElementById('recruitText');
@@ -58,14 +73,18 @@ function openProfile(unit) {
   profileHpText.textContent = `${unit.hp}/${unit.maxHp}`;
   profileStrength.textContent = unit.strength;
   profileAccuracy.textContent = `${Math.round(unit.accuracy)}%`;
+  profileEndurance.textContent = `${Math.round(unit.endurance)}%`;
   profileEquipment.textContent = unit.equipment.length ? unit.equipment.join(', ') : 'None';
   profilePanel.classList.remove('hidden');
 
   const inHospital = unit.status === UNIT_STATUS.HOSPITAL;
-  const alreadyAssigned = unit.assignedBuildingId === gameState.shootingRange.id;
-  assignTrainingBtn.disabled = inHospital || alreadyAssigned || !gameState.shootingRange.isBuilt
-    || gameState.shootingRangeOccupancy() >= gameState.shootingRange.capacity;
-  assignTrainingBtn.textContent = alreadyAssigned ? 'Assigned: Shooting Range' : 'Assign: Shooting Range';
+  for (const { key, label, assignBtn } of trainingBuildingUi) {
+    const building = gameState[key];
+    const alreadyAssigned = unit.assignedBuildingId === building.id;
+    assignBtn.disabled = inHospital || alreadyAssigned || !building.isBuilt
+      || gameState.occupancyOf(building) >= building.capacity;
+    assignBtn.textContent = alreadyAssigned ? `Assigned: ${label}` : label;
+  }
   recallBtn.disabled = inHospital || !unit.assignedBuildingId;
 }
 
@@ -76,9 +95,11 @@ function closeProfile() {
 
 closeProfileBtn.addEventListener('click', closeProfile);
 
-assignTrainingBtn.addEventListener('click', () => {
-  if (selectedUnitId) gameState.assignToTraining(selectedUnitId);
-});
+for (const { key, assignBtn } of trainingBuildingUi) {
+  assignBtn.addEventListener('click', () => {
+    if (selectedUnitId) gameState.assignToBuilding(selectedUnitId, gameState[key].id);
+  });
+}
 
 recallBtn.addEventListener('click', () => {
   if (selectedUnitId) gameState.unassignFromTraining(selectedUnitId);
@@ -116,13 +137,11 @@ buildBarracksBtn.addEventListener('click', () => {
   gameState.upgradeBarracks();
 });
 
-buildRangeBtn.addEventListener('click', () => {
-  if (gameState.shootingRange.isMaxLevel) return;
-  const cost = gameState.shootingRange.nextUpgradeCost();
-  if (gameState.cash < cost) return;
-  gameState.cash -= cost;
-  gameState.shootingRange.upgrade();
-});
+for (const { key, buildBtn } of trainingBuildingUi) {
+  buildBtn.addEventListener('click', () => {
+    gameState.upgradeBuilding(key);
+  });
+}
 
 buildMessHallBtn.addEventListener('click', () => {
   if (gameState.messHall.isBuilt) return;
@@ -136,7 +155,7 @@ buyFoodBtn.addEventListener('click', () => {
   gameState.buyFood(20);
 });
 
-function refreshBarracksButton() {
+function refreshBuildButtons() {
   if (gameState.barracks.isMaxLevel) {
     buildBarracksBtn.disabled = true;
     buildBarracksBtn.textContent = 'Barracks Maxed';
@@ -146,13 +165,16 @@ function refreshBarracksButton() {
     buildBarracksBtn.disabled = gameState.cash < cost;
   }
 
-  if (gameState.shootingRange.isMaxLevel) {
-    buildRangeBtn.disabled = true;
-    buildRangeBtn.textContent = 'Shooting Range Maxed';
-  } else {
-    const rCost = gameState.shootingRange.nextUpgradeCost();
-    rangeCostEl.textContent = Math.round(rCost);
-    buildRangeBtn.disabled = gameState.cash < rCost;
+  for (const { key, label, buildBtn, costEl } of trainingBuildingUi) {
+    const building = gameState[key];
+    if (building.isMaxLevel) {
+      buildBtn.disabled = true;
+      buildBtn.textContent = `${label} Maxed`;
+    } else {
+      const cost = building.nextUpgradeCost();
+      costEl.textContent = Math.round(cost);
+      buildBtn.disabled = gameState.cash < cost;
+    }
   }
 
   if (gameState.messHall.isBuilt) {
@@ -200,7 +222,7 @@ canvas.addEventListener('click', (e) => {
 function updateHud() {
   cashValueEl.textContent = Math.floor(gameState.cash);
   rosterValueEl.textContent = `${gameState.soldierCount} / ${gameState.unitCap}`;
-  refreshBarracksButton();
+  refreshBuildButtons();
 }
 
 function frame(now) {

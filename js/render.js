@@ -53,9 +53,11 @@ function drawBarracks(ctx, barracks) {
     `Barracks Lv.${barracks.level}`, `+${barracks.capContribution()} cap`, '#5a6450');
 }
 
-function drawShootingRange(ctx, range, occupancy) {
-  drawBuildingBox(ctx, range.gridX, range.gridY, range.isBuilt,
-    `Shooting Range Lv.${range.level}`, `${occupancy}/${range.capacity} slots`, '#6a5240');
+// Shared drawer for the 4 TrainingBuilding instances (building.js) — they're
+// all boxes with a level + occupancy label, just different labels/colors.
+function drawTrainingBuilding(ctx, building, occupancy, label, color) {
+  drawBuildingBox(ctx, building.gridX, building.gridY, building.isBuilt,
+    `${label} Lv.${building.level}`, `${occupancy}/${building.capacity} slots`, color);
 }
 
 function drawMessHall(ctx, hall, food) {
@@ -160,7 +162,10 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
   drawGrid(ctx);
   drawBarracks(ctx, gameState.barracks);
-  drawShootingRange(ctx, gameState.shootingRange, gameState.shootingRangeOccupancy());
+  drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240');
+  drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a');
+  drawTrainingBuilding(ctx, gameState.obstacleCourse, gameState.occupancyOf(gameState.obstacleCourse), 'Obstacle Course', '#6a5a30');
+  drawTrainingBuilding(ctx, gameState.drillYard, gameState.occupancyOf(gameState.drillYard), 'Combat Drill Yard', '#4a5a6a');
   drawMessHall(ctx, gameState.messHall, gameState.food);
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 

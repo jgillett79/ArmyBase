@@ -94,21 +94,56 @@ by giving each building a fixed string ID (`'barracks'`, `'shooting_range'`,
 `'mess_hall'`) since each is a singleton. Caught by the save/load smoke
 test, not by playing — worth keeping smoke tests for this reason.
 
-## Open questions for Phase 2
+## Phase 2 — decisions locked
 
-1. **Missions don't exist yet.** Coal/lumber/gems as mission rewards, and a
-   percentage-chance-based mission resolution screen, are the next real
-   chunk of work. Everything in Phase 1 was built assuming missions are
-   still ahead — Food is cash-only for now specifically because building a
-   multi-resource economy before there's a way to earn those resources
-   means guessing at balance blind.
-2. Obstacle Course (endurance) and other training buildings mentioned
-   alongside Shooting Range — same mechanical pattern as Shooting Range,
-   just needs the specific stat + building confirmed.
-3. Sanitary/showers — mentioned as a needed resource but not scoped yet.
-   Is this a second needs-stat (like Energy) or something else?
-4. Does base progression (moving to a new/bigger base, taking 2 units with
-   you) sit before or after missions in build order?
+- **Resources.** Cash covers basic-tier costs (recruits, food, level-1
+  buildings). Higher-tier building levels and equipment cost other
+  resources instead — Lumber (mid tier), Steel/Coal (top tier), Gems (rare —
+  also the cost of Promotion itself). All earned from missions once those
+  exist; not implemented yet, this just locks the shape of the economy.
+- **Stat-training buildings.** Endurance added as a third trainable stat
+  alongside Strength and Accuracy. Weight Room (Strength) and Obstacle
+  Course (Endurance) mirror the Shooting Range pattern exactly. Combat
+  Drill Yard trains Strength + Endurance together at half the per-stat rate
+  of a dedicated building — a breadth/speed trade-off, not strictly better.
+- **Passive needs stats.** Hygiene and Morale planned (not built yet).
+  Hygiene will feed into Energy's decay rate rather than being an
+  independent path to the hospital, to keep "Energy hits 0 → hospital" as
+  the single failure funnel instead of stacking multiple stats that can
+  each independently kill a unit. Morale will be a soft training-rate
+  debuff, not a death path.
+- **Base progression / promotion.** Completing Base 1 (all buildings
+  maxed + unit cap of 20 reached) unlocks Promotion: pick 2 units to carry
+  to Base 2. **Base 1 stays as a legacy base** — it keeps producing its
+  passive income, the other 18 units stay there permanently, nobody
+  disappears. Bigger bases unlock better missions with better rewards.
+
+## Phase 2 — increment 1 (done): Endurance + new training buildings
+
+- **Endurance** — new trainable stat, same shape as Accuracy (40-60 start,
+  grows on level-up, clamped 0-95).
+- **Weight Room** (Strength), **Obstacle Course** (Endurance) — same
+  mechanical pattern as Shooting Range: 3 levels, 2 slots/level, assign an
+  idle unit via the profile panel.
+- **Combat Drill Yard** — trains Strength + Endurance together, each at
+  half the single-stat rate (0.25/game-hour vs 0.5).
+- `building.js`'s `ShootingRange`/`WeightRoom`/`ObstacleCourse`/
+  `CombatDrillYard` now share a `TrainingBuilding` base class — generalizing
+  this was deliberately deferred in Phase 0/1 (see CLAUDE.md) until the
+  pattern repeated enough times to justify it; four buildings later, it did.
+
+## Open questions still remaining for Phase 2
+
+1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
+   squad selection, and how mission tier gates which resources drop —
+   still fully unscoped. Biggest remaining chunk of work, and several
+   decisions above (resource tiers, promotion rewards) are written assuming
+   missions will justify them.
+2. **Hygiene/Morale + Showers/Rec Room** — decided in shape (see above),
+   not implemented yet.
+3. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+   units, what resets on the new base vs. carries over (cash? equipment?),
+   and multi-base save-state handling for the legacy Base 1.
 
 ## File layout
 

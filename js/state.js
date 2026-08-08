@@ -37,6 +37,11 @@ class GameState {
     this.barracks = new Barracks(2, 2);
     this.shootingRange = new ShootingRange(8, 2);
     this.messHall = new MessHall(14, 2);
+    // Second building row (Phase 2) — same x-spacing as row one, y=5 keeps
+    // them clear of the row-one footprint (h=2 cells) with room to spare.
+    this.weightRoom = new WeightRoom(2, 5);
+    this.obstacleCourse = new ObstacleCourse(8, 5);
+    this.drillYard = new CombatDrillYard(14, 5);
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
@@ -68,16 +73,27 @@ class GameState {
     return true;
   }
 
-  shootingRangeOccupancy() {
-    return this.units.filter(u => u.assignedBuildingId === this.shootingRange.id).length;
+  // All four "assign a unit, a stat climbs" buildings — used for generic
+  // assignment/occupancy/upgrade instead of one-off methods per building.
+  get trainingBuildings() {
+    return [this.shootingRange, this.weightRoom, this.obstacleCourse, this.drillYard];
   }
 
-  assignToTraining(unitId) {
+  buildingById(id) {
+    return this.trainingBuildings.find(b => b.id === id) || null;
+  }
+
+  occupancyOf(building) {
+    return this.units.filter(u => u.assignedBuildingId === building.id).length;
+  }
+
+  assignToBuilding(unitId, buildingId) {
     const unit = this.units.find(u => u.id === unitId);
+    const building = this.buildingById(buildingId);
     if (!unit || unit.isCivilian || unit.status === UNIT_STATUS.HOSPITAL) return false;
-    if (!this.shootingRange.isBuilt) return false;
-    if (this.shootingRangeOccupancy() >= this.shootingRange.capacity) return false;
-    unit.assignedBuildingId = this.shootingRange.id;
+    if (!building || !building.isBuilt) return false;
+    if (this.occupancyOf(building) >= building.capacity) return false;
+    unit.assignedBuildingId = building.id;
     return true;
   }
 
@@ -85,6 +101,18 @@ class GameState {
     const unit = this.units.find(u => u.id === unitId);
     if (!unit) return false;
     unit.assignedBuildingId = null;
+    return true;
+  }
+
+  canUpgradeBuilding(building) {
+    return !building.isMaxLevel && this.cash >= building.nextUpgradeCost();
+  }
+
+  upgradeBuilding(key) {
+    const building = this[key];
+    if (!building || !this.canUpgradeBuilding(building)) return false;
+    this.cash -= building.nextUpgradeCost();
+    building.upgrade();
     return true;
   }
 
@@ -181,7 +209,8 @@ class GameState {
         foodConsumedThisTick += FOOD_CONSUMED_PER_GAME_HOUR * gameHours;
       }
       if (unit.status === UNIT_STATUS.TRAINING && unit.isAtTarget()) {
-        unit.applyTrainingGain(gameHours);
+        const building = this.buildingById(unit.assignedBuildingId);
+        if (building) unit.applyTrainingGain(gameHours, building.trains);
       }
 
       if (unit.energy <= 0) {
@@ -205,7 +234,10 @@ class GameState {
       unit.targetX = c.x + randRange(-20, 20);
       unit.targetY = c.y + randRange(-20, 20);
     } else if (desired === UNIT_STATUS.TRAINING) {
-      const c = this.buildingCenter(this.shootingRange);
+      // Route to whichever training building this unit is actually assigned
+      // to — used to hardcode shootingRange when it was the only one.
+      const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
+      const c = this.buildingCenter(building);
       unit.targetX = c.x + randRange(-20, 20);
       unit.targetY = c.y + randRange(-20, 20);
     } else if (desired === UNIT_STATUS.SLEEPING) {
@@ -239,13 +271,16 @@ class GameState {
       barracksLevel: this.barracks.level,
       shootingRangeLevel: this.shootingRange.level,
       messHallLevel: this.messHall.level,
+      weightRoomLevel: this.weightRoom.level,
+      obstacleCourseLevel: this.obstacleCourse.level,
+      drillYardLevel: this.drillYard.level,
       lastTick: Date.now(),
       units: this.units
         .filter(u => !u.isCivilian) // don't persist transient civilians
         .map(u => ({
           id: u.id, name: u.name, x: u.x, y: u.y, colorSeed: u.colorSeed,
           level: u.level, xp: u.xp, xpToNext: u.xpToNext,
-          maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy,
+          maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
           maxEnergy: u.maxEnergy, energy: u.energy, assignedBuildingId: u.assignedBuildingId,
           equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil,
         })),
@@ -265,6 +300,9 @@ class GameState {
       state.barracks.level = data.barracksLevel ?? 0;
       state.shootingRange.level = data.shootingRangeLevel ?? 0;
       state.messHall.level = data.messHallLevel ?? 0;
+      state.weightRoom.level = data.weightRoomLevel ?? 0;
+      state.obstacleCourse.level = data.obstacleCourseLevel ?? 0;
+      state.drillYard.level = data.drillYardLevel ?? 0;
 
       state.units = (data.units || []).map(d => {
         const u = new Unit({ x: d.x, y: d.y, isCivilian: false });

@@ -48,12 +48,33 @@ with a stat-weighted success chance → return, or don't.
   whether they have a job assigned. The user was asked "manual assignment
   only" vs "full auto-schedule" and picked full auto. Don't revert to
   manual-only without being asked.
-- **Vehicles, extra buildings (Obstacle Course, showers/sanitary), and
-  missions are all deliberately NOT built yet.** Each would require design
-  decisions that don't have answers yet (see "Open questions" below).
-  Resist the temptation to stub these in "while I'm in there" — guessing
-  the data shape before the requirement is known is exactly the kind of
-  rearchitect-later risk this project has been trying to avoid.
+- **Vehicles and missions are still deliberately NOT built.** Each needs
+  design decisions that don't have answers yet (see "Open questions"
+  below). Resist stubbing these in "while I'm in there" — guessing the data
+  shape before the requirement is known is exactly the kind of
+  rearchitect-later risk this project has been trying to avoid. (Obstacle
+  Course, along with Weight Room and Combat Drill Yard, WAS built in Phase 2
+  increment 1 — see below — once its stat/mechanic was confirmed.)
+- **Phase 2 resource economy: tiered, not just cash.** Cash covers basic
+  costs. Higher-tier building levels/equipment cost Lumber (mid),
+  Steel/Coal (top), or Gems (rare — also gates Promotion). Not implemented
+  yet — missions have to exist first to pay them out — but the shape is
+  locked so later work doesn't have to guess at it.
+- **Phase 2 passive needs stats: Hygiene feeds Energy decay, doesn't
+  independently kill.** When Hygiene (planned, not built) and Morale
+  (planned, not built) are added, Hygiene at 0 should *increase* Energy's
+  decay rate rather than being a second independent path to the hospital.
+  Keep "Energy hits 0 → hospital" as the single failure funnel — don't let
+  new needs-stats each grow their own death path, that re-fragments the
+  "no permadeath, one consequence" design this project already settled on.
+- **Base 1 becomes a legacy base on Promotion, not abandoned.** When a
+  player completes Base 1 (all buildings maxed, unit cap of 20 reached) and
+  promotes 2 chosen units to Base 2, the other 18 units stay at Base 1
+  permanently — it keeps its passive income, nobody disappears. This was an
+  explicit user decision specifically because releasing/deleting the other
+  18 would cut against the individual-attachment thesis this whole game is
+  built on (see top of this file). Don't quietly change this to "units are
+  released" as a save-state simplification later.
 
 ## Tech constraints — don't introduce a build step
 
@@ -176,23 +197,27 @@ This caught both bugs above. If you (Claude Code) add a real test runner,
 that's a fine upgrade — but keep testing tick/time logic headlessly (no
 browser needed) since that's where the bugs actually are.
 
+## Phase 2 progress — see README.md "Phase 2" sections for full detail
+
+Decisions on resources/stats/needs/promotion are locked (see the four
+bullets added above under "Decisions already made"). **Increment 1 is
+done**: Endurance stat, Weight Room, Obstacle Course, Combat Drill Yard —
+all following the proven Shooting Range pattern via a new shared
+`TrainingBuilding` base class in `building.js`.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Missions.** Percentage-chance resolution based on unit stats, rewards
-   include cash plus new resources (coal/lumber/gems mentioned) for
-   higher-tier buildings. This is the next big chunk and several Phase 1
-   decisions (Food being cash-only, no resource-production buildings yet)
-   were made specifically to avoid guessing at a resource economy before
-   missions exist to justify it.
-2. **Obstacle Course** (endurance stat) and any other training buildings —
-   same mechanical pattern as Shooting Range, just needs the specific
-   stat + building confirmed.
-3. **Sanitary/showers** — mentioned as a resource unit's need but not
-   scoped. Second needs-stat like Energy, or something structurally
-   different?
-4. **Base progression / promotion** — moving to a new/bigger base and
-   bringing 2 chosen units with you. Order relative to missions unclear.
-5. **Art pipeline** — a local AI image model is being stood up separately
+1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
+   squad selection, and how mission tier gates resource drops — still
+   fully unscoped. The biggest remaining chunk; the resource-tier and
+   promotion-reward decisions above are written assuming missions will
+   exist to justify them.
+2. **Hygiene/Morale + Showers/Rec Room** — shape is decided (see above),
+   not implemented yet. Natural next increment after this one.
+3. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
+   what resets vs. carries over onto the new base, and multi-base save
+   state now that Base 1 persists as a legacy base rather than resetting.
+4. **Art pipeline** — a local AI image model is being stood up separately
    (see user's own infra work, not part of this repo) to eventually
    replace the placeholder canvas shapes with real sprites. No art
    direction/style brief has been locked yet as of this handoff.

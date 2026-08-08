@@ -29,6 +29,15 @@
       <button id="buildRangeBtn">Shooting Range (<span id="rangeCost">80</span>)</button>
     </div>
     <div class="hud-block">
+      <button id="buildWeightRoomBtn">Weight Room (<span id="weightRoomCost">80</span>)</button>
+    </div>
+    <div class="hud-block">
+      <button id="buildObstacleCourseBtn">Obstacle Course (<span id="obstacleCourseCost">80</span>)</button>
+    </div>
+    <div class="hud-block">
+      <button id="buildDrillYardBtn">Drill Yard (<span id="drillYardCost">100</span>)</button>
+    </div>
+    <div class="hud-block">
       <button id="buildMessHallBtn">Mess Hall (120)</button>
     </div>
   </header>
@@ -62,10 +71,19 @@
       </div>
       <div class="profile-row"><span>Strength</span><span id="profileStrength"></span></div>
       <div class="profile-row"><span>Accuracy</span><span id="profileAccuracy"></span></div>
+      <div class="profile-row"><span>Endurance</span><span id="profileEndurance"></span></div>
       <div class="profile-row"><span>Equipment</span><span id="profileEquipment">None</span></div>
     </div>
+    <div class="profile-training">
+      <span class="hud-label">Assign to training</span>
+      <div class="profile-training-buttons">
+        <button id="assignShootingRangeBtn">Shooting Range</button>
+        <button id="assignWeightRoomBtn">Weight Room</button>
+        <button id="assignObstacleCourseBtn">Obstacle Course</button>
+        <button id="assignDrillYardBtn">Drill Yard</button>
+      </div>
+    </div>
     <div class="profile-actions">
-      <button id="assignTrainingBtn">Assign: Shooting Range</button>
       <button id="recallBtn">Recall to Idle</button>
     </div>
   </div>

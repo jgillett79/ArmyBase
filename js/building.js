@@ -1,8 +1,8 @@
-// building.js — Phase 0 only implements Barracks. Deliberately not
-// generalised into a big "building types" registry yet — we don't know
-// enough about how Mess Hall / Shooting Range / etc. actually function
-// mechanically (see README "Open questions for Phase 1"), and guessing
-// that structure now risks building the wrong abstraction.
+// building.js — Barracks and Mess Hall stay as one-off classes (each has its
+// own semantics: cap contribution, single-level unlimited-capacity needs
+// building). Everything that's "assign a unit, a stat climbs" shares the
+// TrainingBuilding base below — see its comment for why that stopped being
+// a premature abstraction once Phase 2 added three more of them.
 
 const BARRACKS_MAX_LEVEL = 3;
 const BARRACKS_CAP_PER_LEVEL = 5;
@@ -45,34 +45,91 @@ class Barracks {
   }
 }
 
-// Footprint shared by every building for Phase 1 — 3x2 grid cells. Fine while
-// there are three buildings; revisit if/when building variety grows (see README).
+// Footprint shared by every building — 3x2 grid cells. Fine while buildings
+// are all roughly the same visual size; revisit if/when building variety
+// grows beyond simple boxes (see README).
 const BUILDING_FOOTPRINT_CELLS = { w: 3, h: 2 };
 
-const SHOOTING_RANGE_MAX_LEVEL = 3;
-const SHOOTING_RANGE_SLOTS_PER_LEVEL = 2;
-
-class ShootingRange {
-  constructor(gridX, gridY) {
-    this.id = 'shooting_range'; // fixed ID — see Barracks comment above
-    this.type = 'shooting_range';
+// Shared shape for every "assign an idle unit here, a stat climbs while
+// they're physically at the building during daytime" building. Generalized
+// out of the original one-off ShootingRange class now that Phase 2 adds
+// three more buildings following the identical mechanical pattern — no
+// longer a premature abstraction once the pattern repeats four times.
+//
+// trains: { statName: gainPerGameHour, ... }. Applied via
+// Unit.applyTrainingGain(). A building with multiple keys (Combat Drill
+// Yard) trains more than one stat at once, at a reduced rate each — a
+// deliberate trade-off, not strictly better than a dedicated building.
+class TrainingBuilding {
+  constructor({ id, type, gridX, gridY, maxLevel, slotsPerLevel, baseCost, trains }) {
+    this.id = id; // fixed string — see Barracks comment above on why
+    this.type = type;
     this.gridX = gridX;
     this.gridY = gridY;
     this.level = 0;
+    this.maxLevel = maxLevel;
+    this.slotsPerLevel = slotsPerLevel;
+    this.baseCost = baseCost;
+    this.trains = trains;
   }
 
   get isBuilt() { return this.level > 0; }
-  get isMaxLevel() { return this.level >= SHOOTING_RANGE_MAX_LEVEL; }
+  get isMaxLevel() { return this.level >= this.maxLevel; }
+  get capacity() { return this.level * this.slotsPerLevel; }
 
   nextUpgradeCost() {
-    return 80 * Math.pow(2, this.level);
-  }
-
-  get capacity() {
-    return this.level * SHOOTING_RANGE_SLOTS_PER_LEVEL;
+    return this.baseCost * Math.pow(2, this.level);
   }
 
   upgrade() { this.level += 1; }
+}
+
+// Gain rates — placeholder numbers like everything else balance-related in
+// this codebase (see CLAUDE.md). Weight Room/Obstacle Course match the
+// Shooting Range's existing 0.5/game-hour for symmetry. Combat Drill Yard
+// trains two stats at once, so each stat grows at half that rate — the
+// building is a breadth-vs-speed trade-off, not a strict upgrade.
+const SINGLE_STAT_GAIN_PER_GAME_HOUR = 0.5;
+const DRILL_YARD_GAIN_PER_GAME_HOUR = 0.25;
+
+class ShootingRange extends TrainingBuilding {
+  constructor(gridX, gridY) {
+    super({
+      id: 'shooting_range', type: 'shooting_range', gridX, gridY,
+      maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
+      trains: { accuracy: SINGLE_STAT_GAIN_PER_GAME_HOUR },
+    });
+  }
+}
+
+class WeightRoom extends TrainingBuilding {
+  constructor(gridX, gridY) {
+    super({
+      id: 'weight_room', type: 'weight_room', gridX, gridY,
+      maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
+      trains: { strength: SINGLE_STAT_GAIN_PER_GAME_HOUR },
+    });
+  }
+}
+
+class ObstacleCourse extends TrainingBuilding {
+  constructor(gridX, gridY) {
+    super({
+      id: 'obstacle_course', type: 'obstacle_course', gridX, gridY,
+      maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
+      trains: { endurance: SINGLE_STAT_GAIN_PER_GAME_HOUR },
+    });
+  }
+}
+
+class CombatDrillYard extends TrainingBuilding {
+  constructor(gridX, gridY) {
+    super({
+      id: 'drill_yard', type: 'drill_yard', gridX, gridY,
+      maxLevel: 3, slotsPerLevel: 2, baseCost: 100,
+      trains: { strength: DRILL_YARD_GAIN_PER_GAME_HOUR, endurance: DRILL_YARD_GAIN_PER_GAME_HOUR },
+    });
+  }
 }
 
 // Mess Hall: deliberately NOT leveled in Phase 1 — built once, unlimited

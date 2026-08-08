@@ -163,6 +163,23 @@ button:disabled {
   background: var(--danger);
 }
 
+.profile-training {
+  margin-top: 10px;
+}
+
+.profile-training-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.profile-training-buttons button {
+  flex: 1 1 auto;
+  font-size: 0.75rem;
+  padding: 5px 7px;
+}
+
 .profile-actions {
   display: flex;
   gap: 6px;

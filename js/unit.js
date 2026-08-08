@@ -21,8 +21,10 @@ const ENERGY_RATE_IDLE = -3;         // per game-hour
 const ENERGY_RATE_SLEEPING = -1;     // per game-hour
 const ENERGY_RATE_EATING_FED = 15;   // per game-hour, only if food is available
 const ENERGY_RATE_EATING_HUNGRY = -3; // per game-hour, standing at an empty Mess Hall
-const ACCURACY_GAIN_PER_GAME_HOUR = 0.5;
 const ARRIVAL_RADIUS = 30; // px — how close counts as "at the building"
+// Per-stat training gain rates now live on the building (building.js `trains`
+// map) since Phase 2 added multiple training buildings — a single constant
+// here stopped being able to describe "how fast does X stat grow."
 
 class Unit {
   constructor({ x, y, isCivilian = true }) {
@@ -55,6 +57,7 @@ class Unit {
     this.hp = this.maxHp;
     this.strength = randInt(3, 7);
     this.accuracy = randInt(40, 60); // percent, float internally once training starts
+    this.endurance = randInt(40, 60); // percent, same shape as accuracy
 
     this.maxEnergy = 100;
     this.energy = 100;
@@ -88,6 +91,7 @@ class Unit {
     this.hp = this.maxHp;
     this.strength += randInt(1, 2);
     this.accuracy = clamp(this.accuracy + randInt(1, 3), 0, 95);
+    this.endurance = clamp(this.endurance + randInt(1, 3), 0, 95);
   }
 
   sendToHospital(nowMs) {
@@ -129,8 +133,13 @@ class Unit {
     return Math.hypot(this.x - this.targetX, this.y - this.targetY) < ARRIVAL_RADIUS;
   }
 
-  applyTrainingGain(gameHours) {
-    this.accuracy = clamp(this.accuracy + ACCURACY_GAIN_PER_GAME_HOUR * gameHours, 0, 95);
+  // trains: { statName: gainPerGameHour, ... } — comes from whichever
+  // building.trains map the unit is currently assigned to. A building that
+  // trains multiple stats (Combat Drill Yard) just has multiple keys here.
+  applyTrainingGain(gameHours, trains) {
+    for (const stat in trains) {
+      this[stat] = clamp(this[stat] + trains[stat] * gameHours, 0, 95);
+    }
   }
 
   pickNewWanderTarget(bounds) {
