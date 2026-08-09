@@ -132,6 +132,45 @@ test, not by playing — worth keeping smoke tests for this reason.
   this was deliberately deferred in Phase 0/1 (see CLAUDE.md) until the
   pattern repeated enough times to justify it; four buildings later, it did.
 
+## Phase 2 — art pass (done): real sprites replace placeholder shapes
+
+- 15 assets generated (6 buildings, 3 civilian outfits, 6 soldier body
+  variants) via `tools/generate_assets.py` — a FLUX text-to-image +
+  background-removal + desaturation pipeline. Spec lives in `ASSETS.md`.
+- `render.js` draws every building/unit as an image, hue-rotating unit
+  sprites per-unit (`colorSeed`) the same way the old placeholder circles
+  were tinted — the desaturated source art is what makes that work cleanly.
+  Falls back to the original procedural shapes until a sprite finishes
+  loading, so the game is never blocked on art.
+- `unit.js` gained `soldierVariant` (1-6) so each recruit gets a fixed
+  body shape from the 6-sprite pack.
+
+## Phase 2 — increment 2 (done): perimeter wall + gatehouse + vacant lots
+
+- The base is now enclosed by a 1-cell wall on all four sides
+  (`WALL_THICKNESS`/`GATE_*` constants in `state.js`), with a single gate —
+  a 2-cell gap in the **left** wall — as the only way in or out. All
+  existing buildings already sat clear of the border, so nothing had to
+  move.
+- Civilians now always spawn just outside the gate and walk in through it
+  (two-stage movement: outside → inside-gate waypoint → random interior
+  wander), and route back out through the same gate to leave/despawn,
+  instead of the old spawn-from-any-of-4-edges behavior.
+- "Not built" building plots now render as a dirt/foundation lot
+  (`vacant_lot.png`, one shared asset for all 6 plots) instead of a
+  transparent dashed outline — falls back to a procedural dirt-brown fill
+  until the art lands.
+- `gatehouse.png` and `vacant_lot.png` are spec'd in `ASSETS.md` but not
+  yet generated — the game runs fine without them (procedural fallback),
+  no urgency.
+- **Deliberately NOT built here**: actual road/path-following movement.
+  Units still walk in a straight line to wherever their current target is
+  — the wall/gate only constrain the two endpoints (spawn-outside,
+  wander-inside), not the path between them. Real waypoint/road-following
+  movement is scoped as its own next increment (see open questions) since
+  it's a meaningfully bigger technical lift than anything built so far —
+  don't retrofit it piecemeal into other features first.
+
 ## Open questions still remaining for Phase 2
 
 1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
@@ -139,9 +178,21 @@ test, not by playing — worth keeping smoke tests for this reason.
    still fully unscoped. Biggest remaining chunk of work, and several
    decisions above (resource tiers, promotion rewards) are written assuming
    missions will justify them.
-2. **Hygiene/Morale + Showers/Rec Room** — decided in shape (see above),
-   not implemented yet.
-3. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+2. **Road network + path-following movement.** Units currently beeline
+   straight to their target with no notion of obstacles, walls, or roads.
+   Needed before "units walk along a path around the base" is real, and
+   before the recruit-walks-to-Barracks-then-changes-into-uniform moment
+   or the full daily schedule (below) will look right rather than janky.
+3. **Recruit → walk to Barracks → become a soldier.** Right now `recruit()`
+   flips a civilian to a soldier instantly on the popup confirm, wherever
+   they happen to be standing. Wants to become: walk to the Barracks first,
+   uniform-change happens on arrival. Depends on #2 to look right.
+4. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
+   building, Hygiene) → training → lunch (Mess Hall) → recreation (new Rec
+   Room, Morale) → repeat. Hygiene/Morale + Showers/Rec Room are decided in
+   shape (see above) but not built; the schedule *sequencing* itself (what
+   order, how long at each stop) is a design pass that hasn't happened yet.
+5. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
 

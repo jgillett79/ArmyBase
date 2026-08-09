@@ -84,8 +84,11 @@ full building palette as their real, final color.
 
 Each building renders as a single static image at every level — the level
 number (`Lv.1`/`Lv.2`/`Lv.3`) is drawn as a text overlay by existing code,
-not baked into the art. Only the "built" appearance needs art; the
-"not-built" state stays a procedural dashed outline — no asset for that.
+not baked into the art. Only the "built" appearance needs art here — the
+"not-built" state has its own single shared asset (`vacant_lot.png`,
+below), reused across all 6 building plots rather than one per building,
+since an empty plot doesn't need to look different depending on what will
+eventually go there.
 
 **Shared specs for all 6 buildings:**
 - **Save format:** PNG-24, transparent background
@@ -207,6 +210,67 @@ hard shadows, optional soft 10% contact shadow directly under the
 building only. Fully transparent background, no ground/grass texture, no
 text, no people, no other structures in frame. Building fills about 80% of
 canvas width, centered with even padding.
+**Generate at 576×384px, PNG with alpha transparency.**
+
+### `gatehouse.png`
+**Path:** `assets/buildings/gatehouse.png`
+
+The base is enclosed by a perimeter wall; this is the single opening in
+it — a gatehouse archway units walk through to enter or leave. Unlike the
+other 6 buildings, it's tall/narrow (it fills a gap in the wall line, not
+an open plot), so it gets its own resolution.
+
+- **In-game display size:** 48 × 96 px (1 grid cell wide × 2 cells tall —
+  it sits directly in the wall line, narrower than a normal building plot)
+- **Generate at:** 192 × 384 px exactly (4× display size, clean multiple
+  of 64px)
+- **Aspect ratio:** 1:2 (tall portrait)
+
+**Prompt:** A military base gatehouse/checkpoint archway, viewed from a
+30-40° top-down isometric angle, flat vector game-art illustration style
+with a consistent 2-3px dark outline (#1a1d14) on every edge. A narrow
+tower/arch structure spanning the full height of the image, tall and
+narrow rather than wide — a raised guard-post box at the top with a small
+window, supporting a simple lowered or raised boom-gate / archway opening
+below it that the rest of the image's width passes through. Tones in
+weathered khaki-tan (#8a9478) for the structure with dark steel-blue
+(#4a5a6a) accents on the gate/boom-arm. Flat ambient lighting from
+upper-left, no hard shadows, optional soft 10% contact shadow at the base
+only. Fully transparent background, no ground/grass texture, no text, no
+people, no other structures in frame. Structure fills about 85% of canvas
+height, centered with even padding on left/right.
+**Generate at 192×384px, PNG with alpha transparency.**
+
+### `vacant_lot.png`
+**Path:** `assets/buildings/vacant_lot.png`
+
+The "not yet built" state for all 6 building plots (Weight Room,
+Obstacle Course, Combat Drill Yard, etc. before you've spent cash on
+them) — one shared asset reused at every empty plot, not a
+per-building variant, since an empty plot is an empty plot regardless of
+what eventually gets built there. The existing "Lv.1 (not built)"-style
+text label still renders on top of this in-code — don't bake any text
+into the art itself.
+
+- **In-game display size:** 144 × 96 px (same 3×2-cell footprint as a
+  built building)
+- **Generate at:** 576 × 384 px exactly (4× display size, clean multiple
+  of 64px)
+- **Aspect ratio:** 3:2 (landscape), same camera angle as the 6 buildings
+
+**Prompt:** A cleared, empty construction plot, viewed from a 30-40°
+top-down isometric angle, flat vector game-art illustration style with a
+consistent 2-3px dark outline (#1a1d14) on the plot's edge only (not
+individual clutter). Bare packed dirt in muted brown (#6a5240) filling
+the rectangular plot, a few small details reading as "about to be built
+on" — a couple of wooden stakes with string marking out a foundation
+corner, maybe one small stack of lumber or cinder blocks in a corner.
+Deliberately sparse and low-detail — this is a placeholder plot, not a
+finished scene. Flat ambient lighting from upper-left, no hard shadows.
+Fully transparent background outside the plot rectangle itself, no text,
+no people, no other structures in frame. Fills the full 3:2 canvas edge
+to edge (unlike the built buildings, this should read as ground filling
+the whole plot, not an object floating with padding).
 **Generate at 576×384px, PNG with alpha transparency.**
 
 ---
@@ -488,45 +552,53 @@ Figure fills about 80% of canvas height, centered with even padding.
 | 4 | `obstacle_course.png` | `assets/buildings/obstacle_course.png` | 576×384px | PNG-24 + alpha |
 | 5 | `drill_yard.png` | `assets/buildings/drill_yard.png` | 576×384px | PNG-24 + alpha |
 | 6 | `mess_hall.png` | `assets/buildings/mess_hall.png` | 576×384px | PNG-24 + alpha |
-| 7 | `civilian.png` | `assets/units/civilians/civilian.png` | 128×192px | PNG-24 + alpha |
-| 8 | `bus_rider.png` | `assets/units/civilians/bus_rider.png` | 128×192px | PNG-24 + alpha |
-| 9 | `taxi.png` | `assets/units/civilians/taxi.png` | 128×192px | PNG-24 + alpha |
-| 10 | `soldier_01.png` | `assets/units/soldiers/soldier_01.png` | 128×192px | PNG-24 + alpha |
-| 11 | `soldier_02.png` | `assets/units/soldiers/soldier_02.png` | 128×192px | PNG-24 + alpha |
-| 12 | `soldier_03.png` | `assets/units/soldiers/soldier_03.png` | 128×192px | PNG-24 + alpha |
-| 13 | `soldier_04.png` | `assets/units/soldiers/soldier_04.png` | 128×192px | PNG-24 + alpha |
-| 14 | `soldier_05.png` | `assets/units/soldiers/soldier_05.png` | 128×192px | PNG-24 + alpha |
-| 15 | `soldier_06.png` | `assets/units/soldiers/soldier_06.png` | 128×192px | PNG-24 + alpha |
+| 7 | `gatehouse.png` | `assets/buildings/gatehouse.png` | 192×384px | PNG-24 + alpha |
+| 8 | `vacant_lot.png` | `assets/buildings/vacant_lot.png` | 576×384px | PNG-24 + alpha |
+| 9 | `civilian.png` | `assets/units/civilians/civilian.png` | 128×192px | PNG-24 + alpha |
+| 10 | `bus_rider.png` | `assets/units/civilians/bus_rider.png` | 128×192px | PNG-24 + alpha |
+| 11 | `taxi.png` | `assets/units/civilians/taxi.png` | 128×192px | PNG-24 + alpha |
+| 12 | `soldier_01.png` | `assets/units/soldiers/soldier_01.png` | 128×192px | PNG-24 + alpha |
+| 13 | `soldier_02.png` | `assets/units/soldiers/soldier_02.png` | 128×192px | PNG-24 + alpha |
+| 14 | `soldier_03.png` | `assets/units/soldiers/soldier_03.png` | 128×192px | PNG-24 + alpha |
+| 15 | `soldier_04.png` | `assets/units/soldiers/soldier_04.png` | 128×192px | PNG-24 + alpha |
+| 16 | `soldier_05.png` | `assets/units/soldiers/soldier_05.png` | 128×192px | PNG-24 + alpha |
+| 17 | `soldier_06.png` | `assets/units/soldiers/soldier_06.png` | 128×192px | PNG-24 + alpha |
 
-(15 files, not 13 — corrected count: 6 buildings + 3 civilians + 6
-soldiers.)
+**#1-6 and #9-17 (15 files) are already generated and in the repo.**
+**#7 `gatehouse.png` and #8 `vacant_lot.png` are new** — added for the
+perimeter wall/gate pass and don't exist yet; `render.js` already has a
+sprite slot for both and falls back to a procedural placeholder (a plain
+labeled archway / a flat dirt-brown rectangle) until they land.
 
-## Folder structure (already created, empty except placeholders)
+## Folder structure
 
 ```
 assets/
   buildings/
-    barracks.png
-    shooting_range.png
-    weight_room.png
-    obstacle_course.png
-    drill_yard.png
-    mess_hall.png
+    barracks.png            (done)
+    shooting_range.png      (done)
+    weight_room.png         (done)
+    obstacle_course.png     (done)
+    drill_yard.png          (done)
+    mess_hall.png           (done)
+    gatehouse.png           (needed)
+    vacant_lot.png          (needed)
   units/
     civilians/
-      civilian.png
-      bus_rider.png
-      taxi.png
+      civilian.png           (done)
+      bus_rider.png          (done)
+      taxi.png               (done)
     soldiers/
-      soldier_01.png
-      soldier_02.png
-      soldier_03.png
-      soldier_04.png
-      soldier_05.png
-      soldier_06.png
+      soldier_01.png         (done)
+      soldier_02.png         (done)
+      soldier_03.png         (done)
+      soldier_04.png         (done)
+      soldier_05.png         (done)
+      soldier_06.png         (done)
 ```
 
-Drop each generated file at the exact path above (overwriting nothing else
-— the `.gitkeep` placeholders can be deleted once real files land in each
-folder). When they're all in place, come back and ask for the `render.js`
-wiring pass to switch from procedural shapes to `drawImage()` calls.
+Drop each generated file at the exact path above. The game already works
+without `gatehouse.png`/`vacant_lot.png` (procedural fallback draws in
+their place), so there's no urgency — drop them in whenever they're ready
+and they'll pick up automatically on the next page load, no code changes
+needed.

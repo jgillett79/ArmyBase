@@ -22,6 +22,8 @@ const BUILDING_SPRITES = {
   obstacle_course: loadSprite('assets/buildings/obstacle_course.png'),
   drill_yard: loadSprite('assets/buildings/drill_yard.png'),
   mess_hall: loadSprite('assets/buildings/mess_hall.png'),
+  gatehouse: loadSprite('assets/buildings/gatehouse.png'),
+  vacant_lot: loadSprite('assets/buildings/vacant_lot.png'),
 };
 
 const UNIT_SPRITES = {
@@ -64,6 +66,61 @@ function drawGrid(ctx) {
   }
 }
 
+const WALL_FILL = '#4a4a42';
+const WALL_STROKE = '#6a6a5c';
+
+// The 1-cell perimeter wall around the whole grid, with a gap on the left
+// side for the gate — see the WALL_THICKNESS/GATE_* constants in state.js,
+// which this draws from directly so the two can't drift out of sync.
+function drawPerimeterWall(ctx) {
+  const w = GRID_COLS * CELL_SIZE;
+  const h = GRID_ROWS * CELL_SIZE;
+  const t = WALL_THICKNESS;
+
+  ctx.fillStyle = WALL_FILL;
+  ctx.strokeStyle = WALL_STROKE;
+  ctx.lineWidth = 2;
+
+  // top, bottom, right — no openings
+  ctx.fillRect(0, 0, w, t);
+  ctx.strokeRect(0, 0, w, t);
+  ctx.fillRect(0, h - t, w, t);
+  ctx.strokeRect(0, h - t, w, t);
+  ctx.fillRect(w - t, 0, t, h);
+  ctx.strokeRect(w - t, 0, t, h);
+
+  // left wall, split above/below the gate gap
+  ctx.fillRect(0, 0, t, GATE_Y_TOP);
+  ctx.strokeRect(0, 0, t, GATE_Y_TOP);
+  ctx.fillRect(0, GATE_Y_BOTTOM, t, h - GATE_Y_BOTTOM);
+  ctx.strokeRect(0, GATE_Y_BOTTOM, t, h - GATE_Y_BOTTOM);
+
+  drawGatehouse(ctx);
+}
+
+function drawGatehouse(ctx) {
+  const x = 0, y = GATE_Y_TOP, w = WALL_THICKNESS, h = GATE_Y_BOTTOM - GATE_Y_TOP;
+  const img = BUILDING_SPRITES.gatehouse;
+  if (spriteReady(img)) {
+    ctx.drawImage(img, x, y, w, h);
+    return;
+  }
+  // fallback: a plain marked archway until real art exists
+  ctx.fillStyle = '#8a7a5a';
+  ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = '#d8d8c8';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.save();
+  ctx.translate(x + w / 2, y + h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#1a1d14';
+  ctx.font = 'bold 11px monospace';
+  ctx.textAlign = 'center';
+  ctx.fillText('GATE', 0, 4);
+  ctx.restore();
+}
+
 function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spriteKey) {
   const x = gridX * CELL_SIZE;
   const y = gridY * CELL_SIZE;
@@ -71,11 +128,20 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
   const h = CELL_SIZE * BUILDING_FOOTPRINT_CELLS.h;
 
   if (!isBuilt) {
-    ctx.strokeStyle = 'rgba(216, 216, 200, 0.4)';
-    ctx.setLineDash([6, 4]);
-    ctx.strokeRect(x, y, w, h);
-    ctx.setLineDash([]);
-    ctx.fillStyle = 'rgba(216, 216, 200, 0.5)';
+    const lotImg = BUILDING_SPRITES.vacant_lot;
+    if (spriteReady(lotImg)) {
+      ctx.drawImage(lotImg, x, y, w, h);
+    } else {
+      // fallback: a cleared/foundation-dirt lot, not just an empty outline —
+      // reads as "buyable plot" rather than "nothing here yet"
+      ctx.fillStyle = 'rgba(106, 82, 58, 0.35)';
+      ctx.fillRect(x, y, w, h);
+      ctx.strokeStyle = 'rgba(216, 216, 200, 0.4)';
+      ctx.setLineDash([6, 4]);
+      ctx.strokeRect(x, y, w, h);
+      ctx.setLineDash([]);
+    }
+    ctx.fillStyle = 'rgba(216, 216, 200, 0.85)';
     ctx.font = '12px monospace';
     ctx.fillText(`${label} (not built)`, x + 8, y + h / 2);
     return;
@@ -238,6 +304,7 @@ function statusLabel(unit) {
 function renderFrame(ctx, gameState, selectedUnitId) {
   ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
   drawGrid(ctx);
+  drawPerimeterWall(ctx);
   drawBarracks(ctx, gameState.barracks);
   drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240', 'shooting_range');
   drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a', 'weight_room');

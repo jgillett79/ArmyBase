@@ -29,6 +29,23 @@ const OFFLINE_CATCHUP_CAP_MS = 24 * 60 * 60 * 1000; // was 3 days in Phase 0, no
 const FOOD_COST_PER_UNIT = 1.5; // cash per food, placeholder pricing
 const FOOD_CONSUMED_PER_GAME_HOUR = 5; // per unit actively eating with food available
 
+// ---------------------------------------------------------------------------
+// PERIMETER WALL + GATE — the base is enclosed by a 1-cell-thick wall on all
+// four sides; the only way in or out is the gate, a 2-cell-tall gap in the
+// LEFT wall (col 0). All existing buildings sit at gridX 2-17/gridY 2-7, well
+// clear of this border, so they didn't need to move. render.js draws the
+// wall itself; the constants below are shared with the civilian spawn/leave
+// logic below so both stay in sync with where the gap actually is.
+// ---------------------------------------------------------------------------
+const WALL_THICKNESS = CELL_SIZE; // 1 cell
+const GATE_ROW_START = 5;
+const GATE_ROWS = 2;
+const GATE_Y_TOP = GATE_ROW_START * CELL_SIZE;
+const GATE_Y_BOTTOM = (GATE_ROW_START + GATE_ROWS) * CELL_SIZE;
+const GATE_Y_CENTER = (GATE_Y_TOP + GATE_Y_BOTTOM) / 2;
+const GATE_OUTSIDE_X = -20; // off-canvas, just past the wall's outer face
+const GATE_INSIDE_X = WALL_THICKNESS + 8; // just inside the wall, matches bounds.minX
+
 class GameState {
   constructor() {
     this.cash = 200;
@@ -46,8 +63,14 @@ class GameState {
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
 
-    // Walkable bounds in pixels, kept inset from canvas edge
-    this.bounds = { minX: 40, maxX: 960 - 40, minY: 90, maxY: 576 - 40 };
+    // Walkable bounds in pixels — the interior of the perimeter wall, with a
+    // small margin so units don't visually touch it.
+    this.bounds = {
+      minX: WALL_THICKNESS + 8,
+      maxX: GRID_COLS * CELL_SIZE - WALL_THICKNESS - 8,
+      minY: WALL_THICKNESS + 8,
+      maxY: GRID_ROWS * CELL_SIZE - WALL_THICKNESS - 8,
+    };
   }
 
   get hourOfDay() {
@@ -140,19 +163,14 @@ class GameState {
     const approaching = this.units.filter(u => u.status === UNIT_STATUS.CIVILIAN_APPROACHING);
     if (approaching.length >= 2) return; // don't flood the screen
 
-    // Spawn at a random point along the base's outer edge — the "bus stop / street"
-    const edge = pick(['top', 'bottom', 'left', 'right']);
-    let x, y;
-    if (edge === 'top') { x = randRange(this.bounds.minX, this.bounds.maxX); y = this.bounds.minY; }
-    else if (edge === 'bottom') { x = randRange(this.bounds.minX, this.bounds.maxX); y = this.bounds.maxY; }
-    else if (edge === 'left') { x = this.bounds.minX; y = randRange(this.bounds.minY, this.bounds.maxY); }
-    else { x = this.bounds.maxX; y = randRange(this.bounds.minY, this.bounds.maxY); }
-
-    const civ = new Unit({ x, y, isCivilian: true });
+    // The wall means there's only one way in: the gate. Spawn just outside
+    // it and head for the inside-gate waypoint first — tickCivilian() picks
+    // a normal interior wander target once they've actually passed through.
+    const civ = new Unit({ x: GATE_OUTSIDE_X, y: GATE_Y_CENTER + randRange(-20, 20), isCivilian: true });
     civ.spawnedAt = Date.now();
-    // Walk toward the base centre-ish area so they're clickable, not stuck on the wall
-    civ.targetX = randRange(this.bounds.minX + 100, this.bounds.maxX - 100);
-    civ.targetY = randRange(this.bounds.minY + 100, this.bounds.maxY - 100);
+    civ.enteredGate = false;
+    civ.targetX = GATE_INSIDE_X;
+    civ.targetY = GATE_Y_CENTER;
     this.units.push(civ);
   }
 
@@ -249,17 +267,35 @@ class GameState {
     }
   }
 
+  // Every civilian's walk has up to 4 legs, all funneled through the single
+  // gate (there's no other opening in the wall): outside gate -> inside gate
+  // -> interior wander -> inside gate -> outside gate -> despawn.
   tickCivilian(unit, dtSeconds, nowMs, toRemove) {
     const reached = unit.step(dtSeconds);
     if (unit.status === UNIT_STATUS.CIVILIAN_APPROACHING) {
+      if (!unit.enteredGate) {
+        if (reached) {
+          unit.enteredGate = true;
+          unit.targetX = randRange(this.bounds.minX + 60, this.bounds.maxX - 60);
+          unit.targetY = randRange(this.bounds.minY + 60, this.bounds.maxY - 60);
+        }
+        return;
+      }
       const waited = nowMs - unit.spawnedAt;
       if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
         unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
-        unit.targetX = unit.x < 480 ? this.bounds.minX : this.bounds.maxX;
-        unit.targetY = unit.y < 288 ? this.bounds.minY : this.bounds.maxY;
+        unit.targetX = GATE_INSIDE_X;
+        unit.targetY = GATE_Y_CENTER;
       }
     } else if (unit.status === UNIT_STATUS.CIVILIAN_LEAVING) {
-      if (reached) toRemove.add(unit.id);
+      if (!reached) return;
+      if (unit.x > 0) {
+        // just reached the inside-gate waypoint — step through to outside
+        unit.targetX = GATE_OUTSIDE_X;
+        unit.targetY = GATE_Y_CENTER;
+      } else {
+        toRemove.add(unit.id); // now outside the wall, gone
+      }
     }
   }
 

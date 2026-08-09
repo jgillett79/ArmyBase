@@ -55,6 +55,15 @@ with a stat-weighted success chance → return, or don't.
   rearchitect-later risk this project has been trying to avoid. (Obstacle
   Course, along with Weight Room and Combat Drill Yard, WAS built in Phase 2
   increment 1 — see below — once its stat/mechanic was confirmed.)
+- **The base is walled, single gate, left side.** Perimeter wall on all 4
+  sides (`WALL_THICKNESS`/`GATE_*` in `state.js`), one gate — a 2-cell gap
+  in the left wall — as the only way in/out. Civilians spawn outside it and
+  route through it; recruited soldiers never leave. Built in Phase 2
+  increment 2. Real road/path-following movement is explicitly NOT part of
+  this — units still beeline straight to their target, the wall/gate only
+  constrain the two endpoints. Don't add road-following piecemeal into
+  another feature; it's scoped as its own increment (see open questions)
+  because it's a bigger technical lift than anything built so far.
 - **Phase 2 resource economy: tiered, not just cash.** Cash covers basic
   costs. Higher-tier building levels/equipment cost Lumber (mid),
   Steel/Coal (top), or Gems (rare — also gates Promotion). Not implemented
