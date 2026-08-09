@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ArmyBase — Manual Asset Generator</title>
+<style>
+  :root {
+    --bg: #1a1d14;
+    --panel: #23271b;
+    --panel2: #2c3122;
+    --line: #3a4030;
+    --text: #d8d8c8;
+    --muted: #9a9d88;
+    --accent: #8a9478;
+    --accent2: #b8c49a;
+    --ok: #6fae5a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.5;
+  }
+  header {
+    padding: 24px 24px 12px;
+    border-bottom: 1px solid var(--line);
+    position: sticky;
+    top: 0;
+    background: var(--bg);
+    z-index: 10;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 14px; }
+  .progress {
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--accent2);
+  }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 20px 24px 80px; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 16px 0 8px;
+  }
+  .filter-btn {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .filter-btn.active { background: var(--accent); color: #1a1d14; border-color: var(--accent); font-weight: 600; }
+  .section-title {
+    margin: 28px 0 8px;
+    font-size: 15px;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 16px 14px;
+    margin: 12px 0;
+  }
+  .card.done { opacity: .55; }
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .num {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--muted);
+  }
+  .fname { font-weight: 700; font-size: 16px; }
+  .tag {
+    font-size: 12px;
+    color: var(--accent2);
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 2px 8px;
+  }
+  .meta {
+    margin: 10px 0 8px;
+    font-size: 13px;
+    color: var(--muted);
+    display: grid;
+    grid-template-columns: 92px 1fr;
+    row-gap: 3px;
+    column-gap: 8px;
+  }
+  .meta b { color: var(--text); font-weight: 600; }
+  .path { font-family: ui-monospace, Consolas, monospace; color: var(--accent2); }
+  .prompt {
+    background: #171a11;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 13.5px;
+    white-space: pre-wrap;
+    color: #e6e6d6;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height .25s ease;
+  }
+  .prompt.open { max-height: 1000px; }
+  .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  button.act {
+    background: var(--accent);
+    color: #1a1d14;
+    border: none;
+    border-radius: 7px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button.act.secondary { background: var(--panel2); color: var(--text); border: 1px solid var(--line); }
+  button.act.copied { background: var(--ok); color: #0f1a0c; }
+  label.check {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    margin-left: auto;
+  }
+  label.check input { width: 16px; height: 16px; accent-color: var(--ok); }
+  .style-note {
+    background: var(--panel2);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px;
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text);
+    margin: 8px 0 4px;
+  }
+  .style-note code, .path { font-family: ui-monospace, Consolas, monospace; }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .sw { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .chip { width: 16px; height: 16px; border-radius: 4px; border: 1px solid #0008; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+<header>
+  <h1>ArmyBase — Manual Asset Generator</h1>
+  <p>15 images to generate. Click <b>Copy prompt</b> on any card, paste into your image generator, then save the result to the listed path. Check off each one as you finish.</p>
+  <div class="progress" id="progress">0 / 15 done</div>
+</header>
+
+<div class="wrap">
+
+  <div class="style-note">
+    <b>Master style rules (baked into every prompt below — here for reference):</b><br>
+    Flat vector / mobile-strategy game-art. Consistent 2–3px dark outline <span class="path">#1a1d14</span>. Soft ambient upper-left light, no hard shadows. Fully transparent background, subject only, no text/logos/extra props. Subject fills ~80% of canvas, centered.
+    <div class="swatches">
+      <span class="sw"><span class="chip" style="background:#5a6450"></span>#5a6450 olive</span>
+      <span class="sw"><span class="chip" style="background:#8a9478"></span>#8a9478 khaki-sage</span>
+      <span class="sw"><span class="chip" style="background:#6a5240"></span>#6a5240 brown</span>
+      <span class="sw"><span class="chip" style="background:#40605a"></span>#40605a teal</span>
+      <span class="sw"><span class="chip" style="background:#5a4a6a"></span>#5a4a6a purple</span>
+      <span class="sw"><span class="chip" style="background:#6a5a30"></span>#6a5a30 olive-brn</span>
+      <span class="sw"><span class="chip" style="background:#4a5a6a"></span>#4a5a6a steel</span>
+      <span class="sw"><span class="chip" style="background:#d8d8c8"></span>#d8d8c8 trim</span>
+    </div>
+    <div class="swatches" style="margin-top:6px">
+      <b style="font-size:11px;color:var(--accent2)">Characters — desaturated ONLY (they get hue-shifted in-engine):</b>
+      <span class="sw"><span class="chip" style="background:#8a897d"></span>#8a897d</span>
+      <span class="sw"><span class="chip" style="background:#6e6d63"></span>#6e6d63</span>
+      <span class="sw"><span class="chip" style="background:#b8b6a8"></span>#b8b6a8</span>
+      <span class="sw"><span class="chip" style="background:#4a4942"></span>#4a4942</span>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <button class="filter-btn active" data-filter="all">All (15)</button>
+    <button class="filter-btn" data-filter="building">Buildings (6)</button>
+    <button class="filter-btn" data-filter="civilian">Civilians (3)</button>
+    <button class="filter-btn" data-filter="soldier">Soldiers (6)</button>
+    <button class="filter-btn" data-filter="todo">Not done yet</button>
+  </div>
+
+  <div id="cards"></div>
+</div>
+
+<script>
+const BUILDING = { size: "576 × 384 px", ratio: "3:2 landscape", disp: "144×96 px in-game", fmt: "PNG-24 + alpha" };
+const CHAR = { size: "128 × 192 px", ratio: "2:3 portrait", disp: "32×48 px in-game", fmt: "PNG-24 + alpha" };
+
+const ASSETS = [
+  { n:1, cat:"building", file:"barracks.png", path:"assets/buildings/barracks.png", label:"Barracks", spec:BUILDING,
+    prompt:`A low, single-story military barracks building, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular footprint, slightly wider than deep. Walls in muted khaki-sage (#8a9478), a shallow-pitched corrugated roof in dark olive (#5a6450). One visible door centered on the long wall facing the camera, two small square windows flanking it, a short set of steps or a low concrete stoop at the entrance. Optional: a stack of sandbags or a folded flag pole beside the door for military flavor, but keep it minimal. Flat ambient lighting from upper-left, no hard shadows, an optional soft 10% contact shadow directly under the building only. Fully transparent background, no ground/grass underneath, no text, no people, no other structures in frame. Building fills about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:2, cat:"building", file:"shooting_range.png", path:"assets/buildings/shooting_range.png", label:"Shooting Range", spec:BUILDING,
+    prompt:`An open-air military shooting range, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. Long rectangular footprint: a low firing-line barrier/counter at the camera-facing end in brown (#6a5240), 3-4 parallel narrow shooting lanes marked by low wooden divider walls running away from the camera, simple humanoid target silhouettes standing at the far end of the lanes, backed by a low earth berm or sandbag wall in khaki-sage (#8a9478). No roof — this structure is outdoors. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the structure only. Fully transparent background, no ground/grass texture, no text, no people, no other structures in frame. Structure fills about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:3, cat:"building", file:"weight_room.png", path:"assets/buildings/weight_room.png", label:"Weight Room", spec:BUILDING,
+    prompt:`A small enclosed military gym/weight room building, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular footprint, flat roof in muted purple-gray (#5a4a6a), walls in khaki-sage (#8a9478). One open garage-style front wall or large window facing the camera revealing the interior: a barbell rack, a couple of weight plates, and a bench, rendered simply and flatly (no fine detail, just clear readable silhouettes). Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the building only. Fully transparent background, no ground/grass texture, no text, no people, no other structures in frame. Building fills about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:4, cat:"building", file:"obstacle_course.png", path:"assets/buildings/obstacle_course.png", label:"Obstacle Course", spec:BUILDING,
+    prompt:`An outdoor military obstacle course, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. No enclosing building — a compact training-yard footprint containing 3 simple obstacle elements arranged left-to-right: a low wooden wall to climb over, a stack of 3-4 truck tires laid flat for foot-stepping, and a cargo-net frame (simple crosshatch net between two posts). Ground plane implied only by where the obstacles sit — do not render grass/dirt texture, keep the background transparent around and between the obstacles. Colors in olive-brown (#6a5a30) for the wood/dirt elements, dark gray (#4a4942) for the tires/net rope. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under each obstacle element only. No text, no people, no other structures in frame. The three obstacles together fill about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:5, cat:"building", file:"drill_yard.png", path:"assets/buildings/drill_yard.png", label:"Combat Drill Yard", spec:BUILDING,
+    prompt:`An open military combat drill yard, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. A paved/packed-dirt open rectangular area in steel-blue (#4a5a6a) as the dominant tone, marked with 4-5 small painted formation-marker circles or cones arranged in a grid pattern (like drill-position markers), and 1-2 simple padded training dummies (a vertical post with a rounded punching-bag-like top) standing at one edge. This should read as visually distinct from the Weight Room (indoor gym) and Obstacle Course (climbing obstacles) — it's about open-area formation/combat drilling, not equipment. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the dummies/markers only. Fully transparent background, no grass/ground texture beyond the paved area shape itself, no text, no people, no other structures in frame. Fills about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:6, cat:"building", file:"mess_hall.png", path:"assets/buildings/mess_hall.png", label:"Mess Hall", spec:BUILDING,
+    prompt:`A military mess hall / dining building, viewed from a 30-40° top-down isometric angle, flat vector game-art illustration style with a consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular footprint, wider than deep, roof and walls in teal-green (#40605a). A serving window or open hatch on the camera-facing wall with a simple awning above it, one or two picnic-style tables visible just outside the building along the same wall. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the building only. Fully transparent background, no ground/grass texture, no text, no people, no other structures in frame. Building fills about 80% of canvas width, centered with even padding. Generate at 576×384px, PNG with alpha transparency.` },
+
+  { n:7, cat:"civilian", file:"civilian.png", path:"assets/units/civilians/civilian.png", label:"Civilian", spec:CHAR,
+    prompt:`A generic civilian pedestrian, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Mid-stride walking pose, one leg forward, arms relaxed. Plain casual clothing — a simple t-shirt/jacket shape and pants, no distinguishing accessories. Use ONLY these desaturated tones: neutral warm gray #8a897d for the main clothing, darker gray #6e6d63 for shading creases, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for shoes/small details — no other colors, no bright/saturated colors anywhere, this sprite gets recolored in-engine. Minimal facial detail (simple dot eyes, no other features). Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props, no other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:8, cat:"civilian", file:"bus_rider.png", path:"assets/units/civilians/bus_rider.png", label:"Bus Rider", spec:CHAR,
+    prompt:`A civilian pedestrian who just got off a bus, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Mid-stride walking pose, one leg forward, arms relaxed, carrying a small duffel bag or backpack over one shoulder (this bag is the ONE visual difference from a plain civilian — keep body proportions, pose, and clothing style otherwise identical for set consistency). Use ONLY these desaturated tones: neutral warm gray #8a897d for the main clothing, darker gray #6e6d63 for shading/the bag, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for shoes/straps — no other colors, no bright/saturated colors anywhere, this sprite gets recolored in-engine. Minimal facial detail (simple dot eyes, no other features). Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no other props or characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:9, cat:"civilian", file:"taxi.png", path:"assets/units/civilians/taxi.png", label:"Taxi Arrival", spec:CHAR,
+    prompt:`A civilian pedestrian who just arrived by taxi, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Mid-stride walking pose, one leg forward, arms relaxed, slightly neater/sharper silhouette than the other two civilians — a simple collared jacket shape instead of a plain t-shirt, otherwise same body proportions and pose for set consistency, no bag. Use ONLY these desaturated tones: neutral warm gray #8a897d for the main clothing, darker gray #6e6d63 for shading/collar, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for shoes/small details — no other colors, no bright/saturated colors anywhere, this sprite gets recolored in-engine. Minimal facial detail (simple dot eyes, no other features). Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no other props or characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:10, cat:"soldier", file:"soldier_01.png", path:"assets/units/soldiers/soldier_01.png", label:"Soldier 01 — bare-headed", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette, no extra gear). No headgear — bare head, simple short-hair silhouette. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for shading/creases, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail (simple dot eyes, no other features). Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:11, cat:"soldier", file:"soldier_02.png", path:"assets/units/soldiers/soldier_02.png", label:"Soldier 02 — helmet", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette) plus a rounded combat helmet — this helmet is the ONE visual difference from the bare-headed soldier; keep body proportions, pose, and uniform style otherwise identical to the rest of the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for the helmet/shading, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:12, cat:"soldier", file:"soldier_03.png", path:"assets/units/soldiers/soldier_03.png", label:"Soldier 03 — bulkier build", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette), no headgear. Noticeably bulkier/broader-shouldered build than the standard soldier — wider torso silhouette, same overall height — this build difference is the ONE visual distinction from the bare-headed variant; keep pose and uniform style otherwise identical to the rest of the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for shading/creases, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:13, cat:"soldier", file:"soldier_04.png", path:"assets/units/soldiers/soldier_04.png", label:"Soldier 04 — slighter build", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette), no headgear. Noticeably slighter/narrower build than the standard soldier — narrower torso silhouette, same overall height — this build difference is the ONE visual distinction from the bare-headed variant; keep pose and uniform style otherwise identical to the rest of the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for shading/creases, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:14, cat:"soldier", file:"soldier_05.png", path:"assets/units/soldiers/soldier_05.png", label:"Soldier 05 — beret", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette) plus a soft beret angled slightly to one side — this beret is the ONE visual difference from the bare-headed soldier, and it should read as clearly distinct in silhouette from the rounded combat helmet variant; keep body proportions, pose, and uniform style otherwise identical to the rest of the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for the beret/shading, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+
+  { n:15, cat:"soldier", file:"soldier_06.png", path:"assets/units/soldiers/soldier_06.png", label:"Soldier 06 — backpack / gear webbing", spec:CHAR,
+    prompt:`A standard military soldier, full body, front-facing, simple stylized flat-vector game-icon character with a consistent 2-3px dark outline (#1a1d14). Standing at ease, facing forward, arms at sides, wearing a basic uniform (jacket + trousers silhouette), no headgear, plus visible gear webbing straps across the chest and a small pack on the back (only the top/sides of the pack visible from the front) — this gear is the ONE visual difference from the bare-headed soldier; keep body proportions, pose, and uniform style otherwise identical to the rest of the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for the webbing/pack/shading, light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other colors, this sprite gets recolored in-engine. Minimal facial detail. Flat ambient lighting from upper-left, no hard shadows, optional soft 10% contact shadow directly under the feet only. Fully transparent background, no ground, no text, no props or other characters in frame. Figure fills about 80% of canvas height, centered with even padding. Generate at 128×192px, PNG with alpha transparency.` },
+];
+
+const SECTIONS = [
+  { cat:"building", title:"Buildings — 576×384px, 3:2" },
+  { cat:"civilian", title:"Civilians — 128×192px, 2:3 (desaturated!)" },
+  { cat:"soldier", title:"Soldiers — 128×192px, 2:3 (desaturated!)" },
+];
+
+const cardsEl = document.getElementById('cards');
+const progressEl = document.getElementById('progress');
+let activeFilter = 'all';
+
+function loadDone() {
+  try { return JSON.parse(localStorage.getItem('armybase_done') || '{}'); }
+  catch { return {}; }
+}
+function saveDone(d) { localStorage.setItem('armybase_done', JSON.stringify(d)); }
+let done = loadDone();
+
+function render() {
+  cardsEl.innerHTML = '';
+  SECTIONS.forEach(sec => {
+    const items = ASSETS.filter(a => a.cat === sec.cat);
+    const title = document.createElement('div');
+    title.className = 'section-title';
+    title.textContent = sec.title;
+    cardsEl.appendChild(title);
+    items.forEach(a => cardsEl.appendChild(makeCard(a)));
+  });
+  applyFilter();
+  updateProgress();
+}
+
+function makeCard(a) {
+  const el = document.createElement('div');
+  el.className = 'card' + (done[a.file] ? ' done' : '');
+  el.dataset.cat = a.cat;
+  el.dataset.file = a.file;
+
+  el.innerHTML = `
+    <div class="card-head">
+      <span class="num">${a.n}</span>
+      <span class="fname">${a.file}</span>
+      <span class="tag">${a.spec.size}</span>
+      <span class="tag">${a.spec.ratio}</span>
+      <label class="check"><input type="checkbox" ${done[a.file] ? 'checked' : ''}> done</label>
+    </div>
+    <div class="meta">
+      <span>Name</span><b>${a.label}</b>
+      <span>Save to</span><b class="path">${a.path}</b>
+      <span>In-game</span><b>${a.spec.disp}</b>
+      <span>Format</span><b>${a.spec.fmt}</b>
+    </div>
+    <div class="actions">
+      <button class="act copyBtn">📋 Copy prompt</button>
+      <button class="act secondary toggleBtn">Show prompt</button>
+    </div>
+    <div class="prompt">${a.prompt}</div>
+  `;
+
+  const copyBtn = el.querySelector('.copyBtn');
+  const toggleBtn = el.querySelector('.toggleBtn');
+  const promptEl = el.querySelector('.prompt');
+  const checkbox = el.querySelector('input');
+
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(a.prompt).then(() => {
+      copyBtn.textContent = '✓ Copied!';
+      copyBtn.classList.add('copied');
+      setTimeout(() => { copyBtn.textContent = '📋 Copy prompt'; copyBtn.classList.remove('copied'); }, 1500);
+    });
+  });
+
+  toggleBtn.addEventListener('click', () => {
+    promptEl.classList.toggle('open');
+    toggleBtn.textContent = promptEl.classList.contains('open') ? 'Hide prompt' : 'Show prompt';
+  });
+
+  checkbox.addEventListener('change', () => {
+    if (checkbox.checked) done[a.file] = true; else delete done[a.file];
+    saveDone(done);
+    el.classList.toggle('done', checkbox.checked);
+    updateProgress();
+    if (activeFilter === 'todo') applyFilter();
+  });
+
+  return el;
+}
+
+function applyFilter() {
+  document.querySelectorAll('.card').forEach(c => {
+    const cat = c.dataset.cat;
+    const isDone = !!done[c.dataset.file];
+    let show = true;
+    if (activeFilter === 'todo') show = !isDone;
+    else if (activeFilter !== 'all') show = cat === activeFilter;
+    c.classList.toggle('hidden', !show);
+  });
+  document.querySelectorAll('.section-title').forEach(t => {
+    let next = t.nextElementSibling, any = false;
+    while (next && !next.classList.contains('section-title')) {
+      if (next.classList.contains('card') && !next.classList.contains('hidden')) any = true;
+      next = next.nextElementSibling;
+    }
+    t.classList.toggle('hidden', !any);
+  });
+}
+
+function updateProgress() {
+  const count = ASSETS.filter(a => done[a.file]).length;
+  progressEl.textContent = `${count} / ${ASSETS.length} done`;
+}
+
+document.querySelectorAll('.filter-btn').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'));
+    b.classList.add('active');
+    activeFilter = b.dataset.filter;
+    applyFilter();
+  });
+});
+
+render();
+</script>
+</body>
+</html>

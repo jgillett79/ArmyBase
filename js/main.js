@@ -197,10 +197,14 @@ canvas.addEventListener('click', (e) => {
   const clickX = (e.clientX - rect.left) * scaleX;
   const clickY = (e.clientY - rect.top) * scaleY;
 
-  // find nearest unit within click tolerance
+  // find the unit whose sprite box contains the click (nearest center wins
+  // when sprites overlap). Box matches the 32x48 sprite drawn in render.js.
   let closest = null;
-  let closestDist = 16; // px tolerance
+  let closestDist = Infinity;
   for (const unit of gameState.units) {
+    const withinBox = Math.abs(unit.x - clickX) <= UNIT_W / 2 + 2 &&
+      clickY >= unit.y - UNIT_H / 2 - 2 && clickY <= unit.y + UNIT_H / 2 + 2;
+    if (!withinBox) continue;
     const d = Math.hypot(unit.x - clickX, unit.y - clickY);
     if (d < closestDist) {
       closest = unit;

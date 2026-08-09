@@ -43,6 +43,10 @@ class Unit {
     // around" requirement, done cheaply until real sprites exist.
     this.colorSeed = randInt(0, 359); // used as an HSL hue in render.js
     this.outfit = isCivilian ? pick(['civilian', 'bus_rider', 'taxi']) : 'uniform';
+    // Which soldier sprite body (soldier_01..06) this unit wears once recruited.
+    // Fixed at birth so a given unit always looks the same after recruiting —
+    // same "random shape per unit" idea as the civilian outfit above.
+    this.soldierVariant = randInt(1, 6);
 
     this.isCivilian = isCivilian;
     this.status = isCivilian ? UNIT_STATUS.CIVILIAN_APPROACHING : UNIT_STATUS.IDLE;

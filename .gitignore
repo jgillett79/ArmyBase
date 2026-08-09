@@ -1,0 +1,13 @@
+# Secrets — never commit your Cloudflare token
+.env
+
+# Raw (pre-processing) AI output kept via --keep-raw
+assets/_raw/
+# Generated preview/contact-sheet images (not game assets)
+assets/_contact*.png
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
