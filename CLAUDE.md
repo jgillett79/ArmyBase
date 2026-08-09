@@ -282,6 +282,12 @@ from the far column (gridX=14) to the column closest to the gate
 full width of the base to reach a waiting chair; **don't move Entrance
 Hall away from the gate-adjacent column again without a reason**, that
 was a direct fix for "civilians shouldn't walk so far through the base."
+**Art pass 3 done**: all 8 remaining assets from increments 6-8
+(`showers.png`, `rec_room.png`, `entrance_hall.png`, `ground_apron.png`,
+`ground_grass.png`, and the 3 civilian sitting-pose files) generated and
+pulled in — every sprite/pattern slot in `render.js` now has real art,
+none of it running on procedural fallback. All 46 files in `ASSETS.md`
+are done; no outstanding art work from any prior increment.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
@@ -303,11 +309,6 @@ was a direct fix for "civilians shouldn't walk so far through the base."
    across all 6 upgradeable buildings, same idea as `vacant_lot.png`) is an
    open question — see README for the recommendation given (basic
    gameplay/missions first, this is a polish layer that can come later).
-4. **Art still needed** — `showers.png`, `rec_room.png`,
-   `entrance_hall.png`, `ground_apron.png`, `ground_grass.png`, and 3
-   civilian sitting-pose files, all spec'd in `ASSETS.md`. Each renders a
-   graceful fallback (procedural box, flat tint, or the normal standing
-   sprite) until generated, so none of this is blocking anything.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

@@ -397,6 +397,21 @@ test, not by playing — worth keeping smoke tests for this reason.
   suite too, unaffected by the building-position swap since it always
   reads chair position via `buildingDoor()`, never a hardcoded coordinate.
 
+## Phase 2 — art pass 3 (done): remaining 8 assets generated
+
+- All 8 assets left outstanding from increments 6-8 — `showers.png`,
+  `rec_room.png`, `entrance_hall.png`, `ground_apron.png`,
+  `ground_grass.png`, and the 3 civilian sitting-pose files — were
+  generated and pulled in via `git fetch`/`merge`. Every sprite/pattern
+  slot in `render.js` now shows real art; nothing is running on a
+  procedural/flat-color fallback anymore.
+- Verified file-by-file: correct canonical dimensions and RGBA/RGB mode
+  for all 8 (Python/Pillow check), low edge-difference on both new
+  tileable terrain textures (no visible seam), zero 404s and zero JS
+  errors loading the full game in a real browser (Playwright), and a
+  visual check of the Entrance Hall showing 3 civilians correctly seated
+  on the chairs painted into `entrance_hall.png`.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual
@@ -404,14 +419,11 @@ test, not by playing — worth keeping smoke tests for this reason.
    facing — they glide between waypoints without a leg-swinging animation.
    The last item in the entrance-hall/terrain/animation order agreed
    earlier, and the most expensive of the three (needs several new frames
-   per direction plus frame-timing code).
+   per direction plus frame-timing code). The only open item left on the
+   art/UX punch list — no outstanding asset generation remains otherwise.
 2. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
-3. **`showers.png`/`rec_room.png`/`entrance_hall.png`/`ground_apron.png`/
-   `ground_grass.png`/3 sitting-pose art files** — all spec'd in
-   `ASSETS.md`, not yet generated; the game already renders a graceful
-   fallback for each so none of this is blocking anything.
 
 ## File layout
 

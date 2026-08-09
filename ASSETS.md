@@ -819,13 +819,7 @@ other not-yet-generated asset in this doc, so there's no urgency.
 | 45 | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` | 128×192px | PNG-24 + alpha |
 | 46 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
 
-**#1-8, #12, #15-43 (35 files) are already generated and in the repo — no
-action needed.** **#9 `showers.png`, #10 `rec_room.png`, #11
-`entrance_hall.png`, #13-14 (`ground_apron.png`/`ground_grass.png`), and
-#44-46 (the 3 sitting-pose files) are new** — `render.js` already has a
-sprite/pattern slot for all of them and falls back to a procedural
-colored box (buildings), a flat tint color (terrain), or the normal
-standing sprite (sitting poses) until they land, so there's no urgency.
+**All 46 files are generated and in the repo — nothing outstanding.**
 
 ## Folder structure
 
@@ -840,13 +834,13 @@ assets/
     mess_hall.png             (done)
     gatehouse.png              (done)
     vacant_lot.png             (done)
-    showers.png                (needed)
-    rec_room.png                (needed)
-    entrance_hall.png           (needed)
+    showers.png                (done)
+    rec_room.png                (done)
+    entrance_hall.png           (done)
   terrain/
     ground.png                 (done, tileable)
-    ground_apron.png            (needed, tileable)
-    ground_grass.png            (needed, tileable)
+    ground_apron.png            (done, tileable)
+    ground_grass.png            (done, tileable)
     wall.png                   (done, tileable)
     road.png                   (done, tileable)
   units/
@@ -863,9 +857,9 @@ assets/
       taxi_down.png              (done)
       taxi_up.png                (done)
       taxi_right.png             (done)
-      civilian_sitting.png       (needed)
-      bus_rider_sitting.png      (needed)
-      taxi_sitting.png           (needed)
+      civilian_sitting.png       (done)
+      bus_rider_sitting.png      (done)
+      taxi_sitting.png           (done)
     soldiers/
       soldier_01.png ... soldier_06.png   (old front-facing — superseded, kept as fallback)
       soldier_01_down.png       (done)
@@ -888,14 +882,9 @@ assets/
       soldier_06_right.png      (done)
 ```
 
-38 of 46 files are already in the repo and wired into
-`render.js`/`state.js`. The 8 still needed: `showers.png`, `rec_room.png`,
-`entrance_hall.png`, `ground_apron.png`, `ground_grass.png`, and the 3
-civilian sitting-pose files. Drop each at its path above when generated —
-the game already renders a graceful fallback for every one of them (a
-procedural colored box for buildings, a flat tint for terrain, the normal
-standing sprite for the sitting poses) until then, so none of this is
-urgent. The old front-facing sprites (`civilian.png`, `bus_rider.png`,
-`taxi.png`, `soldier_01.png`...`soldier_06.png`) are superseded by the
-directional set but kept on disk as a fallback chain in `render.js` —
-safe to delete later once confirmed unused.
+All 46 files are generated, in the repo, and wired in — nothing
+outstanding from this asset pass. The old front-facing sprites
+(`civilian.png`, `bus_rider.png`, `taxi.png`,
+`soldier_01.png`...`soldier_06.png`) are superseded by the directional
+set but kept on disk as a fallback chain in `render.js` — safe to delete
+later once confirmed unused.
