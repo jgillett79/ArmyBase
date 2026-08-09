@@ -221,6 +221,39 @@ ASSETS = {
         "upper-left, no hard shadows. Plain solid flat background, no ground, no grass, no "
         "text, no people, no other structures. Building fills about 80% of the canvas width, "
         "centered with even padding."),
+    "showers": _b(
+        "A military shower or washroom block building, viewed from a 30-40 degree top-down "
+        "isometric angle, flat vector game-art illustration style with a consistent 2-3px "
+        "dark outline (#1a1d14) on every edge. Rectangular footprint, flat roof, walls in "
+        "steel-blue (#4a7a8a). A row of 3-4 simple shower-head or spigot shapes visible along "
+        "the camera-facing wall, either through an open front or small window openings, and a "
+        "low drain or gutter line along the base of the wall. Flat ambient lighting from "
+        "upper-left, no hard shadows. Plain solid flat background, no ground, no grass, no "
+        "text, no people, no other structures. Building fills about 80% of the canvas width, "
+        "centered with even padding."),
+    "rec_room": _b(
+        "A military recreation room or lounge building, viewed from a 30-40 degree top-down "
+        "isometric angle, flat vector game-art illustration style with a consistent 2-3px "
+        "dark outline (#1a1d14) on every edge. Rectangular footprint, flat roof, walls in "
+        "warm amber-brown (#8a6a4a). A large window or open front revealing simple interior "
+        "shapes: a table with a couple of chairs, and a simple TV or board-game shape, "
+        "rendered flatly with clear silhouettes and no fine detail. Flat ambient lighting "
+        "from upper-left, no hard shadows. Plain solid flat background, no ground, no grass, "
+        "no text, no people, no other structures. Building fills about 80% of the canvas "
+        "width, centered with even padding."),
+    "entrance_hall": _b(
+        "A military base reception or entrance hall building, viewed from a 30-40 degree "
+        "top-down isometric angle, flat vector game-art illustration style with a consistent "
+        "2-3px dark outline (#1a1d14) on every edge. Rectangular footprint, wider than deep, "
+        "roof and walls in warm tan-brown (#6a5a4a). An open front wall or large window "
+        "revealing a simple waiting room interior: a row of 4 plain bench-style chairs evenly "
+        "spaced across the middle-front of the interior floor, facing the camera, with a "
+        "small reception desk or counter shape toward the back of the room behind the chairs "
+        "and not blocking them. Floor rendered as a flat, slightly lighter interior tone so "
+        "the chairs and open standing space between them read clearly. Flat ambient lighting "
+        "from upper-left, no hard shadows. Plain solid flat background, no ground, no grass, "
+        "no text, no people, no other structures. Building fills about 80% of the canvas "
+        "width, centered with even padding."),
 
     # -- Perimeter / plot (2) : assets/buildings/ --
     "gatehouse": _b(
@@ -282,6 +315,33 @@ ASSETS = {
         "tiling in any direction, correct rotated 90 degrees too. Fills the entire square "
         "frame edge to edge, no border.",
         out=(192, 192)),
+    "ground_apron": _t(
+        "A seamlessly tileable packed-gravel hardstanding military base texture, flat digital "
+        "illustration style matching a mobile strategy game (not photorealistic), viewed from "
+        "directly straight above. A lighter more maintained tone than plain dirt, a khaki-gray "
+        "gravel or compacted surface (base color close to #8a9478 matching the building wall "
+        "palette), very subtle low-contrast tonal variation and a faint sparse gravel-fleck "
+        "texture evenly distributed, not clustered. Slightly uneven and weathered rather than "
+        "a perfectly smooth manicured surface, a working military hardstanding cut into rough "
+        "terrain, but still quiet and low-detail so it won't distract from buildings on top. "
+        "No grass, no large rocks, no single distinct feature that would obviously repeat "
+        "when tiled. Flat even lighting, no directional shadow. Left edge matches right edge "
+        "and top edge matches bottom edge exactly for seamless repeat tiling. Fills the "
+        "entire square frame edge to edge, no border.",
+        out=(192, 192)),
+    "ground_grass": _t(
+        "A seamlessly tileable rough scrub-grass military base yard texture, flat digital "
+        "illustration style matching a mobile strategy game (not photorealistic), viewed from "
+        "directly straight above. Muted olive-green tone (base color close to #5a6a3a), very "
+        "subtle low-contrast tonal variation suggesting uneven, slightly wild grass or scrub "
+        "rather than a mowed lawn, undeveloped ground at a base sited in rough mountain "
+        "terrain, a faint fine texture with occasional slightly darker patches, not individual "
+        "blades, kept subtle and evenly distributed. No flowers, no bare-dirt patches, no "
+        "large single feature that would obviously repeat when tiled. Flat even lighting, no "
+        "directional shadow. Left edge matches right edge and top edge matches bottom edge "
+        "exactly for seamless repeat tiling. Fills the entire square frame edge to edge, no "
+        "border.",
+        out=(192, 192)),
 
     # -- Civilians (3) : assets/units/civilians/ --
     "civilian": dict(_c(
@@ -320,6 +380,52 @@ ASSETS = {
         "Flat ambient lighting from upper-left, no hard shadows. Plain solid flat "
         "background, no ground, no text, no other props or characters. Figure fills about "
         "80% of the canvas height, centered with even padding."), subdir="units/civilians"),
+    "civilian_sitting": dict(_c(
+        "A civilian pedestrian seated on a chair, full body, viewed from a 30-40 degree "
+        "top-down isometric angle, simple stylized flat-vector game-icon character with a "
+        "consistent 2-3px dark outline (#1a1d14). Upright relaxed seated posture, facing "
+        "forward toward the camera, both feet flat on the ground, hands resting in lap or on "
+        "knees. Plain casual clothing, a simple t-shirt or jacket shape and pants, no "
+        "distinguishing accessories. Use ONLY these desaturated tones: neutral warm gray "
+        "#8a897d for the main clothing, darker gray #6e6d63 for shading creases, light "
+        "gray-khaki #b8b6a8 for skin and highlights, near-black gray #4a4942 for shoes and "
+        "small details. No other colors, no bright or saturated colors anywhere. Minimal "
+        "facial detail (simple dot eyes). Flat ambient lighting from upper-left, no hard "
+        "shadows. Do not render a chair, bench, or any furniture, figure only. Plain solid "
+        "flat background, no ground, no text, no props, no other characters. Figure fills "
+        "about 80% of the canvas height, centered with even padding."),
+        subdir="units/civilians"),
+    "bus_rider_sitting": dict(_c(
+        "A civilian pedestrian seated on a chair, full body, viewed from a 30-40 degree "
+        "top-down isometric angle, simple stylized flat-vector game-icon character with a "
+        "consistent 2-3px dark outline (#1a1d14). Upright relaxed seated posture, facing "
+        "forward toward the camera, both feet flat on the ground, hands resting in lap or on "
+        "knees, with a small duffel bag or backpack resting on their lap or beside them (this "
+        "bag is the only accessory); otherwise the same plain casual clothing as a generic "
+        "pedestrian. Use ONLY these desaturated tones: neutral warm gray #8a897d for the main "
+        "clothing, darker gray #6e6d63 for shading and the bag, light gray-khaki #b8b6a8 for "
+        "skin and highlights, near-black gray #4a4942 for shoes and straps. No other colors, "
+        "no bright or saturated colors anywhere. Minimal facial detail (simple dot eyes). "
+        "Flat ambient lighting from upper-left, no hard shadows. Do not render a chair, "
+        "bench, or any furniture, figure only. Plain solid flat background, no ground, no "
+        "text, no other props or characters. Figure fills about 80% of the canvas height, "
+        "centered with even padding."),
+        subdir="units/civilians"),
+    "taxi_sitting": dict(_c(
+        "A well-dressed civilian person seated on a chair, full body, viewed from a 30-40 "
+        "degree top-down isometric angle, simple stylized flat-vector game-icon character "
+        "with a consistent 2-3px dark outline (#1a1d14). Upright relaxed seated posture, "
+        "facing forward toward the camera, both feet flat on the ground, hands resting in lap "
+        "or on knees, a neater sharper silhouette with a simple collared jacket shape instead "
+        "of a plain t-shirt, no bag. Use ONLY these desaturated tones: neutral warm gray "
+        "#8a897d for the main clothing, darker gray #6e6d63 for shading and collar, light "
+        "gray-khaki #b8b6a8 for skin and highlights, near-black gray #4a4942 for shoes and "
+        "small details. No other colors, no bright or saturated colors anywhere. Minimal "
+        "facial detail (simple dot eyes). Flat ambient lighting from upper-left, no hard "
+        "shadows. Do not render a chair, bench, or any furniture, figure only. Plain solid "
+        "flat background, no ground, no text, no other props or characters. Figure fills "
+        "about 80% of the canvas height, centered with even padding."),
+        subdir="units/civilians"),
 
     # -- Soldiers (6) : assets/units/soldiers/ --
     "soldier_01": dict(_c(
