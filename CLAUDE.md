@@ -287,7 +287,22 @@ was a direct fix for "civilians shouldn't walk so far through the base."
 `ground_grass.png`, and the 3 civilian sitting-pose files) generated and
 pulled in — every sprite/pattern slot in `render.js` now has real art,
 none of it running on procedural fallback. All 46 files in `ASSETS.md`
-are done; no outstanding art work from any prior increment.
+are done; no outstanding art work from any prior increment. **Increment 9
+done** (same evening, live feedback): `vacant_lot.png` turned out to be a
+rotated isometric diamond tile rather than the flat rectangular style
+every other building uses — `drawBuildingBox()` no longer draws it at
+all (falls back to the dashed-outline placeholder); `ASSETS.md`'s spec
+now explicitly warns against the diamond failure mode for next time.
+Mission XP was wired up for the first time — `Unit.addXp()`/`levelUp()`
+existed since Phase 0 but nothing ever called `addXp()`, so units could
+never actually level up; each `MISSION_TIERS` entry now has an
+`xpReward`, granted on success only. The 8 individual HUD build buttons
+(one per building) were consolidated into a single "Build" menu button
+opening a panel — reuses the Missions panel's exact open/close/render
+pattern; **the Build panel's list only re-renders when the whole-dollar
+cash amount changes, not every animation frame** — re-rendering on every
+frame was found to detach whatever button the player was mid-click on,
+keep that guard if you touch `renderBuildList()`/`refreshBuildButtons()`.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

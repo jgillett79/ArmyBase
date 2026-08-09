@@ -7,31 +7,17 @@ const ctx = canvas.getContext('2d');
 const cashValueEl = document.getElementById('cashValue');
 const foodValueEl = document.getElementById('foodValue');
 const rosterValueEl = document.getElementById('rosterValue');
-const buildBarracksBtn = document.getElementById('buildBarracksBtn');
-const barracksCostEl = document.getElementById('barracksCost');
-const buildRangeBtn = document.getElementById('buildRangeBtn');
-const rangeCostEl = document.getElementById('rangeCost');
-const buildWeightRoomBtn = document.getElementById('buildWeightRoomBtn');
-const weightRoomCostEl = document.getElementById('weightRoomCost');
-const buildObstacleCourseBtn = document.getElementById('buildObstacleCourseBtn');
-const obstacleCourseCostEl = document.getElementById('obstacleCourseCost');
-const buildDrillYardBtn = document.getElementById('buildDrillYardBtn');
-const drillYardCostEl = document.getElementById('drillYardCost');
-const buildMessHallBtn = document.getElementById('buildMessHallBtn');
-const buildShowersBtn = document.getElementById('buildShowersBtn');
-const buildRecRoomBtn = document.getElementById('buildRecRoomBtn');
 const buyFoodBtn = document.getElementById('buyFoodBtn');
 const lumberValueEl = document.getElementById('lumberValue');
 const steelValueEl = document.getElementById('steelValue');
 const gemsValueEl = document.getElementById('gemsValue');
 
 // One entry per NeedsBuilding (building.js) — the "buy it once, no levels"
-// trio. Drives the HUD build buttons the same way trainingBuildingUi below
-// drives the training buttons.
+// trio. Drives the Build panel the same way trainingBuildingUi below does.
 const needsBuildingUi = [
-  { key: 'messHall', label: 'Mess Hall', buildBtn: buildMessHallBtn },
-  { key: 'showers', label: 'Showers', buildBtn: buildShowersBtn },
-  { key: 'recRoom', label: 'Rec Room', buildBtn: buildRecRoomBtn },
+  { key: 'messHall', label: 'Mess Hall' },
+  { key: 'showers', label: 'Showers' },
+  { key: 'recRoom', label: 'Rec Room' },
 ];
 
 const profilePanel = document.getElementById('profilePanel');
@@ -55,18 +41,23 @@ const closeProfileBtn = document.getElementById('closeProfile');
 const recallBtn = document.getElementById('recallBtn');
 
 // One entry per TrainingBuilding (building.js) — drives both the assign
-// buttons in the profile panel and the build/upgrade buttons in the HUD.
+// buttons in the profile panel and the Build panel's upgrade rows.
 const trainingBuildingUi = [
-  { key: 'shootingRange', label: 'Shooting Range', assignBtn: document.getElementById('assignShootingRangeBtn'), buildBtn: buildRangeBtn, costEl: rangeCostEl },
-  { key: 'weightRoom', label: 'Weight Room', assignBtn: document.getElementById('assignWeightRoomBtn'), buildBtn: buildWeightRoomBtn, costEl: weightRoomCostEl },
-  { key: 'obstacleCourse', label: 'Obstacle Course', assignBtn: document.getElementById('assignObstacleCourseBtn'), buildBtn: buildObstacleCourseBtn, costEl: obstacleCourseCostEl },
-  { key: 'drillYard', label: 'Combat Drill Yard', assignBtn: document.getElementById('assignDrillYardBtn'), buildBtn: buildDrillYardBtn, costEl: drillYardCostEl },
+  { key: 'shootingRange', label: 'Shooting Range', assignBtn: document.getElementById('assignShootingRangeBtn') },
+  { key: 'weightRoom', label: 'Weight Room', assignBtn: document.getElementById('assignWeightRoomBtn') },
+  { key: 'obstacleCourse', label: 'Obstacle Course', assignBtn: document.getElementById('assignObstacleCourseBtn') },
+  { key: 'drillYard', label: 'Combat Drill Yard', assignBtn: document.getElementById('assignDrillYardBtn') },
 ];
 
 const recruitPopup = document.getElementById('recruitPopup');
 const recruitText = document.getElementById('recruitText');
 const recruitConfirmBtn = document.getElementById('recruitConfirm');
 const recruitCancelBtn = document.getElementById('recruitCancel');
+
+const openBuildBtn = document.getElementById('openBuildBtn');
+const buildPanel = document.getElementById('buildPanel');
+const closeBuildBtn = document.getElementById('closeBuild');
+const buildListEl = document.getElementById('buildList');
 
 const openMissionsBtn = document.getElementById('openMissionsBtn');
 const missionsPanel = document.getElementById('missionsPanel');
@@ -180,9 +171,11 @@ function formatDuration(ms) {
 
 function rewardText(tier) {
   const cash = `$${tier.cashReward[0]}-${tier.cashReward[1]}`;
-  if (!tier.resourceReward) return cash;
-  const { type, amount } = tier.resourceReward;
-  return `${cash} + ${amount[0]}-${amount[1]} ${type}`;
+  const xp = `${tier.xpReward[0]}-${tier.xpReward[1]} XP`;
+  const resource = tier.resourceReward
+    ? ` + ${tier.resourceReward.amount[0]}-${tier.resourceReward.amount[1]} ${tier.resourceReward.type}`
+    : '';
+  return `${cash} + ${xp}${resource}`;
 }
 
 function openMissionsPanel() {
@@ -291,62 +284,99 @@ function renderActiveMissions() {
   }).join('');
 }
 
-// ---------- Barracks build/upgrade ----------
+// ---------- Build panel ----------
+// A single "Build" button opening a panel listing every building, instead
+// of one HUD button per building — the HUD grew to 8 build buttons across
+// the top bar as buildings were added, which doesn't scale and doesn't
+// match how similar base-builder games present this (a menu/panel, not a
+// row of top-bar tiles — user feedback). Reuses the same
+// open/close/render-a-list-into-a-panel pattern already established by the
+// Missions panel above, for consistency and less code.
 
-buildBarracksBtn.addEventListener('click', () => {
-  gameState.upgradeBarracks();
+function buildRowHtml({ key, kind, label, statusText, btnText, disabled }) {
+  return `
+    <div class="build-item">
+      <div class="build-item-info">
+        <div class="build-item-name">${label}</div>
+        <div class="build-item-status">${statusText}</div>
+      </div>
+      <button class="build-item-btn" data-kind="${kind}" data-key="${key}" ${disabled ? 'disabled' : ''}>${btnText}</button>
+    </div>`;
+}
+
+function upgradeRowHtml(key, kind, label, building) {
+  if (building.isMaxLevel) {
+    return buildRowHtml({
+      key, kind, label, disabled: true, btnText: 'Maxed',
+      statusText: `Lv.${building.level} (maxed)`,
+    });
+  }
+  const cost = Math.round(building.nextUpgradeCost());
+  return buildRowHtml({
+    key, kind, label,
+    statusText: `Lv.${building.level}`,
+    btnText: `${building.level === 0 ? 'Build' : 'Upgrade'} ($${cost})`,
+    disabled: gameState.cash < cost,
+  });
+}
+
+function renderBuildList() {
+  const rows = [
+    upgradeRowHtml('barracks', 'barracks', 'Barracks', gameState.barracks),
+    ...trainingBuildingUi.map(({ key, label }) => upgradeRowHtml(key, 'training', label, gameState[key])),
+    ...needsBuildingUi.map(({ key, label }) => {
+      const building = gameState[key];
+      return buildRowHtml({
+        key, kind: 'needs', label,
+        statusText: building.isBuilt ? 'Built' : 'Not built',
+        btnText: building.isBuilt ? 'Built' : `Build ($${building.buildCost()})`,
+        disabled: building.isBuilt || gameState.cash < building.buildCost(),
+      });
+    }),
+  ];
+  buildListEl.innerHTML = rows.join('');
+  buildListRenderedAtCash = Math.floor(gameState.cash);
+}
+
+function openBuildPanel() {
+  buildPanel.classList.remove('hidden');
+  renderBuildList();
+}
+
+function closeBuildPanel() {
+  buildPanel.classList.add('hidden');
+}
+
+openBuildBtn.addEventListener('click', openBuildPanel);
+closeBuildBtn.addEventListener('click', closeBuildPanel);
+
+buildListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.build-item-btn');
+  if (!btn || btn.disabled) return;
+  const { kind, key } = btn.dataset;
+  if (kind === 'barracks') gameState.upgradeBarracks();
+  else if (kind === 'training') gameState.upgradeBuilding(key);
+  else if (kind === 'needs') gameState.buildNeedsBuilding(key);
+  renderBuildList();
 });
-
-for (const { key, buildBtn } of trainingBuildingUi) {
-  buildBtn.addEventListener('click', () => {
-    gameState.upgradeBuilding(key);
-  });
-}
-
-for (const { key, buildBtn } of needsBuildingUi) {
-  buildBtn.addEventListener('click', () => {
-    gameState.buildNeedsBuilding(key);
-  });
-}
 
 buyFoodBtn.addEventListener('click', () => {
   gameState.buyFood(20);
 });
 
+// Tracks the whole-dollar cash amount the Build panel was last rendered
+// at. Affordability only ever changes at whole-dollar boundaries, so this
+// avoids re-building the panel's innerHTML 60 times a second from the
+// passive cash trickle alone — besides being wasteful, doing it every
+// frame was detaching whatever button the player was mid-click on.
+let buildListRenderedAtCash = null;
+
 function refreshBuildButtons() {
-  if (gameState.barracks.isMaxLevel) {
-    buildBarracksBtn.disabled = true;
-    buildBarracksBtn.textContent = 'Barracks Maxed';
-  } else {
-    const cost = gameState.barracks.nextUpgradeCost();
-    barracksCostEl.textContent = Math.round(cost);
-    buildBarracksBtn.disabled = gameState.cash < cost;
-  }
-
-  for (const { key, label, buildBtn, costEl } of trainingBuildingUi) {
-    const building = gameState[key];
-    if (building.isMaxLevel) {
-      buildBtn.disabled = true;
-      buildBtn.textContent = `${label} Maxed`;
-    } else {
-      const cost = building.nextUpgradeCost();
-      costEl.textContent = Math.round(cost);
-      buildBtn.disabled = gameState.cash < cost;
-    }
-  }
-
-  for (const { key, label, buildBtn } of needsBuildingUi) {
-    const building = gameState[key];
-    if (building.isBuilt) {
-      buildBtn.disabled = true;
-      buildBtn.textContent = `${label} Built`;
-    } else {
-      buildBtn.disabled = gameState.cash < building.buildCost();
-    }
-  }
-
   buyFoodBtn.disabled = gameState.cash < 30;
   foodValueEl.textContent = Math.floor(gameState.food);
+  if (!buildPanel.classList.contains('hidden') && Math.floor(gameState.cash) !== buildListRenderedAtCash) {
+    renderBuildList();
+  }
 }
 
 // ---------- Canvas input ----------

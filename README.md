@@ -412,6 +412,47 @@ test, not by playing — worth keeping smoke tests for this reason.
   visual check of the Entrance Hall showing 3 civilians correctly seated
   on the chairs painted into `entrance_hall.png`.
 
+## Phase 2 — increment 9 (done): vacant-lot fix, mission XP, Build menu
+
+Three fixes/additions from live feedback the same evening as art pass 3:
+
+- **Fixed `vacant_lot.png` rendering as a mismatched diamond.** The
+  generated art turned out to be a rotated isometric diamond tile, not
+  the flat rectangular "fills the frame" style every other building
+  uses — it looked like a floating shape rather than an empty patch of
+  ground next to the real buildings. `drawBuildingBox()` no longer draws
+  it at all; unbuilt plots use the existing dashed-outline placeholder
+  instead. `ASSETS.md`'s spec for this file now explicitly warns against
+  the diamond failure mode for whenever it gets regenerated.
+- **Mission XP was completely dead code.** `Unit.level`/`xp`/`xpToNext`/
+  `addXp()`/`levelUp()` existed since Phase 0, but nothing in the game
+  ever called `addXp()` — units could never level up in practice, despite
+  the whole roster having a level system. Each `MISSION_TIERS` entry
+  (`mission.js`) now has an `xpReward` range; `resolveMissionForUnit()`
+  grants it on success only (same "no reward for failure" rule as
+  cash/resources). Mission tier tooltips (`rewardText()` in `main.js`)
+  now show the XP reward alongside cash/resources.
+- **Consolidated 8 individual HUD build buttons into one Build menu.**
+  The top bar had grown a button per building (Barracks, Shooting Range,
+  Weight Room, Obstacle Course, Drill Yard, Mess Hall, Showers, Rec
+  Room) and didn't scale — user feedback, backed by a quick look at how
+  comparable base-builder games handle this (a build menu/panel, not a
+  row of top-bar tiles). A single "Build" button now opens a panel
+  listing every building with its level/cost and a Build/Upgrade button,
+  reusing the exact same open/close/render-a-list-into-a-panel pattern
+  the Missions panel already established. Caught and fixed a real bug
+  during testing: re-rendering the panel's HTML every animation frame
+  (60/sec) detached whatever button the player was mid-click on —
+  `refreshBuildButtons()` now only re-renders when the whole-dollar cash
+  amount actually changes.
+- Tested headlessly (every mission tier has a valid xpReward, a
+  successful mission grants XP or a level-up, enough successful missions
+  actually level a unit up, a failed mission grants no XP but still sends
+  the unit to hospital) and via Playwright (Build panel shows all 8
+  buildings, clicking a row's button actually upgrades/builds it, closing
+  the panel hides it, mission tier tooltips include XP, no page errors
+  anywhere in the flow).
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual

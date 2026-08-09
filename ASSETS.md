@@ -327,9 +327,24 @@ height, centered with even padding on left/right.
 ### `vacant_lot.png`
 **Path:** `assets/buildings/vacant_lot.png`
 
-The "not yet built" state for all 6 building plots (Weight Room,
-Obstacle Course, Combat Drill Yard, etc. before you've spent cash on
-them) — one shared asset reused at every empty plot, not a
+**Known bad generation, needs a redo — read this before regenerating.**
+The version currently in the repo came out as a rotated diamond/rhombus
+"floor tile" — the kind of isometric single-tile art common in city
+builders that show a diamond-grid — floating on a transparent background.
+That's the wrong shape for this game: every other building
+(`barracks.png`, `mess_hall.png`, etc.) is a flat RECTANGULAR image, 3:2
+landscape, that fills its canvas edge-to-edge, not a rotated diamond with
+empty transparent corners. Dropped into the game next to those rectangles,
+the diamond reads as a mismatched floating shape rather than an empty
+patch of the same ground. This asset needs the exact same rectangular
+"fills the frame" treatment as the other 6 buildings — see the prompt
+below, which now says this explicitly. Code currently falls back to a
+plain dashed-outline placeholder rather than draw the mismatched diamond
+— see `drawBuildingBox()` in `render.js`.
+
+The "not yet built" state for all 6 upgradeable building plots (Weight
+Room, Obstacle Course, Combat Drill Yard, etc. before you've spent cash
+on them) — one shared asset reused at every empty plot, not a
 per-building variant, since an empty plot is an empty plot regardless of
 what eventually gets built there. The existing "Lv.1 (not built)"-style
 text label still renders on top of this in-code — don't bake any text
@@ -339,22 +354,32 @@ into the art itself.
   built building)
 - **Generate at:** 576 × 384 px exactly (4× display size, clean multiple
   of 64px)
-- **Aspect ratio:** 3:2 (landscape), same camera angle as the 6 buildings
+- **Aspect ratio:** 3:2 (landscape), same camera angle as the other 6
+  buildings — a rectangular top-down isometric VIEW of a patch of ground,
+  NOT an isometric diamond/rhombus tile shape. The image itself is a
+  plain rectangle from corner to corner, same as `barracks.png` — only
+  the ground surface drawn inside it looks different (bare dirt instead
+  of a building).
 
 **Prompt:** A cleared, empty construction plot, viewed from a 30-40°
 top-down isometric angle, flat vector game-art illustration style with a
 consistent 2-3px dark outline (#1a1d14) on the plot's edge only (not
-individual clutter). Bare packed dirt in muted brown (#6a5240) filling
-the rectangular plot, a few small details reading as "about to be built
-on" — a couple of wooden stakes with string marking out a foundation
-corner, maybe one small stack of lumber or cinder blocks in a corner.
-Deliberately sparse and low-detail — this is a placeholder plot, not a
-finished scene. Flat ambient lighting from upper-left, no hard shadows.
-Fully transparent background outside the plot rectangle itself, no text,
-no people, no other structures in frame. Fills the full 3:2 canvas edge
-to edge (unlike the built buildings, this should read as ground filling
-the whole plot, not an object floating with padding).
-**Generate at 576×384px, PNG with alpha transparency.**
+individual clutter). **The image is a plain 3:2 rectangle filled
+edge-to-edge with ground — do NOT rotate the ground into a diamond/rhombus
+shape, do NOT leave transparent triangular corners.** Bare packed dirt in
+muted brown (#6a5240) filling the entire rectangular canvas, a few small
+details reading as "about to be built on" — a couple of wooden stakes
+with string marking out a foundation corner, maybe one small stack of
+lumber or cinder blocks in a corner. Deliberately sparse and low-detail —
+this is a placeholder plot, not a finished scene. Flat ambient lighting
+from upper-left, no hard shadows. No transparency inside the plot itself
+(the dirt fills the whole 576×384 canvas, corner to corner — only go
+transparent if you're cropping isolated small props like the stakes,
+never around the ground itself), no text, no people, no other structures
+in frame.
+**Generate at 576×384px, PNG with alpha transparency, dirt filling the
+entire rectangular canvas — same "fills the frame" treatment as
+`barracks.png`, not a diamond tile.**
 
 ---
 

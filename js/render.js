@@ -384,19 +384,21 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
   const h = CELL_SIZE * BUILDING_FOOTPRINT_CELLS.h;
 
   if (!isBuilt) {
-    const lotImg = BUILDING_SPRITES.vacant_lot;
-    if (spriteReady(lotImg)) {
-      ctx.drawImage(lotImg, x, y, w, h);
-    } else {
-      // fallback: a cleared/foundation-dirt lot, not just an empty outline —
-      // reads as "buyable plot" rather than "nothing here yet"
-      ctx.fillStyle = 'rgba(106, 82, 58, 0.35)';
-      ctx.fillRect(x, y, w, h);
-      ctx.strokeStyle = 'rgba(216, 216, 200, 0.4)';
-      ctx.setLineDash([6, 4]);
-      ctx.strokeRect(x, y, w, h);
-      ctx.setLineDash([]);
-    }
+    // vacant_lot.png exists but is intentionally NOT drawn here — it was
+    // generated as a rotated isometric diamond tile, which doesn't match
+    // the flat 30-40°-top-down rectangular camera every other building
+    // uses, so it looked like a mismatched floating shape rather than an
+    // empty plot (user feedback: "there should just be empty spaces for
+    // buildings not diamonds"). See ASSETS.md's respec for what a
+    // corrected version needs to look like — until that's regenerated,
+    // this plain dashed-outline "buyable plot" reads better than either
+    // the diamond or a totally blank rectangle.
+    ctx.fillStyle = 'rgba(106, 82, 58, 0.35)';
+    ctx.fillRect(x, y, w, h);
+    ctx.strokeStyle = 'rgba(216, 216, 200, 0.4)';
+    ctx.setLineDash([6, 4]);
+    ctx.strokeRect(x, y, w, h);
+    ctx.setLineDash([]);
     ctx.fillStyle = 'rgba(216, 216, 200, 0.85)';
     ctx.font = '12px monospace';
     ctx.fillText(`${label} (not built)`, x + 8, y + h / 2);

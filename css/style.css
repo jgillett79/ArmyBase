@@ -329,3 +329,51 @@ button:disabled {
   color: var(--text-dim);
   padding: 2px 0;
 }
+
+/* ---------- Build panel ---------- */
+
+#buildPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 12px;
+  width: 340px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.build-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.build-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 8px 10px;
+}
+
+.build-item-name {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.build-item-status {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.build-item-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
+}

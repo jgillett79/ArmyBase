@@ -38,28 +38,7 @@
       <button id="openMissionsBtn">Missions</button>
     </div>
     <div class="hud-block">
-      <button id="buildBarracksBtn">Barracks (<span id="barracksCost">100</span>)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildRangeBtn">Shooting Range (<span id="rangeCost">80</span>)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildWeightRoomBtn">Weight Room (<span id="weightRoomCost">80</span>)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildObstacleCourseBtn">Obstacle Course (<span id="obstacleCourseCost">80</span>)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildDrillYardBtn">Drill Yard (<span id="drillYardCost">100</span>)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildMessHallBtn">Mess Hall (120)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildShowersBtn">Showers (100)</button>
-    </div>
-    <div class="hud-block">
-      <button id="buildRecRoomBtn">Rec Room (100)</button>
+      <button id="openBuildBtn">Build</button>
     </div>
   </header>
 
@@ -149,6 +128,15 @@
       <span class="hud-label">Active missions</span>
       <div id="activeMissionsList" class="active-missions-list"></div>
     </div>
+  </div>
+
+  <!-- Build panel -->
+  <div id="buildPanel" class="hidden">
+    <div class="profile-header">
+      <span class="hud-label">Build</span>
+      <button id="closeBuild">&times;</button>
+    </div>
+    <div id="buildList" class="build-list"></div>
   </div>
 
   <script src="js/utils.js"></script>

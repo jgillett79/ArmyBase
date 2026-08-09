@@ -9,6 +9,12 @@
 // Every number below is an unbalanced placeholder, same caveat as the rest
 // of this codebase's economy (recruit cost, cash trickle, etc.) — these
 // exist to make the loop testable, not tuned.
+//
+// xpReward: missions are the only source of XP right now — Unit.addXp()/
+// levelUp() existed since Phase 0 but nothing ever called addXp(), so
+// units could never actually level up despite the roster having a whole
+// level/xp/xpToNext system. state.js's resolveMissionForUnit() calls this
+// on success only, same "no reward for failure" rule as cash/resources.
 const MISSION_TIERS = [
   {
     id: 'local_patrol',
@@ -21,6 +27,7 @@ const MISSION_TIERS = [
     baseSuccessChance: 0.85,
     cashReward: [40, 80],
     resourceReward: null,
+    xpReward: [20, 40],
   },
   {
     id: 'supply_run',
@@ -33,6 +40,7 @@ const MISSION_TIERS = [
     baseSuccessChance: 0.7,
     cashReward: [80, 150],
     resourceReward: { type: 'lumber', amount: [10, 20] },
+    xpReward: [40, 70],
   },
   {
     id: 'fortified_outpost',
@@ -45,6 +53,7 @@ const MISSION_TIERS = [
     baseSuccessChance: 0.55,
     cashReward: [150, 300],
     resourceReward: { type: 'steel', amount: [5, 12] },
+    xpReward: [70, 120],
   },
   {
     id: 'high_value_target',
@@ -59,6 +68,7 @@ const MISSION_TIERS = [
     baseSuccessChance: 0.4,
     cashReward: [300, 600],
     resourceReward: { type: 'gems', amount: [1, 3] },
+    xpReward: [120, 200],
   },
 ];
 

@@ -394,6 +394,7 @@ class GameState {
       if (tier.resourceReward) {
         this[tier.resourceReward.type] += rollInRange(tier.resourceReward.amount);
       }
+      unit.addXp(rollInRange(tier.xpReward));
     }
 
     unit.missionReturnAt = null;
