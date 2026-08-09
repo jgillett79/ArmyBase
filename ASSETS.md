@@ -281,6 +281,127 @@ the whole plot, not an object floating with padding).
 
 ---
 
+## Terrain (3 tileable texture files)
+
+Right now the ground, the wall, and the roads are all flat procedural
+canvas shapes (a solid fill color + a thin grid-line overlay for ground,
+a solid gray rectangle for the wall, a solid tan stroke for roads) — none
+of it is real art. Even with real buildings and real characters, the
+surfaces underneath them would still look like placeholder blocks by
+comparison. This section covers those three surfaces.
+
+### These are tileable pattern swatches, NOT one-off images
+
+Unlike every other asset in this doc, these three are small repeating
+textures, applied via canvas's `ctx.createPattern(img, 'repeat')` (ground,
+wall) or as a pattern `strokeStyle` (road — roads are drawn as a stroked
+line, not a filled rectangle). **Each one must tile seamlessly** — its
+left edge must match its right edge, and its top edge must match its
+bottom edge, so that repeating it side-by-side and stacking it
+top-to-bottom shows no visible seam.
+
+**This is a genuinely harder ask of an image generator than the other
+assets in this doc** — not every model/tool handles seamless tiling well
+by default. If your generator has a dedicated "seamless/tileable texture"
+mode, use it. If not, generate normally and then check the result by
+tiling it 2×2 yourself (most image editors can preview this, or just
+duplicate the image into a 2×2 grid and look for a visible seam) before
+finalizing. Because the overall art style here is flat/vector with a
+consistent dark outline (not photorealistic), minor imperfect seams are
+far less noticeable than they'd be in a photoreal texture — low-contrast,
+subtle variation (see each prompt below) matters more than perfection.
+
+**Shared specs for all 3 terrain textures:**
+- **Save format:** PNG-24. No transparency needed (these are opaque
+  background/ground-level surfaces, drawn first, before anything else).
+- **Seamless tiling:** required on all 4 edges, both axes.
+- **Palette:** matches the building palette (these ARE part of the
+  environment, not tinted in-engine) — muted, low-contrast, low-detail so
+  200+ repeats across the base don't create a busy/noisy floor. Avoid any
+  single distinctive feature (a rock, a crack, a stain) that would look
+  obviously repeated when tiled dozens of times.
+- **No baked-in lighting/shadow direction** — a directional shadow would
+  create a visible seam every time the tile repeats. Keep it flat/ambient.
+
+### `ground.png`
+**Path:** `assets/terrain/ground.png`
+
+**In-game tile size:** 48 × 48 px (exactly 1 grid cell — tiles align
+perfectly to the existing grid). **Generate at:** 192 × 192 px (4×, clean
+multiple of 64px).
+
+**Prompt:** A seamlessly tileable packed-dirt military base yard ground
+texture, flat digital illustration style matching a mobile strategy game
+(not photorealistic), viewed from directly above. Muted tan/olive dirt
+tone (base color close to `#6a5a30` / `#5a6450`), very subtle low-contrast
+tonal variation and a faint sparse texture (a few scattered small pebbles
+or thin cracks, kept subtle and evenly distributed, not clustered) — the
+goal is a quiet, low-detail floor that won't distract from buildings and
+characters on top of it, not a detailed ground painting. No grass tufts,
+no large rocks, no footprints, no distinct features that would repeat
+obviously when tiled. Flat, even lighting with no directional shadow. The
+image's left edge must match its right edge and its top edge must match
+its bottom edge exactly, for seamless repeat tiling.
+**Generate at 192×192px, PNG, no transparency needed.**
+
+### `wall.png`
+**Path:** `assets/terrain/wall.png`
+
+**In-game tile size:** 96 × 96 px (2×2 grid cells). **Generate at:**
+384 × 384 px (4×, clean multiple of 64px).
+
+**Prompt:** A seamlessly tileable military perimeter wall surface
+texture, flat digital illustration style matching a mobile strategy game
+(not photorealistic), viewed straight-on (this tiles across a wall
+rendered as a thick stroked band, not as a 3D object). Weathered
+concrete/reinforced-barrier look in dark gray tones (base color close to
+`#4a4a42`, seams/joints in a lighter gray close to `#6a6a5c`), with
+evenly-spaced vertical support-post lines or panel-seam lines subtle
+enough to repeat cleanly. Flat, even lighting, no directional shadow. The
+image's left edge must match its right edge and its top edge must match
+its bottom edge exactly, for seamless repeat tiling in any direction
+(this same texture tiles along the top/bottom walls horizontally AND the
+left/right walls vertically, so it must look correct rotated 90° too —
+avoid any text, arrow, or asymmetric detail that would reveal a "correct"
+orientation).
+**Generate at 384×384px, PNG, no transparency needed.**
+
+### `road.png`
+**Path:** `assets/terrain/road.png`
+
+**In-game tile size:** 48 × 48 px (1 grid cell). **Generate at:**
+192 × 192 px (4×, clean multiple of 64px).
+
+**Prompt:** A seamlessly tileable worn dirt/gravel path texture, flat
+digital illustration style matching a mobile strategy game (not
+photorealistic), viewed from directly above. Lighter tan tone than the
+ground texture so it visually reads as "the path" (base color close to
+`#5a5548`), subtle low-contrast wear/compaction texture, very faint
+scattered small gravel flecks, evenly distributed. No ruts, no distinct
+tire tracks, no large stones — keep it quiet enough that the existing
+dashed centerline (drawn separately, in code, on top of this) stays
+legible. Flat, even lighting, no directional shadow. The image's left
+edge must match its right edge and its top edge must match its bottom
+edge exactly, for seamless repeat tiling in any direction (the same
+texture tiles along the horizontal spine road AND the vertical spoke
+roads, so it must look correct rotated 90° too).
+**Generate at 192×192px, PNG, no transparency needed.**
+
+### Note for whoever wires this in later
+
+Not implemented yet. The wiring pass will replace: `drawGrid()`'s flat
+background (currently just grid lines over the canvas's CSS background
+color) with a `ctx.createPattern(groundImg, 'repeat')` fill covering the
+play area; `drawPerimeterWall()`'s solid `WALL_FILL` color with a
+`ctx.createPattern(wallImg, 'repeat')` fillStyle; and `drawRoads()`'s
+solid `ROAD_FILL` color with a `ctx.createPattern(roadImg, 'repeat')`
+strokeStyle (canvas patterns work as both fill and stroke styles). The
+existing grid lines and dashed road centerline stay as procedural
+overlays drawn on top, same as now — only the base surface color becomes
+a pattern.
+
+---
+
 ## Character direction system (read before generating any character sprite)
 
 **This supersedes the original front-facing character spec.** Characters
@@ -460,16 +581,21 @@ later.
 | 6 | `mess_hall.png` | `assets/buildings/mess_hall.png` | 576×384px | PNG-24 + alpha |
 | 7 | `gatehouse.png` | `assets/buildings/gatehouse.png` | 192×384px | PNG-24 + alpha |
 | 8 | `vacant_lot.png` | `assets/buildings/vacant_lot.png` | 576×384px | PNG-24 + alpha |
-| 9-35 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
+| 9 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
+| 10 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
+| 11 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
+| 12-38 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
 
 **#1-6 (6 files) are already generated and in the repo — no action
 needed.** **#7 `gatehouse.png` and #8 `vacant_lot.png`** are needed;
 `render.js` already has a sprite slot for both and falls back to a
-procedural placeholder until they land. **#9-35, the 27 directional
-character files**, are the new work this update adds — they **replace**
-the original 9 front-facing character sprites (which still exist in the
-repo and keep the game working exactly as-is until the new set is
-generated AND wired in — see the wiring note above).
+procedural placeholder until they land. **#9-11, the 3 terrain textures**,
+are new — none of the ground/wall/road surfaces have any real art yet,
+just flat procedural colors. **#12-38, the 27 directional character
+files**, are also new — they **replace** the original 9 front-facing
+character sprites (which still exist in the repo and keep the game
+working exactly as-is until the new set is generated AND wired in — see
+the wiring notes above).
 
 ## Folder structure
 
@@ -484,6 +610,10 @@ assets/
     mess_hall.png             (done)
     gatehouse.png              (needed)
     vacant_lot.png             (needed)
+  terrain/
+    ground.png                 (needed, tileable)
+    wall.png                   (needed, tileable)
+    road.png                   (needed, tileable)
   units/
     civilians/
       civilian.png             (old front-facing — superseded, do not delete yet)
