@@ -43,6 +43,11 @@ class Unit {
     this.targetY = y;
     this.path = [];
     this.speed = randRange(18, 28); // px/sec
+    // Which directional sprite to draw ('up'/'down'/'left'/'right') — see
+    // render.js's unitSprite(). Only updated while actually moving (step()),
+    // so a stationary unit keeps facing whichever way it last walked rather
+    // than snapping to a default.
+    this.facing = 'down';
 
     // Visual variety so units are distinguishable at a glance even as
     // rectangles — this is the "different views of them as they're walking
@@ -179,6 +184,17 @@ class Unit {
     return true;
   }
 
+  // Movement is always axis-aligned (see state.js's road network — every
+  // leg is either purely horizontal or purely vertical), so whichever axis
+  // has the larger delta is the one actually changing; the other is ~0.
+  updateFacing(dx, dy) {
+    if (Math.abs(dx) > Math.abs(dy)) {
+      this.facing = dx > 0 ? 'right' : 'left';
+    } else if (dy !== 0) {
+      this.facing = dy > 0 ? 'down' : 'up';
+    }
+  }
+
   // Advance position toward target, consuming as many legs of a multi-leg
   // route as dtSeconds' movement budget allows within this single call.
   // This matters for offline catch-up, which applies elapsed time as one
@@ -197,6 +213,8 @@ class Unit {
         if (this.advancePath()) return true;
         continue;
       }
+
+      this.updateFacing(dx, dy);
 
       if (remaining >= dist) {
         this.x = this.targetX;

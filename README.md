@@ -214,6 +214,28 @@ test, not by playing — worth keeping smoke tests for this reason.
   `desiredStatus()` entirely (like HOSPITAL does) so nothing can redirect
   an enlisting unit mid-walk before they arrive.
 
+## Phase 2 — art pass 2 (done): isometric characters + terrain wired in
+
+- All 32 new assets (gatehouse, vacant lot, 3 terrain textures, 27
+  directional character sprites) generated and wired into `render.js`.
+- `Unit` gained `facing` (`unit.js`) — derived from the dominant axis of
+  the current movement delta each `step()`, only updates while actually
+  moving so a stationary unit keeps its last direction. `UNIT_SPRITES`
+  restructured to a per-identity `{down, up, right, fallback}` set;
+  `unitSprite()` picks the direction for `unit.facing`, mirroring the
+  `right` sprite horizontally for `left` (no dedicated left art — see
+  `ASSETS.md`) via a `ctx.scale(-1, 1)` around the unit's own draw
+  position, and falls back to the old single-pose sprite if a specific
+  directional file isn't loaded yet.
+- Ground/wall/road are now `ctx.createPattern()` fills instead of flat
+  colors, scaled 0.25× (assets are generated at 4× display size, same
+  convention as everything else) via `CanvasPattern.setTransform()`.
+  Patterns are cached per-key after first successful creation. Grid lines
+  and the dashed road centerline stay as procedural overlays on top.
+- Gatehouse and vacant-lot art needed no code changes at all — the
+  sprite-slot-with-fallback pattern built when they were still
+  placeholders picked them up automatically once the files existed.
+
 ## Open questions still remaining for Phase 2
 
 1. **Missions.** Percentage-chance resolution, mission list/duration/UI,

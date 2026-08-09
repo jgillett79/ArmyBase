@@ -26,16 +26,69 @@ const BUILDING_SPRITES = {
   vacant_lot: loadSprite('assets/buildings/vacant_lot.png'),
 };
 
+// Tileable ground/wall/road textures — see ASSETS.md's "Terrain" section.
+// Generated at 4x display size (same convention as every other sprite), so
+// each pattern needs a 0.25 scale to tile at its actual in-game size.
+const TERRAIN_SPRITES = {
+  ground: loadSprite('assets/terrain/ground.png'),
+  wall: loadSprite('assets/terrain/wall.png'),
+  road: loadSprite('assets/terrain/road.png'),
+};
+const TERRAIN_SCALE = 0.25;
+const terrainPatternCache = {};
+
+// Canvas patterns need a live 2D context to create, but this game only
+// ever has one canvas — so once a pattern's created it's cached and reused
+// every frame instead of rebuilding it, until the source image finishes
+// loading (returns null until then, same graceful-fallback idea as
+// spriteReady() elsewhere in this file).
+function getTerrainPattern(ctx, key) {
+  if (terrainPatternCache[key]) return terrainPatternCache[key];
+  const img = TERRAIN_SPRITES[key];
+  if (!spriteReady(img)) return null;
+  const pattern = ctx.createPattern(img, 'repeat');
+  if (pattern && pattern.setTransform) {
+    pattern.setTransform(new DOMMatrix([TERRAIN_SCALE, 0, 0, TERRAIN_SCALE, 0, 0]));
+  }
+  terrainPatternCache[key] = pattern;
+  return pattern;
+}
+
+// Each identity has 3 directional sprites (down/up/right — see ASSETS.md's
+// "Character direction system") plus the original single-pose sprite as a
+// fallback for whichever directional file hasn't loaded yet. There's no
+// 'left' file — see unitSprite() below, it's the 'right' image mirrored.
+function civilianSpriteSet(outfit) {
+  const base = `assets/units/civilians/${outfit}`;
+  return {
+    down: loadSprite(`${base}_down.png`),
+    up: loadSprite(`${base}_up.png`),
+    right: loadSprite(`${base}_right.png`),
+    fallback: loadSprite(`${base}.png`),
+  };
+}
+
+function soldierSpriteSet(variant) {
+  const padded = String(variant).padStart(2, '0');
+  const base = `assets/units/soldiers/soldier_${padded}`;
+  return {
+    down: loadSprite(`${base}_down.png`),
+    up: loadSprite(`${base}_up.png`),
+    right: loadSprite(`${base}_right.png`),
+    fallback: loadSprite(`assets/units/soldiers/soldier_${padded}.png`),
+  };
+}
+
 const UNIT_SPRITES = {
-  civilian: loadSprite('assets/units/civilians/civilian.png'),
-  bus_rider: loadSprite('assets/units/civilians/bus_rider.png'),
-  taxi: loadSprite('assets/units/civilians/taxi.png'),
-  soldier_1: loadSprite('assets/units/soldiers/soldier_01.png'),
-  soldier_2: loadSprite('assets/units/soldiers/soldier_02.png'),
-  soldier_3: loadSprite('assets/units/soldiers/soldier_03.png'),
-  soldier_4: loadSprite('assets/units/soldiers/soldier_04.png'),
-  soldier_5: loadSprite('assets/units/soldiers/soldier_05.png'),
-  soldier_6: loadSprite('assets/units/soldiers/soldier_06.png'),
+  civilian: civilianSpriteSet('civilian'),
+  bus_rider: civilianSpriteSet('bus_rider'),
+  taxi: civilianSpriteSet('taxi'),
+  soldier_1: soldierSpriteSet(1),
+  soldier_2: soldierSpriteSet(2),
+  soldier_3: soldierSpriteSet(3),
+  soldier_4: soldierSpriteSet(4),
+  soldier_5: soldierSpriteSet(5),
+  soldier_6: soldierSpriteSet(6),
 };
 
 // On-screen unit sprite size (matches the 32x48 spec in ASSETS.md).
@@ -46,14 +99,30 @@ const UNIT_H = 48;
 // Barracks after being recruited) has isCivilian=false already but still
 // wears its civilian outfit visually until it arrives and outfit flips to
 // 'uniform' (see state.js's RECRUITING handling in tick()).
-function unitSprite(unit) {
+function unitSpriteSet(unit) {
   if (unit.outfit !== 'uniform') return UNIT_SPRITES[unit.outfit] || UNIT_SPRITES.civilian;
   return UNIT_SPRITES['soldier_' + (unit.soldierVariant || 1)];
+}
+
+// Picks the directional image for unit.facing ('left' reuses 'right' — see
+// drawUnit(), which mirrors it) and falls back to the older single-pose
+// sprite if that specific direction hasn't loaded yet.
+function unitSprite(unit) {
+  const set = unitSpriteSet(unit);
+  const dirKey = unit.facing === 'left' ? 'right' : unit.facing;
+  const img = set[dirKey];
+  return spriteReady(img) ? img : set.fallback;
 }
 
 // --- drawers --------------------------------------------------------------
 
 function drawGrid(ctx) {
+  const groundPattern = getTerrainPattern(ctx, 'ground');
+  if (groundPattern) {
+    ctx.fillStyle = groundPattern;
+    ctx.fillRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
+  }
+
   ctx.strokeStyle = 'rgba(216, 216, 200, 0.08)';
   ctx.lineWidth = 1;
   for (let c = 0; c <= GRID_COLS; c++) {
@@ -81,7 +150,7 @@ function drawPerimeterWall(ctx) {
   const h = GRID_ROWS * CELL_SIZE;
   const t = WALL_THICKNESS;
 
-  ctx.fillStyle = WALL_FILL;
+  ctx.fillStyle = getTerrainPattern(ctx, 'wall') || WALL_FILL;
   ctx.strokeStyle = WALL_STROKE;
   ctx.lineWidth = 2;
 
@@ -133,7 +202,7 @@ const ROAD_LINE = 'rgba(216, 216, 200, 0.25)';
 // buildings, not hardcoded numbers, so this can't drift out of sync with
 // the routing logic.
 function drawRoads(ctx, gameState) {
-  ctx.strokeStyle = ROAD_FILL;
+  ctx.strokeStyle = getTerrainPattern(ctx, 'road') || ROAD_FILL;
   ctx.lineWidth = 14;
   ctx.lineCap = 'round';
 
@@ -292,7 +361,15 @@ function drawUnit(ctx, unit, isSelected) {
     ctx.save();
     const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
     ctx.filter = `hue-rotate(${hue}deg) saturate(${sat})`;
-    ctx.drawImage(img, unit.x - halfW, top, UNIT_W, UNIT_H);
+    if (unit.facing === 'left') {
+      // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
+      // sprite around the unit's own draw position instead.
+      ctx.translate(unit.x + halfW, top);
+      ctx.scale(-1, 1);
+      ctx.drawImage(img, 0, 0, UNIT_W, UNIT_H);
+    } else {
+      ctx.drawImage(img, unit.x - halfW, top, UNIT_W, UNIT_H);
+    }
     ctx.restore();
   } else {
     // fallback: original colored dot until the sprite loads

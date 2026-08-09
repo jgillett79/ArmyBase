@@ -234,9 +234,13 @@ above before touching any movement/routing code. **Increment 4 done**:
 civilian outfit) and only becomes a soldier (uniform swap) on arrival;
 `render.js` dispatches sprite/saturation on `unit.outfit`, not
 `unit.isCivilian`, because of this transitional state — keep that in mind
-if you touch unit rendering. **In progress**: character art is moving
-from front-facing to isometric (to match the buildings) with directional
-sprites for movement — see open question below before generating anything.
+if you touch unit rendering. **Art pass 2 done**: isometric characters
+(3 unique directions — down/up/right — per identity, `left` is `right`
+mirrored in code, no diagonal sprites since the road network never
+produces diagonal movement) plus gatehouse/vacant-lot/terrain textures,
+all generated and wired into `render.js`. `Unit.facing` (derived from
+movement delta in `step()`) drives which directional sprite draws;
+ground/wall/road are `ctx.createPattern()` fills now, not flat colors.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
@@ -249,17 +253,19 @@ sprites for movement — see open question below before generating anything.
    — shape is decided (see above), not implemented yet. Needs both the two
    new buildings AND a real design pass on what order/how-long a unit's
    day actually goes through sleep → shower → train → lunch → recreation.
-3. **Character direction-sprite scope.** User wants isometric characters
-   (was front-facing — see art pipeline note below) with directional
-   sprites for movement. Full 8-direction (72 images: 9 characters × 8
-   dirs) was requested, but the road network (increment 3) only ever
-   produces orthogonal movement — diagonal (NE/SE/SW/NW) sprites would sit
-   unused unless free-roam diagonal movement gets built later. Flagged to
-   the user; confirm final scope (36 cardinal-only vs. 72 full) before
-   writing the `ASSETS.md` update for this.
-4. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
+3. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
+4. **Building construction time + higher levels + an "under construction"
+   art state** — raised by the user, not yet scoped. Right now upgrading a
+   building is instant (one cash deduction, `building.upgrade()`
+   synchronously) and levels cap at 3. Whether to add a real-time build
+   timer (same pattern as the hospital timer — `Date.now()`-based, not
+   compressed game-time, per the three-clocks rule), raise the level cap,
+   and/or add a shared "construction in progress" sprite (one asset reused
+   across all 6 buildings, same idea as `vacant_lot.png`) is an open
+   question — see README for the recommendation given (basic gameplay/
+   missions first, this is a polish layer that can come later).
 5. **Art pipeline** — the local AI pipeline (`tools/generate_assets.py`)
    exists and produced the 15 assets currently in use; `gatehouse.png` and
    `vacant_lot.png` are spec'd in `ASSETS.md` but not yet generated (the
