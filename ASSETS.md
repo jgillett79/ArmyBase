@@ -1,9 +1,12 @@
 # Art asset spec — Phase 2 art pass
 
 This is the manifest for replacing the placeholder canvas shapes
-(`js/render.js`) with real images. Every asset below has its own complete,
-self-contained prompt — copy one entry's "Prompt" block directly into your
-generator, it doesn't depend on reading the rest of this file to make sense.
+(`js/render.js`) with real images. Buildings/gatehouse/vacant-lot each
+have their own complete, self-contained prompt — copy one entry's
+"Prompt" block directly into your generator. Character sprites (27 files)
+are template-based instead, to avoid 27 near-duplicate paragraphs — see
+"Character direction system" for how to combine a character identity + a
+direction modifier into one complete prompt.
 
 **Nothing in this file changes the game yet.** Dropping images into the
 paths below won't make them appear on screen — `render.js` still draws
@@ -11,7 +14,7 @@ rectangles/circles until a follow-up coding pass swaps those calls for
 `drawImage()`. Generate the art first, confirm the look, then ask for the
 wiring pass.
 
-## Master style guide — applies to every one of the 13 images
+## Master style guide — applies to every image in this spec (buildings, gatehouse, vacant lot, all 27 character sprites)
 
 Consistency across the set matters more than any single image looking
 good in isolation — these all render together on one screen. Every prompt
@@ -32,8 +35,11 @@ once first:
   no ground texture, no vignette, no gradient backdrop. The subject only.
 - **Composition:** subject centered, filling roughly 75-85% of the canvas
   on its longest axis, with even transparent padding on all sides. Camera
-  square-on (buildings: top-down/slight isometric; characters: front-on) —
-  no dramatic angle, no fisheye, no forced perspective.
+  is the same 30-40° top-down isometric angle for EVERYTHING now,
+  buildings and characters alike — no dramatic angle, no fisheye, no
+  forced perspective. (Earlier versions of this doc had characters
+  front-on; that's been superseded — see "Character direction system"
+  below for why and what changed.)
 - **Absolutely avoid:** text, numbers, logos, watermarks, signatures, UI
   chrome, other buildings/characters/props in frame, motion blur, lens
   flare, photorealism, film grain.
@@ -275,253 +281,147 @@ the whole plot, not an object floating with padding).
 
 ---
 
-## Civilians (3 files)
+## Character direction system (read before generating any character sprite)
 
-Civilians are units that haven't been recruited yet — they walk toward
-the base and can be clicked to recruit. Each `outfit` value in `unit.js`
-needs its own sprite (currently just a colored dot + a small emoji
-marker; these replace the whole body).
+**This supersedes the original front-facing character spec.** Characters
+now use the same 30-40 degree top-down isometric camera as the buildings,
+and walk with proper directional sprites instead of one static front-on
+icon.
 
-**Shared specs for all 3 civilians:**
+The road network (see `CLAUDE.md`) only ever produces axis-aligned
+movement -- units walk along a fixed spine + spokes, never diagonally. So
+rather than a full 8-direction set (most of which would never render),
+each character gets **3 unique directional sprites -- down, up, right**
+-- and **left is that same right-facing image mirrored horizontally in
+code** (a free `ctx.scale(-1, 1)` flip, zero extra art). That's all 4
+cardinal directions actually used in-game, for 25% less generation work
+than 4 unique sprites and a fraction of a full 8-direction set, with no
+visual quality loss (a walking figure's left and right profile are
+genuinely mirror images of each other).
+
+This applies to all 9 characters (3 civilians + 6 soldiers). **Soldiers
+also switch from their original standing-at-ease pose to the same
+mid-stride walking pose as civilians** -- they spend most of their time
+walking the roads now (recruit walk-in, road wandering, commuting to
+jobs), so a static at-ease pose would look stiff while gliding across the
+screen.
+
+Every character sprite is fully specified by combining:
+1. one of the 9 **character identities** below (what makes this character
+   this character -- clothing, build, headgear)
+2. one of the 3 **direction modifiers** below (camera framing + stride for
+   that direction)
+
+Both parts always include the shared technical requirements (palette,
+outline, lighting, background, format) from the master style guide above
+-- they're not repeated in every prompt below to keep this section
+readable, but they apply to all 27 files exactly as they did to the
+original 9.
+
+**Shared specs for all 27 files:**
 - **Save format:** PNG-24, transparent background
-- **In-game display size:** 32 × 48 px
-- **Generate at:** 128 × 192 px exactly (4× display size, clean multiple
+- **In-game display size:** 32 x 48 px
+- **Generate at:** 128 x 192 px exactly (4x display size, clean multiple
   of 64px)
 - **Aspect ratio:** 2:3 (portrait)
-- **Camera:** front-facing, full body visible head to feet, straight-on
-  (not 3/4, not top-down) — a simple stylized character icon, closer to a
-  board-game piece than a realistic portrait.
-- **Pose:** standing, mid-stride walking pose (one leg forward), arms in a
-  relaxed natural walking position.
-- **Proportions:** simplified/stylized game-icon proportions — slightly
-  larger head-to-body ratio than realistic (roughly 1:4 head-to-height)
-  for readability at 32×48px on screen. Facial detail should be minimal:
-  simple dot or short-line eyes, no detailed facial features — it will
-  render very small.
 - **Palette:** character base palette ONLY (`#8a897d` `#6e6d63` `#b8b6a8`
-  `#4a4942`) — see "why characters must be desaturated" above. Do not use
-  the saturated building palette or any other colors.
+  `#4a4942`) -- see "why characters must be desaturated" above.
 
-### `civilian.png`
-**Path:** `assets/units/civilians/civilian.png`
-**Maps to code value:** `unit.outfit === 'civilian'`
+### Direction modifiers (append one to whichever character identity below)
 
-**Prompt:** A generic civilian pedestrian, full body, front-facing,
-simple stylized flat-vector game-icon character with a consistent 2-3px
-dark outline (#1a1d14). Mid-stride walking pose, one leg forward, arms
-relaxed. Plain casual clothing — a simple t-shirt/jacket shape and pants,
-no distinguishing accessories. Use ONLY these desaturated tones: neutral
-warm gray #8a897d for the main clothing, darker gray #6e6d63 for shading
-creases, light gray-khaki #b8b6a8 for skin/highlights, near-black gray
-#4a4942 for shoes/small details — no other colors, no bright/saturated
-colors anywhere, this sprite gets recolored in-engine. Minimal facial
-detail (simple dot eyes, no other features). Flat ambient lighting from
-upper-left, no hard shadows, optional soft 10% contact shadow directly
-under the feet only. Fully transparent background, no ground, no text, no
-props, no other characters in frame. Figure fills about 80% of canvas
-height, centered with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
+**`down`** -- walking toward the camera (this is what a unit walking
+"south," i.e. down the screen, looks like). Viewed from the 30-40 degree
+top-down isometric angle, front of the body facing the viewer, leading
+leg stepping toward camera, face/front mostly visible, head angled
+slightly down as if seen from just above. Mid-stride walking pose.
 
-### `bus_rider.png`
-**Path:** `assets/units/civilians/bus_rider.png`
-**Maps to code value:** `unit.outfit === 'bus_rider'`
+**`up`** -- walking away from the camera ("north," up the screen). Same
+isometric angle, but the character's back is toward the viewer -- back of
+the head/hair, shoulders, and the back of the walking stride visible, no
+face visible. Mid-stride walking pose, same leg-forward energy as `down`
+but shown from behind.
 
-**Prompt:** A civilian pedestrian who just got off a bus, full body,
-front-facing, simple stylized flat-vector game-icon character with a
-consistent 2-3px dark outline (#1a1d14). Mid-stride walking pose, one leg
-forward, arms relaxed, carrying a small duffel bag or backpack over one
-shoulder (this bag is the ONE visual difference from `civilian.png` —
-keep body proportions, pose, and clothing style otherwise identical for
-set consistency). Use ONLY these desaturated tones: neutral warm gray
-#8a897d for the main clothing, darker gray #6e6d63 for shading/the bag,
-light gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for
-shoes/straps — no other colors, no bright/saturated colors anywhere, this
-sprite gets recolored in-engine. Minimal facial detail (simple dot eyes,
-no other features). Flat ambient lighting from upper-left, no hard
-shadows, optional soft 10% contact shadow directly under the feet only.
-Fully transparent background, no ground, no text, no other props or
-characters in frame. Figure fills about 80% of canvas height, centered
-with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
+**`right`** -- walking toward the right of the screen ("east"). Shown in
+right-facing side profile at the same isometric tilt -- one side of the
+body and face profile visible, legs scissored fore-and-aft along the
+direction of travel, mid-stride. **Do not generate a separate `left`
+sprite** -- it's this image flipped horizontally in code.
 
-### `taxi.png`
-**Path:** `assets/units/civilians/taxi.png`
-**Maps to code value:** `unit.outfit === 'taxi'`
+### Character identities
 
-**Prompt:** A civilian pedestrian who just arrived by taxi, full body,
-front-facing, simple stylized flat-vector game-icon character with a
-consistent 2-3px dark outline (#1a1d14). Mid-stride walking pose, one leg
-forward, arms relaxed, slightly neater/sharper silhouette than the other
-two civilians — a simple collared jacket shape instead of a plain
-t-shirt, otherwise same body proportions and pose for set consistency, no
-bag. Use ONLY these desaturated tones: neutral warm gray #8a897d for the
-main clothing, darker gray #6e6d63 for shading/collar, light gray-khaki
-#b8b6a8 for skin/highlights, near-black gray #4a4942 for shoes/small
-details — no other colors, no bright/saturated colors anywhere, this
-sprite gets recolored in-engine. Minimal facial detail (simple dot eyes,
-no other features). Flat ambient lighting from upper-left, no hard
-shadows, optional soft 10% contact shadow directly under the feet only.
-Fully transparent background, no ground, no text, no other props or
-characters in frame. Figure fills about 80% of canvas height, centered
-with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
+**`civilian`** -- Generic pedestrian in plain casual clothing: a simple
+t-shirt/jacket shape and pants, no distinguishing accessories, no bag.
 
----
+**`bus_rider`** -- Same build as `civilian`, but carrying a small duffel
+bag/backpack over one shoulder -- this bag is the one visual difference
+from `civilian`; everything else (clothing style, build) stays identical
+for set consistency.
 
-## Soldiers (6 files, one variant pack)
+**`taxi`** -- Same build as `civilian`, but a simple collared jacket
+instead of a plain t-shirt (slightly neater/sharper silhouette), no bag.
 
-Once recruited, a unit becomes a soldier (`outfit: 'uniform'`). Rather
-than one single sprite for all 20 possible roster slots (which would make
-every soldier's *shape* identical, only the color different), this is a
-**6-body-variant pack** — the game will randomly assign one shape per
-recruited unit (same pattern already used for civilian outfits) and still
-apply the per-unit hue tint on top, so the result is 6 shapes × unlimited
-tint colors.
+**`soldier_01`** -- Basic uniform (jacket + trousers silhouette, no extra
+gear), no headgear, bare head with a simple short-hair silhouette.
 
-**Shared specs for all 6 soldiers:**
-- **Save format:** PNG-24, transparent background
-- **In-game display size:** 32 × 48 px
-- **Generate at:** 128 × 192 px exactly (4× display size, clean multiple
-  of 64px)
-- **Aspect ratio:** 2:3 (portrait)
-- **Camera:** front-facing, full body visible head to feet, straight-on,
-  same simple stylized character-icon style as the civilians.
-- **Pose:** standing at ease, facing forward, arms at sides — NOT mid-
-  stride (soldiers are more often stationary/training in-game than
-  civilians are). All 6 must share this exact pose and scale so swapping
-  between them mid-game doesn't look jarring.
-- **Proportions:** identical to the civilian sprites — same
-  head-to-body ratio, same overall height/width envelope within the
-  128×192px canvas, so soldiers and civilians feel like the same "species"
-  of character on screen.
-- **Palette:** character base palette ONLY (`#8a897d` `#6e6d63` `#b8b6a8`
-  `#4a4942`) — see "why characters must be desaturated" above.
+**`soldier_02`** -- Same uniform as `soldier_01`, plus a rounded combat
+helmet -- the one visual difference from `soldier_01`.
 
-### `soldier_01.png` — bare-headed
-**Path:** `assets/units/soldiers/soldier_01.png`
+**`soldier_03`** -- Same as `soldier_01`, but noticeably
+bulkier/broader-shouldered -- wider torso silhouette, same overall
+height -- the one visual difference from `soldier_01`.
 
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette, no extra gear). No
-headgear — bare head, simple short-hair silhouette. Use ONLY these
-desaturated tones: neutral warm gray #8a897d for the uniform, darker gray
-#6e6d63 for shading/creases, light gray-khaki #b8b6a8 for skin/highlights,
-near-black gray #4a4942 for boots — no other colors, this sprite gets
-recolored in-engine. Minimal facial detail (simple dot eyes, no other
-features). Flat ambient lighting from upper-left, no hard shadows,
-optional soft 10% contact shadow directly under the feet only. Fully
-transparent background, no ground, no text, no props or other characters
-in frame. Figure fills about 80% of canvas height, centered with even
-padding.
-**Generate at 128×192px, PNG with alpha transparency.**
+**`soldier_04`** -- Same as `soldier_01`, but noticeably
+slighter/narrower -- narrower torso silhouette, same overall height --
+the one visual difference from `soldier_01`.
 
-### `soldier_02.png` — helmet
-**Path:** `assets/units/soldiers/soldier_02.png`
+**`soldier_05`** -- Same uniform as `soldier_01`, plus a soft beret
+angled slightly to one side -- must read as clearly distinct in
+silhouette from `soldier_02`'s rounded helmet.
 
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette) plus a rounded
-combat helmet — this helmet is the ONE visual difference from
-`soldier_01.png`; keep body proportions, pose, and uniform style
-otherwise identical to the rest of the pack. Use ONLY these desaturated
-tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for
-the helmet/shading, light gray-khaki #b8b6a8 for skin/highlights,
-near-black gray #4a4942 for boots — no other colors, this sprite gets
-recolored in-engine. Minimal facial detail. Flat ambient lighting from
-upper-left, no hard shadows, optional soft 10% contact shadow directly
-under the feet only. Fully transparent background, no ground, no text, no
-props or other characters in frame. Figure fills about 80% of canvas
-height, centered with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
-
-### `soldier_03.png` — bulkier build
-**Path:** `assets/units/soldiers/soldier_03.png`
-
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette), no headgear.
-Noticeably bulkier/broader-shouldered build than `soldier_01.png` — wider
-torso silhouette, same overall height — this build difference is the ONE
-visual distinction from the bare-headed variant; keep pose and uniform
-style otherwise identical to the rest of the pack. Use ONLY these
-desaturated tones: neutral warm gray #8a897d for the uniform, darker gray
-#6e6d63 for shading/creases, light gray-khaki #b8b6a8 for skin/highlights,
-near-black gray #4a4942 for boots — no other colors, this sprite gets
-recolored in-engine. Minimal facial detail. Flat ambient lighting from
-upper-left, no hard shadows, optional soft 10% contact shadow directly
-under the feet only. Fully transparent background, no ground, no text, no
-props or other characters in frame. Figure fills about 80% of canvas
-height, centered with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
-
-### `soldier_04.png` — slighter build
-**Path:** `assets/units/soldiers/soldier_04.png`
-
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette), no headgear.
-Noticeably slighter/narrower build than `soldier_01.png` — narrower torso
-silhouette, same overall height — this build difference is the ONE visual
-distinction from the bare-headed variant; keep pose and uniform style
-otherwise identical to the rest of the pack. Use ONLY these desaturated
-tones: neutral warm gray #8a897d for the uniform, darker gray #6e6d63 for
-shading/creases, light gray-khaki #b8b6a8 for skin/highlights, near-black
-gray #4a4942 for boots — no other colors, this sprite gets recolored
-in-engine. Minimal facial detail. Flat ambient lighting from upper-left,
-no hard shadows, optional soft 10% contact shadow directly under the feet
-only. Fully transparent background, no ground, no text, no props or other
-characters in frame. Figure fills about 80% of canvas height, centered
-with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
-
-### `soldier_05.png` — beret
-**Path:** `assets/units/soldiers/soldier_05.png`
-
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette) plus a soft beret
-angled slightly to one side — this beret is the ONE visual difference
-from `soldier_01.png`, and it should read as clearly distinct in
-silhouette from `soldier_02.png`'s rounded combat helmet; keep body
-proportions, pose, and uniform style otherwise identical to the rest of
-the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for
-the uniform, darker gray #6e6d63 for the beret/shading, light gray-khaki
-#b8b6a8 for skin/highlights, near-black gray #4a4942 for boots — no other
-colors, this sprite gets recolored in-engine. Minimal facial detail. Flat
-ambient lighting from upper-left, no hard shadows, optional soft 10%
-contact shadow directly under the feet only. Fully transparent
-background, no ground, no text, no props or other characters in frame.
-Figure fills about 80% of canvas height, centered with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
-
-### `soldier_06.png` — backpack/gear webbing
-**Path:** `assets/units/soldiers/soldier_06.png`
-
-**Prompt:** A standard military soldier, full body, front-facing, simple
-stylized flat-vector game-icon character with a consistent 2-3px dark
-outline (#1a1d14). Standing at ease, facing forward, arms at sides,
-wearing a basic uniform (jacket + trousers silhouette), no headgear, plus
+**`soldier_06`** -- Same uniform as `soldier_01`, no headgear, plus
 visible gear webbing straps across the chest and a small pack on the
-back (only the top/sides of the pack visible from the front) — this gear
-is the ONE visual difference from `soldier_01.png`; keep body
-proportions, pose, and uniform style otherwise identical to the rest of
-the pack. Use ONLY these desaturated tones: neutral warm gray #8a897d for
-the uniform, darker gray #6e6d63 for the webbing/pack/shading, light
-gray-khaki #b8b6a8 for skin/highlights, near-black gray #4a4942 for boots
-— no other colors, this sprite gets recolored in-engine. Minimal facial
-detail. Flat ambient lighting from upper-left, no hard shadows, optional
-soft 10% contact shadow directly under the feet only. Fully transparent
-background, no ground, no text, no props or other characters in frame.
-Figure fills about 80% of canvas height, centered with even padding.
-**Generate at 128×192px, PNG with alpha transparency.**
+back -- the one visual difference from `soldier_01`.
+
+### Full file list (27 files: 9 characters x 3 directions)
+
+Every filename below is `{character}_{direction}.png`. All share the
+"Generate at 128x192px, PNG with alpha transparency" spec from above.
+
+| Character | `down` | `up` | `right` | Folder |
+|---|---|---|---|---|
+| `civilian` | `civilian_down.png` | `civilian_up.png` | `civilian_right.png` | `assets/units/civilians/` |
+| `bus_rider` | `bus_rider_down.png` | `bus_rider_up.png` | `bus_rider_right.png` | `assets/units/civilians/` |
+| `taxi` | `taxi_down.png` | `taxi_up.png` | `taxi_right.png` | `assets/units/civilians/` |
+| `soldier_01` | `soldier_01_down.png` | `soldier_01_up.png` | `soldier_01_right.png` | `assets/units/soldiers/` |
+| `soldier_02` | `soldier_02_down.png` | `soldier_02_up.png` | `soldier_02_right.png` | `assets/units/soldiers/` |
+| `soldier_03` | `soldier_03_down.png` | `soldier_03_up.png` | `soldier_03_right.png` | `assets/units/soldiers/` |
+| `soldier_04` | `soldier_04_down.png` | `soldier_04_up.png` | `soldier_04_right.png` | `assets/units/soldiers/` |
+| `soldier_05` | `soldier_05_down.png` | `soldier_05_up.png` | `soldier_05_right.png` | `assets/units/soldiers/` |
+| `soldier_06` | `soldier_06_down.png` | `soldier_06_up.png` | `soldier_06_right.png` | `assets/units/soldiers/` |
+
+Example -- to generate `soldier_02_right.png`, combine: the `soldier_02`
+identity (basic uniform + rounded combat helmet) + the `right` direction
+modifier (isometric side profile, mid-stride, facing screen-right) + the
+shared technical requirements (character base palette, 2-3px dark
+outline, flat ambient lighting from upper-left, transparent background,
+figure filling ~80% of canvas height, no text/props/other characters,
+128x192px PNG with alpha).
+
+### Note for whoever wires this in later
+
+The old single-sprite-per-character files (`civilian.png`, `soldier_01.png`,
+etc. with no direction suffix) stay in place and the game keeps working
+exactly as it does now until this new set is both generated AND wired in
+-- don't delete the old files preemptively. The wiring pass will need:
+`UNIT_SPRITES` restructured to a nested lookup (e.g.
+`UNIT_SPRITES.civilian.down`), a way to derive "which direction is this
+unit currently moving" from the dx/dy of its current path leg (always
+axis-aligned per the road network, so this is just a sign check, not real
+vector math), and a horizontal-flip `ctx.scale(-1, 1)` branch for `left`.
+Not implemented yet -- flagged here so it isn't guessed at differently
+later.
 
 ---
-
 ## Not included in this pass (intentionally)
 
 - **"Not built" building ghost state** — stays the existing dashed-outline
@@ -537,10 +437,16 @@ Figure fills about 80% of canvas height, centered with even padding.
   generation work or a runtime generation pipeline wired into the recruit
   flow — that's a bigger, separate decision (ties into the "art pipeline"
   open question in `CLAUDE.md`), not something to fold into this batch.
-- **Walk-cycle animation frames** — units currently glide between two
-  points with no animation; a single static pose per sprite is enough for
-  this pass. Animated spritesheets can be a later upgrade once static art
-  is validated in-engine.
+- **Walk-cycle animation frames** — the 3 directional poses (down/up/right)
+  are each a single static frame, not an animated stride cycle. Units
+  glide between waypoints without a leg-swinging animation. A later
+  upgrade, not this pass.
+- **A separate `left` sprite** — deliberately not generated; it's the
+  `right` sprite flipped horizontally in code. See "Character direction
+  system" above.
+- **Diagonal (NE/SE/SW/NW) directional sprites** — the road network only
+  ever produces axis-aligned movement, so these would never render. Only
+  add them if free-roam diagonal movement gets built later.
 
 ## Quick-reference table
 
@@ -554,51 +460,68 @@ Figure fills about 80% of canvas height, centered with even padding.
 | 6 | `mess_hall.png` | `assets/buildings/mess_hall.png` | 576×384px | PNG-24 + alpha |
 | 7 | `gatehouse.png` | `assets/buildings/gatehouse.png` | 192×384px | PNG-24 + alpha |
 | 8 | `vacant_lot.png` | `assets/buildings/vacant_lot.png` | 576×384px | PNG-24 + alpha |
-| 9 | `civilian.png` | `assets/units/civilians/civilian.png` | 128×192px | PNG-24 + alpha |
-| 10 | `bus_rider.png` | `assets/units/civilians/bus_rider.png` | 128×192px | PNG-24 + alpha |
-| 11 | `taxi.png` | `assets/units/civilians/taxi.png` | 128×192px | PNG-24 + alpha |
-| 12 | `soldier_01.png` | `assets/units/soldiers/soldier_01.png` | 128×192px | PNG-24 + alpha |
-| 13 | `soldier_02.png` | `assets/units/soldiers/soldier_02.png` | 128×192px | PNG-24 + alpha |
-| 14 | `soldier_03.png` | `assets/units/soldiers/soldier_03.png` | 128×192px | PNG-24 + alpha |
-| 15 | `soldier_04.png` | `assets/units/soldiers/soldier_04.png` | 128×192px | PNG-24 + alpha |
-| 16 | `soldier_05.png` | `assets/units/soldiers/soldier_05.png` | 128×192px | PNG-24 + alpha |
-| 17 | `soldier_06.png` | `assets/units/soldiers/soldier_06.png` | 128×192px | PNG-24 + alpha |
+| 9-35 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
 
-**#1-6 and #9-17 (15 files) are already generated and in the repo.**
-**#7 `gatehouse.png` and #8 `vacant_lot.png` are new** — added for the
-perimeter wall/gate pass and don't exist yet; `render.js` already has a
-sprite slot for both and falls back to a procedural placeholder (a plain
-labeled archway / a flat dirt-brown rectangle) until they land.
+**#1-6 (6 files) are already generated and in the repo — no action
+needed.** **#7 `gatehouse.png` and #8 `vacant_lot.png`** are needed;
+`render.js` already has a sprite slot for both and falls back to a
+procedural placeholder until they land. **#9-35, the 27 directional
+character files**, are the new work this update adds — they **replace**
+the original 9 front-facing character sprites (which still exist in the
+repo and keep the game working exactly as-is until the new set is
+generated AND wired in — see the wiring note above).
 
 ## Folder structure
 
 ```
 assets/
   buildings/
-    barracks.png            (done)
-    shooting_range.png      (done)
-    weight_room.png         (done)
-    obstacle_course.png     (done)
-    drill_yard.png          (done)
-    mess_hall.png           (done)
-    gatehouse.png           (needed)
-    vacant_lot.png          (needed)
+    barracks.png              (done)
+    shooting_range.png        (done)
+    weight_room.png           (done)
+    obstacle_course.png       (done)
+    drill_yard.png            (done)
+    mess_hall.png             (done)
+    gatehouse.png              (needed)
+    vacant_lot.png             (needed)
   units/
     civilians/
-      civilian.png           (done)
-      bus_rider.png          (done)
-      taxi.png               (done)
+      civilian.png             (old front-facing — superseded, do not delete yet)
+      bus_rider.png            (old front-facing — superseded, do not delete yet)
+      taxi.png                 (old front-facing — superseded, do not delete yet)
+      civilian_down.png         (needed)
+      civilian_up.png           (needed)
+      civilian_right.png        (needed)
+      bus_rider_down.png        (needed)
+      bus_rider_up.png          (needed)
+      bus_rider_right.png       (needed)
+      taxi_down.png              (needed)
+      taxi_up.png                (needed)
+      taxi_right.png             (needed)
     soldiers/
-      soldier_01.png         (done)
-      soldier_02.png         (done)
-      soldier_03.png         (done)
-      soldier_04.png         (done)
-      soldier_05.png         (done)
-      soldier_06.png         (done)
+      soldier_01.png ... soldier_06.png   (old front-facing — superseded, do not delete yet)
+      soldier_01_down.png       (needed)
+      soldier_01_up.png         (needed)
+      soldier_01_right.png      (needed)
+      soldier_02_down.png       (needed)
+      soldier_02_up.png         (needed)
+      soldier_02_right.png      (needed)
+      soldier_03_down.png       (needed)
+      soldier_03_up.png         (needed)
+      soldier_03_right.png      (needed)
+      soldier_04_down.png       (needed)
+      soldier_04_up.png         (needed)
+      soldier_04_right.png      (needed)
+      soldier_05_down.png       (needed)
+      soldier_05_up.png         (needed)
+      soldier_05_right.png      (needed)
+      soldier_06_down.png       (needed)
+      soldier_06_up.png         (needed)
+      soldier_06_right.png      (needed)
 ```
 
-Drop each generated file at the exact path above. The game already works
-without `gatehouse.png`/`vacant_lot.png` (procedural fallback draws in
-their place), so there's no urgency — drop them in whenever they're ready
-and they'll pick up automatically on the next page load, no code changes
-needed.
+Drop each generated file at the exact path above. The game keeps working
+throughout — the old front-facing sprites keep rendering until the new
+directional set is both fully generated and wired into `render.js` (a
+follow-up coding pass, not automatic), at which point the old 9 files can
+be deleted.
