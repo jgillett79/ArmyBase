@@ -358,24 +358,58 @@ the whole plot, not an object floating with padding).
 
 ---
 
-## Terrain (3 tileable texture files)
+## Terrain (5 tileable texture files)
 
 Right now the ground, the wall, and the roads are all flat procedural
 canvas shapes (a solid fill color + a thin grid-line overlay for ground,
 a solid gray rectangle for the wall, a solid tan stroke for roads) — none
 of it is real art. Even with real buildings and real characters, the
 surfaces underneath them would still look like placeholder blocks by
-comparison. This section covers those three surfaces.
+comparison. This section covers those five surfaces.
+
+### Terrain variety — 3 ground zones, not 1 flat texture
+
+The base used to be a single `ground.png` tiled across the whole play
+area, which read as "just a big brown area" (user feedback). Every grid
+cell is now classified into one of 3 zones (`terrainZoneGrid()` in
+`render.js`, computed once from building positions, not hand-authored per
+tile):
+- **`apron`** — a maintained-looking pad around every building, tapering
+  off with distance + a deterministic noise function instead of a hard
+  rectangle — a first pass drew this as an exact 1-cell margin and it
+  read as too artificially square (user feedback: a base like this
+  wouldn't line up so perfectly, especially one sited in rough/mountain
+  terrain), so the edge is now ragged/organic. Uses the new
+  `ground_apron.png`.
+- **`ground`** — the existing dirt texture (`ground.png`, already
+  generated), kept for the road corridor (the spine row + each spoke
+  column) so the road still reads as "the path," not grass poking through
+  it.
+- **`grass`** — open, undeveloped yard — everywhere else. Uses the new
+  `ground_grass.png`.
+
+This means **`ground.png` is still used** (for the road corridor), not
+replaced — only `ground_apron.png` and `ground_grass.png` are new.
+
+### Setting: a base dug into rough/mountain terrain, not a manicured lot
+
+User feedback on the first terrain pass: the base should read as sited in
+rugged, mountainous terrain, not laid out on a flat manicured lot — so
+none of the 5 terrain textures below should look too clean/uniform. Keep
+the "quiet, low-detail, won't distract from buildings/characters"
+constraint from each individual prompt (busy textures repeated 200+ times
+would look noisy), but lean toward slightly uneven, weathered, and
+irregular over polished and flat wherever the two are in tension.
 
 ### These are tileable pattern swatches, NOT one-off images
 
-Unlike every other asset in this doc, these three are small repeating
-textures, applied via canvas's `ctx.createPattern(img, 'repeat')` (ground,
-wall) or as a pattern `strokeStyle` (road — roads are drawn as a stroked
-line, not a filled rectangle). **Each one must tile seamlessly** — its
-left edge must match its right edge, and its top edge must match its
-bottom edge, so that repeating it side-by-side and stacking it
-top-to-bottom shows no visible seam.
+Unlike every other asset in this doc, these five are small repeating
+textures, applied via canvas's `ctx.createPattern(img, 'repeat')` (the 3
+ground zones, wall) or as a pattern `strokeStyle` (road — roads are drawn
+as a stroked line, not a filled rectangle). **Each one must tile
+seamlessly** — its left edge must match its right edge, and its top edge
+must match its bottom edge, so that repeating it side-by-side and
+stacking it top-to-bottom shows no visible seam.
 
 **This is a genuinely harder ask of an image generator than the other
 assets in this doc** — not every model/tool handles seamless tiling well
@@ -388,7 +422,7 @@ consistent dark outline (not photorealistic), minor imperfect seams are
 far less noticeable than they'd be in a photoreal texture — low-contrast,
 subtle variation (see each prompt below) matters more than perfection.
 
-**Shared specs for all 3 terrain textures:**
+**Shared specs for all 5 terrain textures:**
 - **Save format:** PNG-24. No transparency needed (these are opaque
   background/ground-level surfaces, drawn first, before anything else).
 - **Seamless tiling:** required on all 4 edges, both axes.
@@ -419,6 +453,60 @@ no large rocks, no footprints, no distinct features that would repeat
 obviously when tiled. Flat, even lighting with no directional shadow. The
 image's left edge must match its right edge and its top edge must match
 its bottom edge exactly, for seamless repeat tiling.
+**Generate at 192×192px, PNG, no transparency needed.**
+
+### `ground_apron.png`
+**Path:** `assets/terrain/ground_apron.png`
+
+The maintained-looking pad directly around every building — see "Terrain
+variety" above for which cells use this.
+
+**In-game tile size:** 48 × 48 px (exactly 1 grid cell). **Generate at:**
+192 × 192 px (4×, clean multiple of 64px).
+
+**Prompt:** A seamlessly tileable packed-gravel/hardstanding military
+base texture, flat digital illustration style matching a mobile strategy
+game (not photorealistic), viewed from directly above. Lighter,
+more "maintained" tone than plain dirt — a khaki-gray gravel/compacted
+surface (base color close to `#8a9478`, matching the building wall
+palette), very subtle low-contrast tonal variation and a faint sparse
+gravel-fleck texture, evenly distributed, not clustered. Slightly uneven/
+weathered rather than a perfectly smooth manicured surface — this is a
+working military hardstanding cut into rough terrain, not a paved
+parking lot. Should read as clearly more "developed/prepared ground"
+than `ground.png`'s bare dirt, while staying in the same low-contrast,
+low-detail family — the goal is still a quiet floor that won't distract
+from buildings and characters on top of it. No grass, no large rocks, no
+distinct features that would repeat obviously when tiled. Flat, even
+lighting with no directional shadow. The image's left edge must match its
+right edge and its top edge must match its bottom edge exactly, for
+seamless repeat tiling.
+**Generate at 192×192px, PNG, no transparency needed.**
+
+### `ground_grass.png`
+**Path:** `assets/terrain/ground_grass.png`
+
+The open, undeveloped yard — see "Terrain variety" above for which cells
+use this.
+
+**In-game tile size:** 48 × 48 px (exactly 1 grid cell). **Generate at:**
+192 × 192 px (4×, clean multiple of 64px).
+
+**Prompt:** A seamlessly tileable rough scrub-grass military base yard
+texture, flat digital illustration style matching a mobile strategy game
+(not photorealistic), viewed from directly above. Muted olive-green tone
+(base color close to `#5a6a3a`), very subtle low-contrast tonal variation
+suggesting uneven, slightly wild grass/scrub rather than a mowed lawn —
+this is undeveloped ground at a base sited in rough/mountain terrain, not
+manicured parkland — a faint fine texture with occasional slightly darker
+patches, not individual blades, kept subtle and evenly distributed.
+Should read as clearly distinct from both `ground.png` (dirt) and
+`ground_apron.png` (gravel) at a glance — this is the "natural/unpaved"
+zone, those two are the "worked" zones. No flowers, no bare-dirt patches,
+no large features that would repeat obviously when tiled. Flat, even
+lighting with no directional shadow. The image's left edge must match its
+right edge and its top edge must match its bottom edge exactly, for
+seamless repeat tiling.
 **Generate at 192×192px, PNG, no transparency needed.**
 
 ### `wall.png`
@@ -464,18 +552,17 @@ texture tiles along the horizontal spine road AND the vertical spoke
 roads, so it must look correct rotated 90° too).
 **Generate at 192×192px, PNG, no transparency needed.**
 
-### Note for whoever wires this in later
+### Note on how this is wired in
 
-Not implemented yet. The wiring pass will replace: `drawGrid()`'s flat
-background (currently just grid lines over the canvas's CSS background
-color) with a `ctx.createPattern(groundImg, 'repeat')` fill covering the
-play area; `drawPerimeterWall()`'s solid `WALL_FILL` color with a
-`ctx.createPattern(wallImg, 'repeat')` fillStyle; and `drawRoads()`'s
-solid `ROAD_FILL` color with a `ctx.createPattern(roadImg, 'repeat')`
-strokeStyle (canvas patterns work as both fill and stroke styles). The
+All 5 textures are implemented in `render.js`: `drawGrid()` fills each
+grid cell with whichever of the 3 ground-zone patterns
+(`ground`/`ground_apron`/`ground_grass`) `terrainZoneGrid()` assigns it,
+`drawPerimeterWall()` uses a `ground.png`-style pattern fillStyle for the
+wall, and `drawRoads()` uses a pattern strokeStyle for the road stroke.
+Each falls back to a flat placeholder color (not a blank canvas) if its
+source image hasn't loaded/been generated yet — see `spriteReady()`. The
 existing grid lines and dashed road centerline stay as procedural
-overlays drawn on top, same as now — only the base surface color becomes
-a pattern.
+overlays drawn on top, same as always.
 
 ---
 
@@ -723,19 +810,22 @@ other not-yet-generated asset in this doc, so there's no urgency.
 | 10 | `rec_room.png` | `assets/buildings/rec_room.png` | 576×384px | PNG-24 + alpha |
 | 11 | `entrance_hall.png` | `assets/buildings/entrance_hall.png` | 576×384px | PNG-24 + alpha |
 | 12 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
-| 13 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
-| 14 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
-| 15-41 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
-| 42 | `civilian_sitting.png` | `assets/units/civilians/civilian_sitting.png` | 128×192px | PNG-24 + alpha |
-| 43 | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` | 128×192px | PNG-24 + alpha |
-| 44 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
+| 13 | `ground_apron.png` | `assets/terrain/ground_apron.png` | 192×192px | PNG-24 (tileable) |
+| 14 | `ground_grass.png` | `assets/terrain/ground_grass.png` | 192×192px | PNG-24 (tileable) |
+| 15 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
+| 16 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
+| 17-43 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
+| 44 | `civilian_sitting.png` | `assets/units/civilians/civilian_sitting.png` | 128×192px | PNG-24 + alpha |
+| 45 | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` | 128×192px | PNG-24 + alpha |
+| 46 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
 
-**#1-8 and #12-41 (35 files) are already generated and in the repo — no
+**#1-8, #12, #15-43 (35 files) are already generated and in the repo — no
 action needed.** **#9 `showers.png`, #10 `rec_room.png`, #11
-`entrance_hall.png`, and #42-44 (the 3 sitting-pose files) are new** —
-`render.js` already has a sprite slot for all of them and falls back to a
-procedural colored box (buildings) or the normal standing sprite
-(sitting poses) until they land, so there's no urgency.
+`entrance_hall.png`, #13-14 (`ground_apron.png`/`ground_grass.png`), and
+#44-46 (the 3 sitting-pose files) are new** — `render.js` already has a
+sprite/pattern slot for all of them and falls back to a procedural
+colored box (buildings), a flat tint color (terrain), or the normal
+standing sprite (sitting poses) until they land, so there's no urgency.
 
 ## Folder structure
 
@@ -755,6 +845,8 @@ assets/
     entrance_hall.png           (needed)
   terrain/
     ground.png                 (done, tileable)
+    ground_apron.png            (needed, tileable)
+    ground_grass.png            (needed, tileable)
     wall.png                   (done, tileable)
     road.png                   (done, tileable)
   units/
@@ -796,10 +888,14 @@ assets/
       soldier_06_right.png      (done)
 ```
 
-35 of 40 files are already in the repo and wired into `render.js`/`state.js`.
-Only `showers.png` and `rec_room.png` remain — drop them at the paths above
-when generated; the game already renders a procedural colored-box fallback
-for both until then, so there's no urgency. The old front-facing sprites
-(`civilian.png`, `bus_rider.png`, `taxi.png`, `soldier_01.png`...`soldier_06.png`)
-are superseded by the directional set but kept on disk as a fallback chain
-in `render.js` — safe to delete later once confirmed unused.
+38 of 46 files are already in the repo and wired into
+`render.js`/`state.js`. The 8 still needed: `showers.png`, `rec_room.png`,
+`entrance_hall.png`, `ground_apron.png`, `ground_grass.png`, and the 3
+civilian sitting-pose files. Drop each at its path above when generated —
+the game already renders a graceful fallback for every one of them (a
+procedural colored box for buildings, a flat tint for terrain, the normal
+standing sprite for the sitting poses) until then, so none of this is
+urgent. The old front-facing sprites (`civilian.png`, `bus_rider.png`,
+`taxi.png`, `soldier_01.png`...`soldier_06.png`) are superseded by the
+directional set but kept on disk as a fallback chain in `render.js` —
+safe to delete later once confirmed unused.

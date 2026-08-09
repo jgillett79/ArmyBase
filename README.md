@@ -323,31 +323,95 @@ test, not by playing — worth keeping smoke tests for this reason.
   number, so the spawn rate can't outpace actual seating. If every chair's
   taken by civilians still mid-walk, a new arrival waits just inside the
   gate rather than crossing the base with nowhere to sit.
-- No new character art — civilians render with their existing directional
-  sprites, just standing at the chair pixel positions instead of a random
-  point. `ASSETS.md` gained one new building sprite, `entrance_hall.png`
-  (spec calls for painted-in chairs so the standing sprites read as
-  "seated"); renders as the usual procedural fallback box until generated.
+- Initially shipped with no new character art — civilians rendered with
+  their existing directional sprites, just standing at the chair pixel
+  positions instead of a random point. A follow-up pass (below) added a
+  dedicated seated pose. `ASSETS.md` gained one new building sprite,
+  `entrance_hall.png` (spec calls for painted-in chairs so the standing
+  sprites read as "seated"); renders as the usual procedural fallback box
+  until generated.
 - Tested headlessly (spawn cap matches chair count, a civilian who crosses
   the gate gets assigned a real chair and walks to its exact position,
   recruiting or timing out frees the chair, two simultaneous civilians get
   two distinct chairs) and via Playwright (3 civilians spawn and visibly
   spread across 3 distinct chairs in the rendered Entrance Hall).
 
+## Phase 2 — increment 7b (done): civilian sitting pose
+
+- Follow-up to increment 7 — user feedback that standing at the chair
+  looked stiff. `render.js`'s `isSeatedCivilian()` checks both that a
+  civilian has a chair assignment AND has actually finished walking to it
+  (`isAtTarget()`) before swapping to a seated sprite — mid-walk-in they
+  still use the normal directional sprites.
+- Only civilians get a sitting pose — soldiers never use the waiting
+  chairs — so this is 3 new files (`civilian_sitting.png`,
+  `bus_rider_sitting.png`, `taxi_sitting.png`), not a full direction-times-
+  identity set. It's a single fixed forward-facing orientation (a seated
+  figure doesn't turn to face a direction of travel), so `drawUnit()`'s
+  left-mirror is skipped while seated. Falls back to the normal standing
+  sprite if the art isn't loaded, same as everything else in `render.js`.
+- Tested via Playwright (seating requires both a chair assignment and
+  having arrived, not just one or the other; a soldier never counts as
+  seated even with a stray chair index; `unitSprite()` degrades gracefully
+  when the sitting art is missing).
+
+## Phase 2 — increment 8 (done): terrain variety
+
+- The whole base used to be one `ground.png` texture tiled everywhere,
+  which read as "just a big brown area" (user feedback). `render.js`'s
+  new `terrainZoneGrid()` classifies every grid cell into one of 3 zones,
+  computed once from the buildings' fixed positions (not hand-authored
+  per tile, and not recomputed every frame since positions never change):
+  **apron** (a maintained pad around every building — reads as
+  cleared/prepared ground), **ground** (the existing dirt texture, kept
+  for the road corridor — the spine row + each spoke column — so the road
+  still reads as "the path"), and **grass** (open, undeveloped yard —
+  everywhere else).
+- `ground.png` is still used, not replaced — it's just narrowed to the
+  road corridor. Two new textures, `ground_apron.png` and
+  `ground_grass.png`, cover the other two zones; each falls back to a
+  flat tint color (not a blank canvas) until generated, same
+  graceful-degrade pattern as every other asset.
+- **Follow-up fix, same increment:** the first pass drew the apron as an
+  exact building-footprint-plus-1-cell rectangle, which read as too
+  artificially square — a real base, especially one sited in rough or
+  mountainous terrain, wouldn't line up so perfectly (user feedback). The
+  apron edge now tapers with distance + a deterministic noise function
+  (`cellNoise()`/`distanceToNearestBuilding()`) instead of a hard
+  rectangle, giving a ragged, organic boundary. `ASSETS.md`'s texture
+  prompts were also updated to lean uneven/weathered rather than
+  clean/manicured, matching a base dug into rugged terrain.
+- **Second follow-up, same feedback pass:** the Entrance Hall (increment
+  7) sat at the far right column of the building grid, meaning every
+  civilian walked the full width of the base just to reach a waiting
+  chair — flagged as "shouldn't let civilians walk so far." Entrance Hall
+  and Showers swapped grid slots: Entrance Hall now sits in the column
+  closest to the gate, Showers took the far column instead. Soldiers
+  already commute similar distances to whichever training building
+  they're assigned, so this didn't just relocate the same complaint onto
+  a different unit type.
+- Tested via Playwright (the zone grid is cached, not recomputed every
+  call; a cell on a building's footprint is classified `apron`; a cell far
+  from any building/road is classified `grass`; every cell in the grid
+  gets exactly one valid zone) — re-ran the increment 7 chair-assignment
+  suite too, unaffected by the building-position swap since it always
+  reads chair position via `buildingDoor()`, never a hardcoded coordinate.
+
 ## Open questions still remaining for Phase 2
 
-1. **Terrain variety + walk-cycle animation.** User feedback: there's only
-   one ground texture across the whole base; units don't have an actual
+1. **Walk-cycle animation.** User feedback: units don't have an actual
    walk-cycle (multiple frames per direction), just a static pose per
-   facing. Agreed order: terrain variety next (medium effort) → walk
-   animation last (most expensive — needs several new frames per direction
-   plus frame-timing code).
+   facing — they glide between waypoints without a leg-swinging animation.
+   The last item in the entrance-hall/terrain/animation order agreed
+   earlier, and the most expensive of the three (needs several new frames
+   per direction plus frame-timing code).
 2. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
-3. **`showers.png`/`rec_room.png`/`entrance_hall.png` art** — all three
-   spec'd in `ASSETS.md`, not yet generated; the game already renders a
-   procedural fallback box for each so this isn't blocking anything.
+3. **`showers.png`/`rec_room.png`/`entrance_hall.png`/`ground_apron.png`/
+   `ground_grass.png`/3 sitting-pose art files** — all spec'd in
+   `ASSETS.md`, not yet generated; the game already renders a graceful
+   fallback for each so none of this is blocking anything.
 
 ## File layout
 

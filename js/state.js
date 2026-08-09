@@ -107,15 +107,23 @@ class GameState {
     this.obstacleCourse = new ObstacleCourse(8, 5);
     this.drillYard = new CombatDrillYard(14, 5);
     // Third row, BELOW the road spine (y=8) rather than above it like rows
-    // one/two — reuses spokes A/B (same gridX as Barracks/Weight Room and
-    // Shooting Range/Obstacle Course) so no new spoke position is needed;
-    // routeTo()'s spine-then-target shape already works in either direction,
-    // only the road *drawing* in render.js needed to know about these two.
-    this.showers = new Showers(2, 8);
+    // one/two — reuses spokes A/B/C (same gridX as the buildings above them
+    // in each column) so no new spoke position is needed; routeTo()'s
+    // spine-then-target shape already works in either direction, only the
+    // road *drawing* in render.js needed to know about these three.
+    //
+    // Entrance Hall sits in the gridX=2 slot — the column closest to the
+    // gate — rather than gridX=14, on purpose: civilians walk here straight
+    // off the road network with no special-casing, and putting the newest
+    // arrivals' waiting room at the far end of the base made for an
+    // needlessly long walk across the whole map (user feedback). Showers
+    // took the vacated gridX=14 slot; it's used by already-recruited
+    // soldiers on their daily schedule, who already commute similar
+    // distances to whichever training building they're assigned to, so this
+    // didn't create a new "too far to walk" case the way Entrance Hall did.
+    this.entranceHall = new EntranceHall(2, 8);
     this.recRoom = new RecRoom(8, 8);
-    // Completes the 3x3 building grid (row 3's third slot, alongside Showers/
-    // Rec Room) — always present, no cost, see EntranceHall's class comment.
-    this.entranceHall = new EntranceHall(14, 8);
+    this.showers = new Showers(14, 8);
     // Which unit (by id) occupies each ENTRANCE_HALL_CHAIRS slot, or null.
     this.chairOccupants = new Array(ENTRANCE_HALL_CHAIRS.length).fill(null);
     this.lastTick = Date.now();

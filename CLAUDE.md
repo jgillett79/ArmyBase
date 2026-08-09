@@ -264,17 +264,32 @@ the 3x3 building grid, so it needed no new placement/road-spoke logic.
 Civilians now claim one of 4 fixed `ENTRANCE_HALL_CHAIRS` (`state.js`)
 pixel offsets the moment they cross the gate, instead of picking a random
 wander point — `assignChair()`/`releaseChair()` track occupancy in
-`chairOccupants`, released on recruit or on timing out. No new character
-art needed; `entrance_hall.png` is the only new sprite, spec'd in
-`ASSETS.md`, not yet generated.
+`chairOccupants`, released on recruit or on timing out. **Increment 7b
+done**: civilian sitting pose. `render.js`'s `isSeatedCivilian()` swaps a
+waiting civilian to a seated sprite once they've actually arrived at
+their chair (`isAtTarget()`, not just having a chair assigned) — a single
+fixed orientation, civilians only (soldiers never sit here), so
+`drawUnit()`'s left-mirror is skipped while seated. **Increment 8 done**:
+terrain variety. `render.js`'s `terrainZoneGrid()` classifies every grid
+cell into `apron` (maintained pad around buildings)/`ground` (existing
+dirt, kept for the road corridor)/`grass` (open yard), computed once and
+cached since building positions are fixed. The apron edge tapers with
+distance + a deterministic noise hash (`cellNoise()`) rather than a hard
+rectangle — a straight-rectangle first pass read as too artificially
+square (user feedback). Same feedback pass also relocated Entrance Hall
+from the far column (gridX=14) to the column closest to the gate
+(gridX=2), swapping grid slots with Showers — civilians were walking the
+full width of the base to reach a waiting chair; **don't move Entrance
+Hall away from the gate-adjacent column again without a reason**, that
+was a direct fix for "civilians shouldn't walk so far through the base."
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Terrain variety beyond one ground texture, and character walk-cycle
-   animation** — raised by the user, not yet scoped. Agreed order (see
-   README): terrain variety (medium) → walk animation (most expensive —
-   needs several new frames per direction plus frame-timing code). This is
-   the next work after increment 7.
+1. **Character walk-cycle animation** — raised by the user, not yet
+   scoped. The last item of the entrance-hall/terrain/animation order
+   agreed earlier (both other items are done — see increments 7/8 above),
+   and the most expensive of the three: needs several new frames per
+   direction plus frame-timing code.
 2. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
@@ -288,9 +303,11 @@ art needed; `entrance_hall.png` is the only new sprite, spec'd in
    across all 6 upgradeable buildings, same idea as `vacant_lot.png`) is an
    open question — see README for the recommendation given (basic
    gameplay/missions first, this is a polish layer that can come later).
-4. **`showers.png`/`rec_room.png`/`entrance_hall.png` art** — all three
-   spec'd in `ASSETS.md`, not yet generated; each renders as a procedural
-   fallback box until it lands, so this isn't blocking anything.
+4. **Art still needed** — `showers.png`, `rec_room.png`,
+   `entrance_hall.png`, `ground_apron.png`, `ground_grass.png`, and 3
+   civilian sitting-pose files, all spec'd in `ASSETS.md`. Each renders a
+   graceful fallback (procedural box, flat tint, or the normal standing
+   sprite) until generated, so none of this is blocking anything.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

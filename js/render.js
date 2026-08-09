@@ -32,8 +32,12 @@ const BUILDING_SPRITES = {
 // Tileable ground/wall/road textures — see ASSETS.md's "Terrain" section.
 // Generated at 4x display size (same convention as every other sprite), so
 // each pattern needs a 0.25 scale to tile at its actual in-game size.
+// ground_apron/ground_grass are the "terrain variety" pass — see
+// terrainZoneGrid() below for which cells use which texture.
 const TERRAIN_SPRITES = {
   ground: loadSprite('assets/terrain/ground.png'),
+  ground_apron: loadSprite('assets/terrain/ground_apron.png'),
+  ground_grass: loadSprite('assets/terrain/ground_grass.png'),
   wall: loadSprite('assets/terrain/wall.png'),
   road: loadSprite('assets/terrain/road.png'),
 };
@@ -140,11 +144,111 @@ function unitSprite(unit) {
 
 // --- drawers --------------------------------------------------------------
 
-function drawGrid(ctx) {
-  const groundPattern = getTerrainPattern(ctx, 'ground');
-  if (groundPattern) {
-    ctx.fillStyle = groundPattern;
-    ctx.fillRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
+// Deterministic pseudo-random value in [0,1) from integer cell coords —
+// the classic "sine hash" trick. NOT Math.random(): needs to return the
+// same value every time for the same cell, so the organic edge below is
+// stable across frames/reloads instead of flickering or reshuffling.
+function cellNoise(gx, gy) {
+  const n = Math.sin(gx * 127.1 + gy * 311.7) * 43758.5453;
+  return n - Math.floor(n);
+}
+
+// Chebyshev (grid-step) distance from a cell to the nearest edge of a set
+// of building footprint rectangles — 0 if the cell is inside one.
+function distanceToNearestBuilding(gx, gy, footprints) {
+  let best = Infinity;
+  for (const f of footprints) {
+    const dx = gx < f.x0 ? f.x0 - gx : gx >= f.x1 ? gx - f.x1 + 1 : 0;
+    const dy = gy < f.y0 ? f.y0 - gy : gy >= f.y1 ? gy - f.y1 + 1 : 0;
+    best = Math.min(best, Math.max(dx, dy));
+  }
+  return best;
+}
+
+// "Terrain variety" — the whole base used to be one flat ground.png fill,
+// which read as "just a big brown area" (user feedback). Every grid cell
+// now gets classified into one of 3 zones instead:
+//   'apron' — a maintained-looking pad around each building, so buildings
+//             read as sitting on cleared/prepared ground rather than bare
+//             dirt. Tapers off with distance + noise (see below) instead
+//             of a hard-edged rectangle, which read as too artificially
+//             square for a base that's meant to feel dug into rough
+//             terrain, not laid out on a manicured grid (user feedback).
+//   'ground' — the existing dirt texture, kept for the road corridor (the
+//              spine row + each spoke column) so the road still reads as
+//              "the path" rather than grass poking through it.
+//   'grass' — open, undeveloped yard — everywhere else.
+// Building positions are fixed for the life of the app (no in-game
+// relocation), so this is computed once and cached rather than every frame.
+let terrainZoneCache = null;
+
+function terrainZoneGrid(gameState) {
+  if (terrainZoneCache) return terrainZoneCache;
+
+  const aproned = [
+    gameState.barracks, gameState.shootingRange, gameState.messHall,
+    gameState.weightRoom, gameState.obstacleCourse, gameState.drillYard,
+    gameState.showers, gameState.recRoom, gameState.entranceHall,
+  ];
+  const footprints = aproned.map(b => ({
+    x0: b.gridX, y0: b.gridY,
+    x1: b.gridX + BUILDING_FOOTPRINT_CELLS.w, y1: b.gridY + BUILDING_FOOTPRINT_CELLS.h,
+  }));
+  const spineRow = Math.floor(ROAD_Y_SPINE / CELL_SIZE);
+  // Spoke columns run through the middle of each row-1 building's
+  // footprint (gridX+1) — see the ROADS comment in state.js.
+  const spokeCols = [gameState.barracks, gameState.shootingRange, gameState.messHall]
+    .map(b => b.gridX + 1);
+
+  // Probability a cell at this Chebyshev distance from a building becomes
+  // apron — 100% right at the building, tapering off over 2 more rings so
+  // the edge comes out ragged/organic rather than a straight rectangle.
+  // Placeholder tuning, like every other hand-picked number in this repo.
+  const APRON_TAPER = [1, 0.75, 0.3];
+
+  const grid = [];
+  for (let gy = 0; gy < GRID_ROWS; gy++) {
+    const row = [];
+    for (let gx = 0; gx < GRID_COLS; gx++) {
+      const dist = distanceToNearestBuilding(gx, gy, footprints);
+      const chance = APRON_TAPER[dist];
+      if (chance !== undefined && cellNoise(gx, gy) < chance) {
+        row.push('apron');
+      } else if (gy === spineRow || spokeCols.includes(gx)) {
+        row.push('ground');
+      } else {
+        row.push('grass');
+      }
+    }
+    grid.push(row);
+  }
+  terrainZoneCache = grid;
+  return grid;
+}
+
+const TERRAIN_ZONE_FALLBACK_COLOR = {
+  apron: 'rgba(138, 148, 120, 0.35)', // khaki-sage, matches the building palette
+  ground: null, // drawGrid's default fillStyle already covers this case
+  grass: 'rgba(90, 100, 60, 0.35)', // muted olive
+};
+
+function drawGrid(ctx, gameState) {
+  const zones = terrainZoneGrid(gameState);
+  const patterns = {
+    apron: getTerrainPattern(ctx, 'ground_apron'),
+    ground: getTerrainPattern(ctx, 'ground'),
+    grass: getTerrainPattern(ctx, 'ground_grass'),
+  };
+
+  for (let gy = 0; gy < GRID_ROWS; gy++) {
+    for (let gx = 0; gx < GRID_COLS; gx++) {
+      const zone = zones[gy][gx];
+      const style = patterns[zone] || TERRAIN_ZONE_FALLBACK_COLOR[zone];
+      if (style) {
+        ctx.fillStyle = style;
+        ctx.fillRect(gx * CELL_SIZE, gy * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+      }
+    }
   }
 
   ctx.strokeStyle = 'rgba(216, 216, 200, 0.08)';
@@ -489,7 +593,7 @@ function statusLabel(unit) {
 
 function renderFrame(ctx, gameState, selectedUnitId) {
   ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
-  drawGrid(ctx);
+  drawGrid(ctx, gameState);
   drawPerimeterWall(ctx);
   drawRoads(ctx, gameState);
   drawBarracks(ctx, gameState.barracks);
