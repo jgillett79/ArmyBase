@@ -158,7 +158,7 @@ class GameState {
     } else if (unit.status === UNIT_STATUS.TRAINING) {
       const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
       this.routeToBuilding(unit, building);
-    } else if (unit.status === UNIT_STATUS.SLEEPING) {
+    } else if (unit.status === UNIT_STATUS.SLEEPING || unit.status === UNIT_STATUS.RECRUITING) {
       this.routeToBuilding(unit, this.barracks);
     } else {
       this.routeToRandomRoadPoint(unit);
@@ -190,7 +190,7 @@ class GameState {
   assignToBuilding(unitId, buildingId) {
     const unit = this.units.find(u => u.id === unitId);
     const building = this.buildingById(buildingId);
-    if (!unit || unit.isCivilian || unit.status === UNIT_STATUS.HOSPITAL) return false;
+    if (!unit || unit.isCivilian || unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.RECRUITING) return false;
     if (!building || !building.isBuilt) return false;
     if (this.occupancyOf(building) >= building.capacity) return false;
     unit.assignedBuildingId = building.id;
@@ -259,7 +259,7 @@ class GameState {
     if (this.cash < cost) return false;
     this.cash -= cost;
     unit.recruit();
-    this.routeForStatus(unit); // give the new soldier a real destination on the road network
+    this.routeForStatus(unit); // RECRUITING -> routes them to the Barracks, see tick()
     return true;
   }
 
@@ -291,6 +291,24 @@ class GameState {
         if (unit.isRecovered(nowMs)) {
           unit.status = UNIT_STATUS.IDLE;
           this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
+        }
+        continue;
+      }
+
+      if (unit.status === UNIT_STATUS.RECRUITING) {
+        // Walking to the Barracks — bypasses desiredStatus() entirely so
+        // nothing (energy, time of day) can redirect them mid-walk before
+        // they've actually enlisted. The uniform swap is the "arrival"
+        // moment: it only happens once they've truly reached the Barracks,
+        // not just gotten close (see Unit.isAtTarget()'s path check).
+        unit.step(dtSeconds);
+        unit.applyEnergyDelta(gameHours, foodAvailable);
+        if (unit.energy <= 0) {
+          unit.sendToHospital(nowMs);
+        } else if (unit.isAtTarget()) {
+          unit.outfit = 'uniform';
+          unit.status = UNIT_STATUS.IDLE;
+          this.routeForStatus(unit);
         }
         continue;
       }

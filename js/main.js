@@ -77,15 +77,17 @@ function openProfile(unit) {
   profileEquipment.textContent = unit.equipment.length ? unit.equipment.join(', ') : 'None';
   profilePanel.classList.remove('hidden');
 
-  const inHospital = unit.status === UNIT_STATUS.HOSPITAL;
+  // Neither a hospitalized unit nor one still walking in to enlist
+  // (RECRUITING — see state.js) can be assigned to training.
+  const locked = unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.RECRUITING;
   for (const { key, label, assignBtn } of trainingBuildingUi) {
     const building = gameState[key];
     const alreadyAssigned = unit.assignedBuildingId === building.id;
-    assignBtn.disabled = inHospital || alreadyAssigned || !building.isBuilt
+    assignBtn.disabled = locked || alreadyAssigned || !building.isBuilt
       || gameState.occupancyOf(building) >= building.capacity;
     assignBtn.textContent = alreadyAssigned ? `Assigned: ${label}` : label;
   }
-  recallBtn.disabled = inHospital || !unit.assignedBuildingId;
+  recallBtn.disabled = locked || !unit.assignedBuildingId;
 }
 
 function closeProfile() {

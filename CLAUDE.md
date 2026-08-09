@@ -229,7 +229,14 @@ loaded). **Increment 2 done**: perimeter wall + single gate (left side) +
 vacant-lot plots. **Increment 3 done**: fixed-comb road network + real
 multi-leg path support on `Unit` — all status-driven movement now travels
 via roads instead of straight lines; see the road-network decision bullet
-above before touching any movement/routing code.
+above before touching any movement/routing code. **Increment 4 done**:
+`RECRUITING` status — a recruit now walks to the Barracks (still in
+civilian outfit) and only becomes a soldier (uniform swap) on arrival;
+`render.js` dispatches sprite/saturation on `unit.outfit`, not
+`unit.isCivilian`, because of this transitional state — keep that in mind
+if you touch unit rendering. **In progress**: character art is moving
+from front-facing to isometric (to match the buildings) with directional
+sprites for movement — see open question below before generating anything.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
@@ -238,15 +245,18 @@ above before touching any movement/routing code.
    fully unscoped. The biggest remaining chunk; the resource-tier and
    promotion-reward decisions above are written assuming missions will
    exist to justify them.
-2. **Recruit → walk to Barracks → become a soldier.** `recruit()` still
-   flips a civilian to a soldier instantly wherever they're standing (it
-   does route them onto the road network right after — see increment 3 —
-   but doesn't specifically walk them to the Barracks first or gate the
-   uniform-change visual on arrival there).
-3. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
+2. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
    — shape is decided (see above), not implemented yet. Needs both the two
    new buildings AND a real design pass on what order/how-long a unit's
    day actually goes through sleep → shower → train → lunch → recreation.
+3. **Character direction-sprite scope.** User wants isometric characters
+   (was front-facing — see art pipeline note below) with directional
+   sprites for movement. Full 8-direction (72 images: 9 characters × 8
+   dirs) was requested, but the road network (increment 3) only ever
+   produces orthogonal movement — diagonal (NE/SE/SW/NW) sprites would sit
+   unused unless free-roam diagonal movement gets built later. Flagged to
+   the user; confirm final scope (36 cardinal-only vs. 72 full) before
+   writing the `ASSETS.md` update for this.
 4. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.

@@ -42,8 +42,12 @@ const UNIT_SPRITES = {
 const UNIT_W = 32;
 const UNIT_H = 48;
 
+// Dispatches on outfit, not isCivilian — a RECRUITING unit (walking to the
+// Barracks after being recruited) has isCivilian=false already but still
+// wears its civilian outfit visually until it arrives and outfit flips to
+// 'uniform' (see state.js's RECRUITING handling in tick()).
 function unitSprite(unit) {
-  if (unit.isCivilian) return UNIT_SPRITES[unit.outfit] || UNIT_SPRITES.civilian;
+  if (unit.outfit !== 'uniform') return UNIT_SPRITES[unit.outfit] || UNIT_SPRITES.civilian;
   return UNIT_SPRITES['soldier_' + (unit.soldierVariant || 1)];
 }
 
@@ -281,10 +285,12 @@ function drawUnit(ctx, unit, isSelected) {
 
   if (spriteReady(img)) {
     // per-unit hue-shift is what makes each soldier distinguishable — the
-    // sprites are intentionally desaturated so this rotates cleanly. Recruited
-    // soldiers get a saturation bump to "pop"; civilians stay muted (not yours).
+    // sprites are intentionally desaturated so this rotates cleanly. In
+    // uniform gets a saturation bump to "pop"; still-civilian-looking
+    // (including RECRUITING, mid-walk-in) stays muted — dispatch on outfit,
+    // not isCivilian, for the same reason as unitSprite() above.
     ctx.save();
-    const sat = unit.isCivilian ? 0.85 : 1.5;
+    const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
     ctx.filter = `hue-rotate(${hue}deg) saturate(${sat})`;
     ctx.drawImage(img, unit.x - halfW, top, UNIT_W, UNIT_H);
     ctx.restore();
@@ -344,6 +350,7 @@ function drawUnit(ctx, unit, isSelected) {
 
 function statusLabel(unit) {
   switch (unit.status) {
+    case UNIT_STATUS.RECRUITING: return 'enlisting';
     case UNIT_STATUS.TRAINING: return 'training';
     case UNIT_STATUS.EATING: return 'eating';
     case UNIT_STATUS.SLEEPING: return 'sleeping';

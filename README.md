@@ -194,6 +194,26 @@ test, not by playing — worth keeping smoke tests for this reason.
   sequencing) — both were waiting on this increment to look right, and
   are next (see open questions).
 
+## Phase 2 — increment 4 (done): recruit → walk to Barracks → uniform change
+
+- New `UNIT_STATUS.RECRUITING`. `recruit()` no longer flips a civilian to
+  a soldier instantly — it counts against the roster cap immediately
+  (cash is already spent) but keeps its civilian outfit and walks to the
+  Barracks first. The uniform swap happens exactly on arrival, gated by
+  `Unit.isAtTarget()`'s full-path-consumed check (see increment 3), not
+  just "close enough."
+- `render.js`'s sprite/saturation dispatch changed from `unit.isCivilian`
+  to `unit.outfit !== 'uniform'` — needed because a RECRUITING unit has
+  `isCivilian = false` already but should still render with its civilian
+  sprite until the swap. `assignToBuilding()` and the profile panel's
+  training-assign buttons now also lock out RECRUITING units, same as
+  HOSPITAL, so a mid-walk-in recruit can't be redirected to training
+  before they've technically enlisted.
+- Energy still decays and the hospital check still applies during the
+  walk-in (mirrors the general tick loop) — RECRUITING bypasses
+  `desiredStatus()` entirely (like HOSPITAL does) so nothing can redirect
+  an enlisting unit mid-walk before they arrive.
+
 ## Open questions still remaining for Phase 2
 
 1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
@@ -201,19 +221,23 @@ test, not by playing — worth keeping smoke tests for this reason.
    still fully unscoped. Biggest remaining chunk of work, and several
    decisions above (resource tiers, promotion rewards) are written assuming
    missions will justify them.
-2. **Recruit → walk to Barracks → become a soldier.** Right now `recruit()`
-   flips a civilian to a soldier instantly on the popup confirm, wherever
-   they happen to be standing (it does now route them onto the road
-   network afterward — see increment 3 — but doesn't route them to the
-   Barracks specifically first, or gate the uniform-change on arrival).
-3. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
+2. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
    building, Hygiene) → training → lunch (Mess Hall) → recreation (new Rec
    Room, Morale) → repeat. Hygiene/Morale + Showers/Rec Room are decided in
    shape (see above) but not built; the schedule *sequencing* itself (what
    order, how long at each stop) is a design pass that hasn't happened yet.
-4. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+   Will need 2 new building sprites (Showers, Rec Room) added to
+   `ASSETS.md`.
+3. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
+4. **Character art is moving to isometric with directional sprites** — in
+   progress. All 9 character sprites (3 civilians + 6 soldiers, soldiers
+   also gaining a walking pose) are being regenerated to match the
+   buildings' isometric perspective; open question on directional-sprite
+   scope (full 8-direction vs. the 4 cardinal directions the current road
+   network — orthogonal legs only, no diagonal movement — actually
+   produces) is being finalized before the new `ASSETS.md` spec goes out.
 
 ## File layout
 

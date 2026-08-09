@@ -5,6 +5,8 @@
 const UNIT_STATUS = {
   CIVILIAN_APPROACHING: 'civilian_approaching', // walking toward base, recruitable
   CIVILIAN_LEAVING: 'civilian_leaving',          // ignored, walking away, about to despawn
+  RECRUITING: 'recruiting',                      // just recruited, walking to Barracks; still looks
+                                                  // like a civilian until it arrives (state.js tick())
   IDLE: 'idle',                                  // recruited, wandering base, no job/no urgent need
   TRAINING: 'training',                          // assigned to Shooting Range, accuracy climbing
   EATING: 'eating',                              // at Mess Hall, energy critical or topping up
@@ -78,11 +80,11 @@ class Unit {
   }
 
   recruit() {
-    this.isCivilian = false;
-    this.status = UNIT_STATUS.IDLE;
-    this.outfit = 'uniform';
-    // GameState.recruit() routes the new soldier onto the road network
-    // right after this — see state.js, routeForStatus().
+    this.isCivilian = false; // counts against the roster cap immediately — cash is already spent
+    this.status = UNIT_STATUS.RECRUITING; // still looks like a civilian until they reach the Barracks
+    // outfit stays whatever it was as a civilian; state.js's tick() flips it
+    // to 'uniform' on arrival — see the RECRUITING handling there.
+    // GameState.recruit() routes them to the Barracks right after this call.
   }
 
   addXp(amount) {
