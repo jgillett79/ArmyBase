@@ -121,6 +121,57 @@ function drawGatehouse(ctx) {
   ctx.restore();
 }
 
+const ROAD_FILL = '#5a5548';
+const ROAD_LINE = 'rgba(216, 216, 200, 0.25)';
+
+// Draws the road network units actually walk on — see the ROADS comment in
+// state.js. Spoke endpoints come straight from buildingDoor() on the row-1
+// buildings, not hardcoded numbers, so this can't drift out of sync with
+// the routing logic.
+function drawRoads(ctx, gameState) {
+  ctx.strokeStyle = ROAD_FILL;
+  ctx.lineWidth = 14;
+  ctx.lineCap = 'round';
+
+  ctx.beginPath();
+  ctx.moveTo(gameState.bounds.minX, ROAD_Y_SPINE);
+  ctx.lineTo(gameState.bounds.maxX, ROAD_Y_SPINE);
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(GATE_INSIDE_X, GATE_Y_CENTER);
+  ctx.lineTo(GATE_INSIDE_X, ROAD_Y_SPINE);
+  ctx.stroke();
+
+  const row1Buildings = [gameState.barracks, gameState.shootingRange, gameState.messHall];
+  for (const b of row1Buildings) {
+    const door = buildingDoor(b);
+    ctx.beginPath();
+    ctx.moveTo(door.x, ROAD_Y_SPINE);
+    ctx.lineTo(door.x, door.y);
+    ctx.stroke();
+  }
+
+  // dashed centerline on top, purely decorative (road-marking look)
+  ctx.strokeStyle = ROAD_LINE;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 8]);
+
+  ctx.beginPath();
+  ctx.moveTo(gameState.bounds.minX, ROAD_Y_SPINE);
+  ctx.lineTo(gameState.bounds.maxX, ROAD_Y_SPINE);
+  ctx.stroke();
+
+  for (const b of row1Buildings) {
+    const door = buildingDoor(b);
+    ctx.beginPath();
+    ctx.moveTo(door.x, ROAD_Y_SPINE);
+    ctx.lineTo(door.x, door.y);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
 function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spriteKey) {
   const x = gridX * CELL_SIZE;
   const y = gridY * CELL_SIZE;
@@ -305,6 +356,7 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
   drawGrid(ctx);
   drawPerimeterWall(ctx);
+  drawRoads(ctx, gameState);
   drawBarracks(ctx, gameState.barracks);
   drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240', 'shooting_range');
   drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a', 'weight_room');

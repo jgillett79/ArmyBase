@@ -46,6 +46,32 @@ const GATE_Y_CENTER = (GATE_Y_TOP + GATE_Y_BOTTOM) / 2;
 const GATE_OUTSIDE_X = -20; // off-canvas, just past the wall's outer face
 const GATE_INSIDE_X = WALL_THICKNESS + 8; // just inside the wall, matches bounds.minX
 
+// ---------------------------------------------------------------------------
+// ROADS — a fixed "comb" network: one horizontal spine plus a vertical spoke
+// under each column of buildings. Every recruited unit's movement (walking
+// to a job, wandering when idle) travels via this network instead of
+// cutting straight lines across open ground.
+//
+// This works without real pathfinding (no A*/Dijkstra) because the layout
+// is a simple comb, not an arbitrary graph: every route is the same 3-leg
+// shape — drop from wherever the unit currently is straight down to the
+// spine (safe because every building sits well above ROAD_Y_SPINE, so that
+// drop never cuts through a building), slide along the spine to the
+// target's x, then travel up/down that x to the target. If the base layout
+// ever stops being "one spine + straight spokes," revisit this — don't
+// bolt real pathfinding onto a comb network that doesn't need it.
+// ---------------------------------------------------------------------------
+const ROAD_Y_SPINE = 360; // px — below every building's footprint (max bottom edge is y=336)
+
+// Bottom-center of a building's footprint, in pixels — where its spoke road
+// meets it. Used both for routing and for drawing the roads in render.js.
+function buildingDoor(building) {
+  return {
+    x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
+    y: (building.gridY + BUILDING_FOOTPRINT_CELLS.h) * CELL_SIZE,
+  };
+}
+
 class GameState {
   constructor() {
     this.cash = 200;
@@ -86,6 +112,57 @@ class GameState {
       x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
       y: building.gridY * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.h * CELL_SIZE) / 2,
     };
+  }
+
+  // The 3 x-positions the road spokes run along — derived from the row-1
+  // buildings' actual gridX rather than hardcoded, so this can't drift out
+  // of sync if a building ever moves.
+  get roadSpokeXs() {
+    return [this.barracks, this.shootingRange, this.messHall].map(b => buildingDoor(b).x);
+  }
+
+  // The one shared movement primitive behind all road-based routing — see
+  // the ROADS comment above for why this 3-leg shape is always safe.
+  routeTo(unit, targetX, targetY) {
+    unit.setPath([
+      { x: unit.x, y: ROAD_Y_SPINE },
+      { x: targetX, y: ROAD_Y_SPINE },
+      { x: targetX, y: targetY },
+    ]);
+  }
+
+  routeToBuilding(unit, building) {
+    const c = this.buildingCenter(building);
+    this.routeTo(unit, c.x + randRange(-20, 20), c.y + randRange(-20, 20));
+  }
+
+  // Idle wander now picks a random point along the road network instead of
+  // anywhere in the bounds, so units stay on the roads even when they don't
+  // have anywhere in particular to be.
+  routeToRandomRoadPoint(unit) {
+    if (Math.random() < 0.5) {
+      this.routeTo(unit, randRange(this.bounds.minX, this.bounds.maxX), ROAD_Y_SPINE);
+    } else {
+      const x = pick(this.roadSpokeXs);
+      this.routeTo(unit, x, randRange(this.bounds.minY, ROAD_Y_SPINE));
+    }
+  }
+
+  // Single place that maps "what is this unit's status" to "where should it
+  // be walking" — used both on a live status change (transitionUnit) and
+  // whenever a unit needs a fresh route without a status change of its own
+  // (recruiting, loading a save, waking up from the hospital).
+  routeForStatus(unit) {
+    if (unit.status === UNIT_STATUS.EATING) {
+      this.routeToBuilding(unit, this.messHall);
+    } else if (unit.status === UNIT_STATUS.TRAINING) {
+      const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
+      this.routeToBuilding(unit, building);
+    } else if (unit.status === UNIT_STATUS.SLEEPING) {
+      this.routeToBuilding(unit, this.barracks);
+    } else {
+      this.routeToRandomRoadPoint(unit);
+    }
   }
 
   buyFood(amount) {
@@ -182,6 +259,7 @@ class GameState {
     if (this.cash < cost) return false;
     this.cash -= cost;
     unit.recruit();
+    this.routeForStatus(unit); // give the new soldier a real destination on the road network
     return true;
   }
 
@@ -211,7 +289,8 @@ class GameState {
 
       if (unit.status === UNIT_STATUS.HOSPITAL) {
         if (unit.isRecovered(nowMs)) {
-          unit.status = UNIT_STATUS.IDLE; // next tick's desiredStatus() will route them correctly
+          unit.status = UNIT_STATUS.IDLE;
+          this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
         }
         continue;
       }
@@ -243,28 +322,12 @@ class GameState {
     }
   }
 
-  // Moves a unit into a new status and points it at wherever that status
-  // happens (Mess Hall, Shooting Range, Barracks for sleep, or a wander spot).
+  // Moves a unit into a new status and routes it to wherever that status
+  // happens (Mess Hall, Shooting Range, Barracks for sleep, or a random
+  // road point) — see routeForStatus() above.
   transitionUnit(unit, desired) {
     unit.status = desired;
-    if (desired === UNIT_STATUS.EATING) {
-      const c = this.buildingCenter(this.messHall);
-      unit.targetX = c.x + randRange(-20, 20);
-      unit.targetY = c.y + randRange(-20, 20);
-    } else if (desired === UNIT_STATUS.TRAINING) {
-      // Route to whichever training building this unit is actually assigned
-      // to — used to hardcode shootingRange when it was the only one.
-      const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
-      const c = this.buildingCenter(building);
-      unit.targetX = c.x + randRange(-20, 20);
-      unit.targetY = c.y + randRange(-20, 20);
-    } else if (desired === UNIT_STATUS.SLEEPING) {
-      const c = this.buildingCenter(this.barracks);
-      unit.targetX = c.x + randRange(-20, 20);
-      unit.targetY = c.y + randRange(-20, 20);
-    } else {
-      unit.pickNewWanderTarget(this.bounds);
-    }
+    this.routeForStatus(unit);
   }
 
   // Every civilian's walk has up to 4 legs, all funneled through the single
@@ -348,7 +411,7 @@ class GameState {
         if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {
           u.status = UNIT_STATUS.IDLE;
         }
-        u.pickNewWanderTarget(state.bounds);
+        state.routeForStatus(u); // fresh route on load rather than resuming a stale one
         return u;
       });
 

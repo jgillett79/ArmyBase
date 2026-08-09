@@ -33,9 +33,13 @@ class Unit {
     this.x = x;
     this.y = y;
 
-    // Wander/movement target
+    // Wander/movement target. path holds any remaining legs of a multi-leg
+    // route (see state.js's road-routing methods) still to walk after the
+    // current targetX/targetY is reached — empty for simple single-point
+    // moves (civilians never use it).
     this.targetX = x;
     this.targetY = y;
+    this.path = [];
     this.speed = randRange(18, 28); // px/sec
 
     // Visual variety so units are distinguishable at a glance even as
@@ -77,7 +81,8 @@ class Unit {
     this.isCivilian = false;
     this.status = UNIT_STATUS.IDLE;
     this.outfit = 'uniform';
-    this.pickNewWanderTarget(); // stop heading toward the exit
+    // GameState.recruit() routes the new soldier onto the road network
+    // right after this — see state.js, routeForStatus().
   }
 
   addXp(amount) {
@@ -133,8 +138,14 @@ class Unit {
     this.energy = clamp(this.energy + rate * gameHours, 0, this.maxEnergy);
   }
 
+  // Only counts as "at" the target once every leg of a multi-leg route is
+  // done — otherwise a unit passing near an intermediate waypoint (e.g. the
+  // road spine, on its way to a building) would look arrived prematurely
+  // and start earning training gain / consuming food before it actually
+  // gets there.
   isAtTarget() {
-    return Math.hypot(this.x - this.targetX, this.y - this.targetY) < ARRIVAL_RADIUS;
+    return this.path.length === 0
+      && Math.hypot(this.x - this.targetX, this.y - this.targetY) < ARRIVAL_RADIUS;
   }
 
   // trains: { statName: gainPerGameHour, ... } — comes from whichever
@@ -146,27 +157,57 @@ class Unit {
     }
   }
 
-  pickNewWanderTarget(bounds) {
-    if (!bounds) return;
-    this.targetX = randRange(bounds.minX, bounds.maxX);
-    this.targetY = randRange(bounds.minY, bounds.maxY);
+  // Replaces the current path with a fresh multi-leg route (a list of
+  // {x,y} waypoints) and immediately starts walking toward its first leg.
+  setPath(waypoints) {
+    this.path = waypoints.slice();
+    this.advancePath();
   }
 
-  // Advance position toward target. Returns true if it reached the target this tick.
-  step(dtSeconds) {
-    const dx = this.targetX - this.x;
-    const dy = this.targetY - this.y;
-    const dist = Math.hypot(dx, dy);
-    if (dist < 1) return true;
-
-    const move = this.speed * dtSeconds;
-    if (move >= dist) {
-      this.x = this.targetX;
-      this.y = this.targetY;
-      return true;
+  // Pops the next leg into targetX/targetY. Returns true only once there
+  // are no more legs left, i.e. the unit has reached the true end of its
+  // route, not just one waypoint along the way.
+  advancePath() {
+    if (this.path.length > 0) {
+      const next = this.path.shift();
+      this.targetX = next.x;
+      this.targetY = next.y;
+      return false;
     }
-    this.x += (dx / dist) * move;
-    this.y += (dy / dist) * move;
-    return false;
+    return true;
+  }
+
+  // Advance position toward target, consuming as many legs of a multi-leg
+  // route as dtSeconds' movement budget allows within this single call.
+  // This matters for offline catch-up, which applies elapsed time as one
+  // huge dt rather than many small ticks (see state.js's three-clocks
+  // comment) — without looping here, a big dt would only advance one leg
+  // and strand the unit mid-road instead of at its real destination.
+  // Returns true only once the unit has reached the very end of its path.
+  step(dtSeconds) {
+    let remaining = this.speed * dtSeconds;
+    for (;;) {
+      const dx = this.targetX - this.x;
+      const dy = this.targetY - this.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist < 1) {
+        if (this.advancePath()) return true;
+        continue;
+      }
+
+      if (remaining >= dist) {
+        this.x = this.targetX;
+        this.y = this.targetY;
+        remaining -= dist;
+        if (this.advancePath()) return true;
+        if (remaining <= 0) return false;
+        continue;
+      }
+
+      this.x += (dx / dist) * remaining;
+      this.y += (dy / dist) * remaining;
+      return false;
+    }
   }
 }

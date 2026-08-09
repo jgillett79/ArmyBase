@@ -59,11 +59,23 @@ with a stat-weighted success chance → return, or don't.
   sides (`WALL_THICKNESS`/`GATE_*` in `state.js`), one gate — a 2-cell gap
   in the left wall — as the only way in/out. Civilians spawn outside it and
   route through it; recruited soldiers never leave. Built in Phase 2
-  increment 2. Real road/path-following movement is explicitly NOT part of
-  this — units still beeline straight to their target, the wall/gate only
-  constrain the two endpoints. Don't add road-following piecemeal into
-  another feature; it's scoped as its own increment (see open questions)
-  because it's a bigger technical lift than anything built so far.
+  increment 2.
+- **Road network is a fixed comb, not a general graph — don't add
+  pathfinding.** `state.js`'s `ROAD_Y_SPINE`/`buildingDoor()` plus
+  `routeTo()`/`routeForStatus()` route every recruited unit via a fixed
+  3-leg shape (drop to the spine at the unit's current x, slide to the
+  target's x, travel to the target). This works precisely because the
+  layout is one spine + straight spokes with no obstacles between them —
+  it is NOT a general pathfinding system, and doesn't need to be unless
+  the base layout itself stops being a comb (e.g. buildings placeable
+  anywhere, or obstacles mid-road). If that ever happens, revisit the
+  approach then — don't preemptively generalize to A*/Dijkstra now. Built
+  in Phase 2 increment 3, along with real multi-leg path support on `Unit`
+  (`path`/`setPath`/`advancePath`) — `step()` fully consumes a route
+  within one call so offline catch-up's huge single `dt` lands units at
+  their actual destination instead of stranding them mid-road, and
+  `isAtTarget()` requires the full path to be consumed so a unit passing
+  an intermediate waypoint doesn't briefly look "arrived."
 - **Phase 2 resource economy: tiered, not just cash.** Cash covers basic
   costs. Higher-tier building levels/equipment cost Lumber (mid),
   Steel/Coal (top), or Gems (rare — also gates Promotion). Not implemented
@@ -208,11 +220,16 @@ browser needed) since that's where the bugs actually are.
 
 ## Phase 2 progress — see README.md "Phase 2" sections for full detail
 
-Decisions on resources/stats/needs/promotion are locked (see the four
-bullets added above under "Decisions already made"). **Increment 1 is
-done**: Endurance stat, Weight Room, Obstacle Course, Combat Drill Yard —
-all following the proven Shooting Range pattern via a new shared
-`TrainingBuilding` base class in `building.js`.
+Decisions on resources/stats/needs/promotion are locked (see the bullets
+above under "Decisions already made"). **Increment 1 done**: Endurance
+stat, Weight Room, Obstacle Course, Combat Drill Yard, via a shared
+`TrainingBuilding` base class. **Art pass done**: 15 sprites generated and
+wired into `render.js` (hue-tinted per-unit, procedural fallback until
+loaded). **Increment 2 done**: perimeter wall + single gate (left side) +
+vacant-lot plots. **Increment 3 done**: fixed-comb road network + real
+multi-leg path support on `Unit` — all status-driven movement now travels
+via roads instead of straight lines; see the road-network decision bullet
+above before touching any movement/routing code.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
@@ -221,15 +238,22 @@ all following the proven Shooting Range pattern via a new shared
    fully unscoped. The biggest remaining chunk; the resource-tier and
    promotion-reward decisions above are written assuming missions will
    exist to justify them.
-2. **Hygiene/Morale + Showers/Rec Room** — shape is decided (see above),
-   not implemented yet. Natural next increment after this one.
-3. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
+2. **Recruit → walk to Barracks → become a soldier.** `recruit()` still
+   flips a civilian to a soldier instantly wherever they're standing (it
+   does route them onto the road network right after — see increment 3 —
+   but doesn't specifically walk them to the Barracks first or gate the
+   uniform-change visual on arrival there).
+3. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
+   — shape is decided (see above), not implemented yet. Needs both the two
+   new buildings AND a real design pass on what order/how-long a unit's
+   day actually goes through sleep → shower → train → lunch → recreation.
+4. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
-4. **Art pipeline** — a local AI image model is being stood up separately
-   (see user's own infra work, not part of this repo) to eventually
-   replace the placeholder canvas shapes with real sprites. No art
-   direction/style brief has been locked yet as of this handoff.
+5. **Art pipeline** — the local AI pipeline (`tools/generate_assets.py`)
+   exists and produced the 15 assets currently in use; `gatehouse.png` and
+   `vacant_lot.png` are spec'd in `ASSETS.md` but not yet generated (the
+   game runs fine without them via procedural fallback).
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

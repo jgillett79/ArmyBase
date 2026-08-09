@@ -163,13 +163,36 @@ test, not by playing — worth keeping smoke tests for this reason.
 - `gatehouse.png` and `vacant_lot.png` are spec'd in `ASSETS.md` but not
   yet generated — the game runs fine without them (procedural fallback),
   no urgency.
-- **Deliberately NOT built here**: actual road/path-following movement.
-  Units still walk in a straight line to wherever their current target is
-  — the wall/gate only constrain the two endpoints (spawn-outside,
-  wander-inside), not the path between them. Real waypoint/road-following
-  movement is scoped as its own next increment (see open questions) since
-  it's a meaningfully bigger technical lift than anything built so far —
-  don't retrofit it piecemeal into other features first.
+- At the time this increment shipped, units still walked in a straight
+  line to their target — see increment 3 below, which replaced that.
+
+## Phase 2 — increment 3 (done): road network + path-following movement
+
+- Fixed "comb" road network (`ROAD_Y_SPINE` + `buildingDoor()` in
+  `state.js`): one horizontal spine road plus a vertical spoke under each
+  column of buildings (row-1/row-2 buildings share an x per column, so one
+  spoke serves both). No real pathfinding (A*/Dijkstra) needed — every
+  route is the same fixed 3-leg shape (drop to the spine at the unit's
+  current x, slide to the target's x, travel to the target), which works
+  because the network is a simple comb, not an arbitrary graph. Revisit
+  this approach if the base layout ever stops being "one spine + straight
+  spokes."
+- `Unit` gained real path support (`path`/`setPath`/`advancePath` in
+  `unit.js`) — `step()` now consumes as many legs of a route as a tick's
+  movement budget allows, which matters for offline catch-up (one huge
+  `dt`) landing units at their actual destination instead of stranding
+  them mid-road. `isAtTarget()` now also requires the path to be fully
+  consumed, so a unit passing near an intermediate waypoint (e.g. the
+  spine, en route to a building) doesn't briefly look "arrived" and start
+  earning training gain or eating before it's actually there.
+- All status-driven movement (train/eat/sleep/idle-wander) and recruiting,
+  loading a save, and waking up from the hospital now route through
+  `GameState.routeForStatus()` onto the road network — idle wander now
+  picks a random point *on the road*, not anywhere in the bounds.
+- **Deliberately NOT built here**: the recruit-walks-to-Barracks-then-
+  changes-uniform moment, and the full daily schedule (showers/rec room
+  sequencing) — both were waiting on this increment to look right, and
+  are next (see open questions).
 
 ## Open questions still remaining for Phase 2
 
@@ -178,21 +201,17 @@ test, not by playing — worth keeping smoke tests for this reason.
    still fully unscoped. Biggest remaining chunk of work, and several
    decisions above (resource tiers, promotion rewards) are written assuming
    missions will justify them.
-2. **Road network + path-following movement.** Units currently beeline
-   straight to their target with no notion of obstacles, walls, or roads.
-   Needed before "units walk along a path around the base" is real, and
-   before the recruit-walks-to-Barracks-then-changes-into-uniform moment
-   or the full daily schedule (below) will look right rather than janky.
-3. **Recruit → walk to Barracks → become a soldier.** Right now `recruit()`
+2. **Recruit → walk to Barracks → become a soldier.** Right now `recruit()`
    flips a civilian to a soldier instantly on the popup confirm, wherever
-   they happen to be standing. Wants to become: walk to the Barracks first,
-   uniform-change happens on arrival. Depends on #2 to look right.
-4. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
+   they happen to be standing (it does now route them onto the road
+   network afterward — see increment 3 — but doesn't route them to the
+   Barracks specifically first, or gate the uniform-change on arrival).
+3. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
    building, Hygiene) → training → lunch (Mess Hall) → recreation (new Rec
    Room, Morale) → repeat. Hygiene/Morale + Showers/Rec Room are decided in
    shape (see above) but not built; the schedule *sequencing* itself (what
    order, how long at each stop) is a design pass that hasn't happened yet.
-5. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+4. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
 
