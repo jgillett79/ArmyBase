@@ -450,6 +450,9 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 
   for (const unit of gameState.units) {
+    // Away on a mission — async/black-box by design (see mission.js), so
+    // there's nothing to draw until they return.
+    if (unit.status === UNIT_STATUS.ON_MISSION) continue;
     drawUnit(ctx, unit, unit.id === selectedUnitId);
   }
 }

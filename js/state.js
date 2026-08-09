@@ -76,6 +76,11 @@ class GameState {
   constructor() {
     this.cash = 200;
     this.food = 30; // starting stock so the loop is testable immediately
+    // Mission-tier resources — see mission.js. All start at 0; only earned
+    // from mission rewards (Lumber/Steel/Gems), cash covers everything else.
+    this.lumber = 0;
+    this.steel = 0;
+    this.gems = 0;
     this.units = [];
     this.barracks = new Barracks(2, 2);
     this.shootingRange = new ShootingRange(8, 2);
@@ -160,6 +165,9 @@ class GameState {
       this.routeToBuilding(unit, building);
     } else if (unit.status === UNIT_STATUS.SLEEPING || unit.status === UNIT_STATUS.RECRUITING) {
       this.routeToBuilding(unit, this.barracks);
+    } else if (unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.ON_MISSION) {
+      // Neither moves nor renders while in this status (see tick()) — no
+      // route to assign.
     } else {
       this.routeToRandomRoadPoint(unit);
     }
@@ -267,6 +275,64 @@ class GameState {
     this.units = this.units.filter(u => u.id !== unitId);
   }
 
+  // --- Missions — see mission.js for the tier data/pure-function rules ---
+
+  eligibleUnitsForTier(tier) {
+    return this.units.filter(u =>
+      !u.isCivilian && u.status === UNIT_STATUS.IDLE && unitMeetsMissionRequirements(u, tier));
+  }
+
+  dispatchMission(tierId, unitIds) {
+    const tier = missionTierById(tierId);
+    if (!tier) return false;
+    if (unitIds.length === 0 || unitIds.length > tier.maxSquadSize) return false;
+
+    const squad = unitIds.map(id => this.units.find(u => u.id === id)).filter(Boolean);
+    if (squad.length !== unitIds.length) return false; // some id didn't resolve to a real unit
+    if (!squad.every(u => u.status === UNIT_STATUS.IDLE && unitMeetsMissionRequirements(u, tier))) return false;
+
+    const returnAt = Date.now() + tier.durationMs;
+    for (const unit of squad) {
+      unit.status = UNIT_STATUS.ON_MISSION;
+      unit.missionReturnAt = returnAt;
+      unit.missionTierId = tier.id;
+    }
+    return true;
+  }
+
+  // Resolves one returning unit's mission — called once per squad-mate from
+  // tick() below. Every unit in a squad rolls independently, so a squad can
+  // come back partially successful (some hospitalized, some not) rather
+  // than all-or-nothing.
+  resolveMissionForUnit(unit, nowMs) {
+    const tier = missionTierById(unit.missionTierId);
+    const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit]);
+
+    if (succeeded) {
+      this.cash += rollInRange(tier.cashReward);
+      if (tier.resourceReward) {
+        this[tier.resourceReward.type] += rollInRange(tier.resourceReward.amount);
+      }
+    }
+
+    unit.missionReturnAt = null;
+    unit.missionTierId = null;
+
+    if (succeeded) {
+      // Reappear at the gate, same "the wall/gate is the only way in or
+      // out" convention as a fresh recruit walking in — see RECRUITING.
+      unit.x = GATE_INSIDE_X;
+      unit.y = GATE_Y_CENTER;
+      unit.status = UNIT_STATUS.IDLE;
+      this.routeForStatus(unit);
+    } else {
+      // Same 23h real-time hospital stay as any other failure in this game
+      // — no permadeath, mission failure isn't treated as worse than
+      // neglect death. See CLAUDE.md.
+      unit.sendToHospital(nowMs);
+    }
+  }
+
   // Advance simulation by dtSeconds. Used both for the live game loop
   // (small dt, every frame) and for offline catch-up (one large dt).
   tick(dtSeconds, nowMs) {
@@ -291,6 +357,16 @@ class GameState {
         if (unit.isRecovered(nowMs)) {
           unit.status = UNIT_STATUS.IDLE;
           this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
+        }
+        continue;
+      }
+
+      if (unit.status === UNIT_STATUS.ON_MISSION) {
+        // Real-time, like the hospital timer — not derived from the
+        // compressed game clock. Excluded from movement/energy/training
+        // entirely while away (async/black-box mission, see mission.js).
+        if (nowMs >= unit.missionReturnAt) {
+          this.resolveMissionForUnit(unit, nowMs);
         }
         continue;
       }
@@ -385,6 +461,9 @@ class GameState {
       cash: this.cash,
       food: this.food,
       gameClockMs: this.gameClockMs,
+      lumber: this.lumber,
+      steel: this.steel,
+      gems: this.gems,
       barracksLevel: this.barracks.level,
       shootingRangeLevel: this.shootingRange.level,
       messHallLevel: this.messHall.level,
@@ -400,6 +479,7 @@ class GameState {
           maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
           maxEnergy: u.maxEnergy, energy: u.energy, assignedBuildingId: u.assignedBuildingId,
           equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil,
+          missionReturnAt: u.missionReturnAt, missionTierId: u.missionTierId,
         })),
     };
   }
@@ -413,6 +493,9 @@ class GameState {
       const data = JSON.parse(raw);
       state.cash = data.cash ?? 200;
       state.food = data.food ?? 30;
+      state.lumber = data.lumber ?? 0;
+      state.steel = data.steel ?? 0;
+      state.gems = data.gems ?? 0;
       state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
       state.barracks.level = data.barracksLevel ?? 0;
       state.shootingRange.level = data.shootingRangeLevel ?? 0;

@@ -19,6 +19,9 @@ const buildDrillYardBtn = document.getElementById('buildDrillYardBtn');
 const drillYardCostEl = document.getElementById('drillYardCost');
 const buildMessHallBtn = document.getElementById('buildMessHallBtn');
 const buyFoodBtn = document.getElementById('buyFoodBtn');
+const lumberValueEl = document.getElementById('lumberValue');
+const steelValueEl = document.getElementById('steelValue');
+const gemsValueEl = document.getElementById('gemsValue');
 
 const profilePanel = document.getElementById('profilePanel');
 const profileName = document.getElementById('profileName');
@@ -50,9 +53,23 @@ const recruitText = document.getElementById('recruitText');
 const recruitConfirmBtn = document.getElementById('recruitConfirm');
 const recruitCancelBtn = document.getElementById('recruitCancel');
 
+const openMissionsBtn = document.getElementById('openMissionsBtn');
+const missionsPanel = document.getElementById('missionsPanel');
+const closeMissionsBtn = document.getElementById('closeMissions');
+const missionTierListEl = document.getElementById('missionTierList');
+const missionSquadSelectEl = document.getElementById('missionSquadSelect');
+const missionSquadCountEl = document.getElementById('missionSquadCount');
+const missionSquadMaxEl = document.getElementById('missionSquadMax');
+const missionUnitListEl = document.getElementById('missionUnitList');
+const missionChancePreviewEl = document.getElementById('missionChancePreview');
+const dispatchMissionBtn = document.getElementById('dispatchMissionBtn');
+const activeMissionsListEl = document.getElementById('activeMissionsList');
+
 let gameState = GameState.load();
 let selectedUnitId = null;
 let pendingRecruitId = null;
+let selectedTierId = null;
+let selectedSquadIds = new Set();
 let lastFrameTime = performance.now();
 let lastSaveTime = Date.now();
 
@@ -133,6 +150,128 @@ recruitCancelBtn.addEventListener('click', () => {
   recruitPopup.classList.add('hidden');
 });
 
+// ---------- Missions ----------
+
+function formatDuration(ms) {
+  const totalMin = Math.max(0, Math.round(ms / 60000));
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
+function rewardText(tier) {
+  const cash = `$${tier.cashReward[0]}-${tier.cashReward[1]}`;
+  if (!tier.resourceReward) return cash;
+  const { type, amount } = tier.resourceReward;
+  return `${cash} + ${amount[0]}-${amount[1]} ${type}`;
+}
+
+function openMissionsPanel() {
+  missionsPanel.classList.remove('hidden');
+  renderMissionTierList();
+}
+
+function closeMissionsPanel() {
+  missionsPanel.classList.add('hidden');
+  selectedTierId = null;
+  selectedSquadIds = new Set();
+}
+
+openMissionsBtn.addEventListener('click', openMissionsPanel);
+closeMissionsBtn.addEventListener('click', closeMissionsPanel);
+
+function renderMissionTierList() {
+  missionTierListEl.innerHTML = MISSION_TIERS.map(tier => {
+    const eligibleCount = gameState.eligibleUnitsForTier(tier).length;
+    const selected = tier.id === selectedTierId ? ' selected' : '';
+    return `
+      <div class="mission-tier${selected}" data-tier-id="${tier.id}">
+        <div class="mission-tier-name">${tier.name} <span class="mission-tier-req">Lv.${tier.minLevel}+, stat ${tier.minStatAvg}+</span></div>
+        <div class="mission-tier-meta">${Math.round(tier.baseSuccessChance * 100)}% base &middot; ${formatDuration(tier.durationMs)} &middot; ${rewardText(tier)}</div>
+        <div class="mission-tier-eligible">${eligibleCount} eligible unit${eligibleCount === 1 ? '' : 's'}</div>
+      </div>`;
+  }).join('');
+
+  missionTierListEl.querySelectorAll('.mission-tier').forEach(el => {
+    el.addEventListener('click', () => selectMissionTier(el.dataset.tierId));
+  });
+}
+
+function selectMissionTier(tierId) {
+  selectedTierId = tierId;
+  selectedSquadIds = new Set();
+  renderMissionTierList();
+  renderSquadSelect();
+}
+
+function renderSquadSelect() {
+  const tier = missionTierById(selectedTierId);
+  if (!tier) {
+    missionSquadSelectEl.classList.add('hidden');
+    return;
+  }
+  missionSquadSelectEl.classList.remove('hidden');
+  missionSquadMaxEl.textContent = tier.maxSquadSize;
+
+  const eligible = gameState.eligibleUnitsForTier(tier);
+  missionUnitListEl.innerHTML = eligible.length
+    ? eligible.map(u => `
+        <label class="mission-unit-row">
+          <input type="checkbox" data-unit-id="${u.id}" ${selectedSquadIds.has(u.id) ? 'checked' : ''}>
+          ${u.name} (Lv${u.level})
+        </label>`).join('')
+    : '<div class="mission-unit-empty">No eligible units — recruit or train more soldiers.</div>';
+
+  missionUnitListEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        if (selectedSquadIds.size >= tier.maxSquadSize) {
+          cb.checked = false;
+          return;
+        }
+        selectedSquadIds.add(cb.dataset.unitId);
+      } else {
+        selectedSquadIds.delete(cb.dataset.unitId);
+      }
+      updateMissionPreview();
+    });
+  });
+
+  updateMissionPreview();
+}
+
+function updateMissionPreview() {
+  const tier = missionTierById(selectedTierId);
+  missionSquadCountEl.textContent = selectedSquadIds.size;
+  const squad = [...selectedSquadIds].map(id => gameState.units.find(u => u.id === id)).filter(Boolean);
+  missionChancePreviewEl.textContent = tier && squad.length
+    ? `${Math.round(missionSuccessChance(tier, squad) * 100)}%`
+    : '--';
+  dispatchMissionBtn.disabled = !(tier && squad.length > 0 && squad.length <= tier.maxSquadSize);
+}
+
+dispatchMissionBtn.addEventListener('click', () => {
+  if (!selectedTierId || selectedSquadIds.size === 0) return;
+  gameState.dispatchMission(selectedTierId, [...selectedSquadIds]);
+  selectedTierId = null;
+  selectedSquadIds = new Set();
+  renderMissionTierList();
+  missionSquadSelectEl.classList.add('hidden');
+});
+
+function renderActiveMissions() {
+  const active = gameState.units.filter(u => u.status === UNIT_STATUS.ON_MISSION);
+  if (active.length === 0) {
+    activeMissionsListEl.innerHTML = '<div class="mission-unit-empty">No squads out right now.</div>';
+    return;
+  }
+  const now = Date.now();
+  activeMissionsListEl.innerHTML = active.map(u => {
+    const tier = missionTierById(u.missionTierId);
+    return `<div class="mission-active-row">${u.name} — ${tier ? tier.name : 'Unknown'} — ${formatDuration(u.missionReturnAt - now)} left</div>`;
+  }).join('');
+}
+
 // ---------- Barracks build/upgrade ----------
 
 buildBarracksBtn.addEventListener('click', () => {
@@ -204,6 +343,7 @@ canvas.addEventListener('click', (e) => {
   let closest = null;
   let closestDist = Infinity;
   for (const unit of gameState.units) {
+    if (unit.status === UNIT_STATUS.ON_MISSION) continue; // not rendered, not clickable
     const withinBox = Math.abs(unit.x - clickX) <= UNIT_W / 2 + 2 &&
       clickY >= unit.y - UNIT_H / 2 - 2 && clickY <= unit.y + UNIT_H / 2 + 2;
     if (!withinBox) continue;
@@ -228,6 +368,9 @@ canvas.addEventListener('click', (e) => {
 function updateHud() {
   cashValueEl.textContent = Math.floor(gameState.cash);
   rosterValueEl.textContent = `${gameState.soldierCount} / ${gameState.unitCap}`;
+  lumberValueEl.textContent = Math.floor(gameState.lumber);
+  steelValueEl.textContent = Math.floor(gameState.steel);
+  gemsValueEl.textContent = Math.floor(gameState.gems);
   refreshBuildButtons();
 }
 
@@ -252,6 +395,7 @@ function frame(now) {
   }
 
   updateHud();
+  renderActiveMissions();
   renderFrame(ctx, gameState, selectedUnitId);
 
   if (Date.now() - lastSaveTime > SAVE_INTERVAL_MS) {

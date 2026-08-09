@@ -11,8 +11,9 @@ const UNIT_STATUS = {
   TRAINING: 'training',                          // assigned to Shooting Range, accuracy climbing
   EATING: 'eating',                              // at Mess Hall, energy critical or topping up
   SLEEPING: 'sleeping',                          // night hours, at Barracks, low decay
-  HOSPITAL: 'hospital',                          // energy hit 0 OR died on a mission — same consequence
-  // MISSION: 'mission',                          // reserved for Phase 2
+  HOSPITAL: 'hospital',                          // energy hit 0 OR failed a mission — same consequence
+  ON_MISSION: 'on_mission',                      // away on a mission (async/black-box — see mission.js);
+                                                  // excluded from the normal tick loop and not rendered
 };
 
 // Energy thresholds/rates — placeholder numbers, same caveat as the cash
@@ -82,6 +83,10 @@ class Unit {
     this.equipment = []; // persists through hospital stays — Phase 3 will add effects
 
     this.hospitalUntil = null; // timestamp (ms) when recovery finishes
+
+    // Set only while status === ON_MISSION — see state.js's dispatchMission()/tick().
+    this.missionReturnAt = null; // timestamp (ms), same real-time pattern as hospitalUntil
+    this.missionTierId = null; // which MISSION_TIERS entry to resolve against on return
   }
 
   recruit() {

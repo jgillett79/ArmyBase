@@ -236,14 +236,34 @@ test, not by playing — worth keeping smoke tests for this reason.
   sprite-slot-with-fallback pattern built when they were still
   placeholders picked them up automatically once the files existed.
 
+## Phase 2 — increment 5 (done): Missions
+
+- New `js/mission.js` — pure data + pure functions (`MISSION_TIERS`,
+  `unitMeetsMissionRequirements`, `missionSuccessChance`), no game state.
+  One difficulty ladder, 4 tiers (Local Patrol → Supply Run → Fortified
+  Outpost → High-Value Target), each gating on **both** `minLevel` and
+  `minStatAvg` (average of strength/accuracy/endurance) — leveling alone
+  doesn't qualify a unit, they need actual training-building investment
+  too. Squads are 1-4 units; `maxSquadSize` lives per-tier so a later,
+  bigger tier can raise it without a schema change.
+- Real-time duration (same `Date.now()`-based pattern as the hospital
+  timer, not the compressed game clock — three-clocks rule applies).
+  New `UNIT_STATUS.ON_MISSION`, excluded from the normal tick loop
+  entirely (no movement/energy/training while away) and not rendered —
+  async/black-box by design, no travel to visualize.
+- Failure reuses `Unit.sendToHospital()` verbatim — same 23h no-permadeath
+  consequence as any other failure in this game, not a harsher one.
+  Success reuses `routeForStatus()` to send the unit back into normal
+  base life, reappearing at the gate (same convention as a fresh recruit
+  walking in).
+- HUD gained Lumber/Steel/Gems displays and a Missions button opening a
+  new panel: tier list with live eligible-unit counts, squad selection
+  with a live success-chance preview, and an active-missions list with
+  time remaining.
+
 ## Open questions still remaining for Phase 2
 
-1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
-   squad selection, and how mission tier gates which resources drop —
-   still fully unscoped. Biggest remaining chunk of work, and several
-   decisions above (resource tiers, promotion rewards) are written assuming
-   missions will justify them.
-2. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
+1. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
    building, Hygiene) → training → lunch (Mess Hall) → recreation (new Rec
    Room, Morale) → repeat. Hygiene/Morale + Showers/Rec Room are decided in
    shape (see above) but not built; the schedule *sequencing* itself (what

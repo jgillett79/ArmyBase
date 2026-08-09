@@ -241,22 +241,22 @@ produces diagonal movement) plus gatehouse/vacant-lot/terrain textures,
 all generated and wired into `render.js`. `Unit.facing` (derived from
 movement delta in `step()`) drives which directional sprite draws;
 ground/wall/road are `ctx.createPattern()` fills now, not flat colors.
+**Increment 5 done**: Missions (`mission.js` — 4-tier ladder gated on
+level AND trained stats, real-time duration, `UNIT_STATUS.ON_MISSION`
+excluded from tick/render, failure reuses `sendToHospital()`, success
+reuses `routeForStatus()`). Lumber/Steel/Gems are real tracked resources
+now, no longer just a documented decision.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Missions.** Percentage-chance resolution, mission list/duration/UI,
-   squad selection, and how mission tier gates resource drops — still
-   fully unscoped. The biggest remaining chunk; the resource-tier and
-   promotion-reward decisions above are written assuming missions will
-   exist to justify them.
-2. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
+1. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
    — shape is decided (see above), not implemented yet. Needs both the two
    new buildings AND a real design pass on what order/how-long a unit's
    day actually goes through sleep → shower → train → lunch → recreation.
-3. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
+2. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
-4. **Building construction time + higher levels + an "under construction"
+3. **Building construction time + higher levels + an "under construction"
    art state** — raised by the user, not yet scoped. Right now upgrading a
    building is instant (one cash deduction, `building.upgrade()`
    synchronously) and levels cap at 3. Whether to add a real-time build
@@ -266,10 +266,11 @@ ground/wall/road are `ctx.createPattern()` fills now, not flat colors.
    across all 6 buildings, same idea as `vacant_lot.png`) is an open
    question — see README for the recommendation given (basic gameplay/
    missions first, this is a polish layer that can come later).
-5. **Art pipeline** — the local AI pipeline (`tools/generate_assets.py`)
-   exists and produced the 15 assets currently in use; `gatehouse.png` and
-   `vacant_lot.png` are spec'd in `ASSETS.md` but not yet generated (the
-   game runs fine without them via procedural fallback).
+4. **Character walk-cycle animation, terrain variety beyond one ground
+   texture, and a proper base entrance ("waiting area" for civilians
+   before they're recruited, not just open wandering)** — raised by the
+   user, not yet scoped. See README's newest notes for the breakdown and
+   recommended order before building any of it.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

@@ -23,6 +23,21 @@
       <button id="buyFoodBtn">Buy 20 ($30)</button>
     </div>
     <div class="hud-block">
+      <span class="hud-label">Lumber</span>
+      <span id="lumberValue">0</span>
+    </div>
+    <div class="hud-block">
+      <span class="hud-label">Steel</span>
+      <span id="steelValue">0</span>
+    </div>
+    <div class="hud-block">
+      <span class="hud-label">Gems</span>
+      <span id="gemsValue">0</span>
+    </div>
+    <div class="hud-block">
+      <button id="openMissionsBtn">Missions</button>
+    </div>
+    <div class="hud-block">
       <button id="buildBarracksBtn">Barracks (<span id="barracksCost">100</span>)</button>
     </div>
     <div class="hud-block">
@@ -95,9 +110,35 @@
     <button id="recruitCancel">Ignore</button>
   </div>
 
+  <!-- Missions panel -->
+  <div id="missionsPanel" class="hidden">
+    <div class="profile-header">
+      <span class="hud-label">Missions</span>
+      <button id="closeMissions">&times;</button>
+    </div>
+
+    <div id="missionTierList" class="mission-tier-list"></div>
+
+    <div id="missionSquadSelect" class="mission-squad-select hidden">
+      <span class="hud-label">Squad (<span id="missionSquadCount">0</span>/<span id="missionSquadMax">4</span>)</span>
+      <div id="missionUnitList" class="mission-unit-list"></div>
+      <div class="mission-preview">
+        <span>Success chance</span>
+        <span id="missionChancePreview">--</span>
+      </div>
+      <button id="dispatchMissionBtn" disabled>Dispatch</button>
+    </div>
+
+    <div class="mission-active-section">
+      <span class="hud-label">Active missions</span>
+      <div id="activeMissionsList" class="active-missions-list"></div>
+    </div>
+  </div>
+
   <script src="js/utils.js"></script>
   <script src="js/unit.js"></script>
   <script src="js/building.js"></script>
+  <script src="js/mission.js"></script>
   <script src="js/state.js"></script>
   <script src="js/render.js"></script>
   <script src="js/main.js"></script>

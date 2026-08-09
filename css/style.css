@@ -212,3 +212,112 @@ button:disabled {
 #recruitPopup button {
   margin: 0 4px;
 }
+
+/* ---------- Missions panel ---------- */
+
+#missionsPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 6px;
+  padding: 12px;
+  width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.mission-tier-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.mission-tier {
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.mission-tier:hover {
+  border-color: var(--accent);
+}
+
+.mission-tier.selected {
+  border-color: var(--highlight);
+  background: rgba(242, 233, 168, 0.08);
+}
+
+.mission-tier-name {
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.mission-tier-req {
+  color: var(--text-dim);
+  font-weight: normal;
+  font-size: 0.75rem;
+}
+
+.mission-tier-meta,
+.mission-tier-eligible {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  margin-top: 2px;
+}
+
+.mission-squad-select {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 10px;
+  margin-bottom: 10px;
+}
+
+.mission-unit-list {
+  max-height: 140px;
+  overflow-y: auto;
+  margin: 6px 0;
+}
+
+.mission-unit-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  padding: 3px 0;
+}
+
+.mission-unit-empty {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  padding: 4px 0;
+}
+
+.mission-preview {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+#dispatchMissionBtn {
+  width: 100%;
+}
+
+.mission-active-section {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 10px;
+}
+
+.active-missions-list {
+  margin-top: 6px;
+}
+
+.mission-active-row {
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  padding: 2px 0;
+}
