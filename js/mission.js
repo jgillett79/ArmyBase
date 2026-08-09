@@ -101,3 +101,27 @@ function missionSuccessChance(tier, squad) {
 function rollInRange([min, max]) {
   return Math.round(randRange(min, max));
 }
+
+// Flavor text for the mission results log (state.js's missionLog,
+// rendered in main.js) — a mission used to resolve completely silently,
+// which made the whole system feel inert even though real stuff (cash,
+// resources, XP, hospital stays) was happening. Purely cosmetic, doesn't
+// affect the actual roll/rewards above.
+const MISSION_SUCCESS_FLAVOR = [
+  'returned in good spirits',
+  'came back without a scratch',
+  'completed the objective and made it home',
+  'pulled it off without a hitch',
+  'reported a clean, uneventful run',
+];
+const MISSION_FAILURE_FLAVOR = [
+  'was wounded and evacuated to the hospital',
+  'ran into trouble and needed medical attention',
+  "didn't make it out clean — now recovering",
+  'was hurt in the field, resting up now',
+  'took a hard hit and is out for a while',
+];
+
+function pickMissionFlavor(succeeded) {
+  return pick(succeeded ? MISSION_SUCCESS_FLAVOR : MISSION_FAILURE_FLAVOR);
+}

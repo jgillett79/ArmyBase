@@ -717,19 +717,15 @@ outline, flat ambient lighting from upper-left, transparent background,
 figure filling ~80% of canvas height, no text/props/other characters,
 128x192px PNG with alpha).
 
-### Note for whoever wires this in later
+### Note on how this is wired in
 
-The old single-sprite-per-character files (`civilian.png`, `soldier_01.png`,
-etc. with no direction suffix) stay in place and the game keeps working
-exactly as it does now until this new set is both generated AND wired in
--- don't delete the old files preemptively. The wiring pass will need:
-`UNIT_SPRITES` restructured to a nested lookup (e.g.
-`UNIT_SPRITES.civilian.down`), a way to derive "which direction is this
-unit currently moving" from the dx/dy of its current path leg (always
-axis-aligned per the road network, so this is just a sign check, not real
-vector math), and a horizontal-flip `ctx.scale(-1, 1)` branch for `left`.
-Not implemented yet -- flagged here so it isn't guessed at differently
-later.
+Fully wired: `UNIT_SPRITES` is a nested lookup (`UNIT_SPRITES.civilian.down`,
+etc.), `Unit.facing` is derived from actual movement delta in `step()`, and
+`drawUnit()` mirrors the `right` art for `left` via `ctx.scale(-1, 1)`. The
+old single-sprite-per-character files (`civilian.png`, `soldier_01.png`,
+etc.) stay in place as the final fallback in `unitSprite()`'s lookup chain
+if a directional file hasn't loaded yet — safe to delete once you're sure
+none of that is happening anymore, not required.
 
 ---
 
@@ -790,6 +786,123 @@ If this isn't generated, civilians just keep using their normal standing
 directional sprite while seated — same graceful-fallback pattern as every
 other not-yet-generated asset in this doc, so there's no urgency.
 
+---
+
+## Walk-cycle animation (27 files — 9 characters x 3 directions x 1 new frame each)
+
+Right now every unit "walks" by gliding smoothly between two points while
+showing a single static mid-stride pose the whole way — legs never
+actually swing. This is the fix: a second frame per direction, alternated
+with the existing one while a unit is moving, so it reads as an actual
+walk instead of a sliding statue.
+
+### Why 2 frames, not more
+
+A walk cycle can be as simple as 2 frames (feet swap: "left leg forward" /
+"right leg forward", alternated) or as smooth as 8+. Given this project's
+established pattern of picking the cheapest option that still reads
+correctly (see "Character direction system" above — 3 directions instead
+of a full 8, because that's all the road network ever produces), 2 frames
+is the right call here too: it's the minimum that actually looks like
+walking rather than sliding, it's a well-established technique (used by
+plenty of 2D games, not a corner-cutting hack), and it's 27 new files
+instead of 54-108+ for a smoother cycle. **This is additive, not a
+replacement** — every one of the 27 files already in the repo (the
+existing `down`/`up`/`right` poses) becomes "frame 1" of the cycle exactly
+as-is, no changes needed to them. You're only generating "frame 2."
+
+### How this is already wired (code side is done, only art is missing)
+
+`render.js`'s `unitSprite()` alternates between frame 1 (the existing
+sprite) and frame 2 (`_2` suffix, this section) based on
+`unit.walkFrame` (0 or 1), which `Unit.advanceWalkAnim()` in `unit.js`
+toggles every `WALK_FRAME_STRIDE_PX` (16px) of actual movement — so
+faster units animate faster, tied to real motion rather than a fixed
+timer. A stationary unit always shows frame 1. **None of this changes
+anything visually until the `_2` files below exist** — `spriteReady()`
+gates every lookup, so until then `unitSprite()` always falls straight
+through to the existing frame 1, same as before this section existed.
+Drop the files in and the animation starts working with no further code
+changes.
+
+**Shared specs for all 27 files (identical to the original 27-file set
+above):**
+- **Save format:** PNG-24, transparent background
+- **In-game display size:** 32 x 48 px
+- **Generate at:** 128 x 192 px exactly (4x display size)
+- **Aspect ratio:** 2:3 (portrait)
+- **Palette:** character base palette ONLY (`#8a897d` `#6e6d63` `#b8b6a8`
+  `#4a4942`)
+- **Camera/framing:** identical to the matching frame-1 direction (same
+  angle, same crop, same ~80%-of-canvas-height fill) — the ONLY thing
+  that should differ between frame 1 and frame 2 is the leg/arm pose. If
+  the camera angle, zoom, or character position drifts between the two
+  frames, the alternation will look like a jitter/pop instead of a walk.
+
+### Frame 2 pose (append to whichever direction + identity you're generating)
+
+**`down_2`** — same as the existing `down` frame (walking toward the
+camera, mid-stride) but with the OPPOSITE leg forward and the opposite
+arm swing (if the frame-1 pose has the left leg stepping forward and the
+right arm swinging forward, frame 2 has the right leg forward and the
+left arm forward — a natural mid-stride weight shift, not a mirror
+image). Same head angle, same camera framing, same vertical position —
+only the limbs move.
+
+**`up_2`** — same as the existing `up` frame (walking away from camera)
+with the same opposite-leg/opposite-arm swap as `down_2`, viewed from
+behind.
+
+**`right_2`** — same as the existing `right` frame (side profile, walking
+right) with the legs in the opposite scissor position (if frame 1 has the
+front leg forward and back leg trailing, frame 2 has them swapped —
+mid-stride passing position) and the opposite arm swing. **Do not
+generate a `left_2` file** — same as frame 1, it's `right_2` mirrored in
+code (already wired: `unitSprite()`'s frame-2 lookup goes through the
+same `left`-reuses-`right` dispatch as frame 1).
+
+### Full file list (27 files: 9 characters x 3 directions, frame 2 only)
+
+Every filename below is `{character}_{direction}_2.png`.
+
+| Character | `down_2` | `up_2` | `right_2` | Folder |
+|---|---|---|---|---|
+| `civilian` | `civilian_down_2.png` | `civilian_up_2.png` | `civilian_right_2.png` | `assets/units/civilians/` |
+| `bus_rider` | `bus_rider_down_2.png` | `bus_rider_up_2.png` | `bus_rider_right_2.png` | `assets/units/civilians/` |
+| `taxi` | `taxi_down_2.png` | `taxi_up_2.png` | `taxi_right_2.png` | `assets/units/civilians/` |
+| `soldier_01` | `soldier_01_down_2.png` | `soldier_01_up_2.png` | `soldier_01_right_2.png` | `assets/units/soldiers/` |
+| `soldier_02` | `soldier_02_down_2.png` | `soldier_02_up_2.png` | `soldier_02_right_2.png` | `assets/units/soldiers/` |
+| `soldier_03` | `soldier_03_down_2.png` | `soldier_03_up_2.png` | `soldier_03_right_2.png` | `assets/units/soldiers/` |
+| `soldier_04` | `soldier_04_down_2.png` | `soldier_04_up_2.png` | `soldier_04_right_2.png` | `assets/units/soldiers/` |
+| `soldier_05` | `soldier_05_down_2.png` | `soldier_05_up_2.png` | `soldier_05_right_2.png` | `assets/units/soldiers/` |
+| `soldier_06` | `soldier_06_down_2.png` | `soldier_06_up_2.png` | `soldier_06_right_2.png` | `assets/units/soldiers/` |
+
+**Prompt template — combine the matching identity description from
+"Character identities" above with the frame-2 pose description above and
+this shared wrapper:** A [identity description] character, viewed from a
+30-40° top-down isometric angle, flat vector game-art illustration style
+with a consistent 2-3px dark outline (#1a1d14) on every edge. [Frame-2
+pose description for this direction]. Character base palette only
+(`#8a897d` `#6e6d63` `#b8b6a8` `#4a4942`), no other colors. Flat ambient
+lighting from upper-left, no hard shadows, optional soft 10% contact
+shadow directly under the feet only. Fully transparent background, no
+text, no props, no other characters in frame. Figure fills about 80% of
+canvas height, centered with even padding — **must match the existing
+frame-1 file's exact scale/position/crop** so alternating between them
+doesn't jitter.
+**Generate at 128×192px, PNG with alpha transparency.**
+
+**Example** — to generate `soldier_02_right_2.png`: combine the
+`soldier_02` identity (basic uniform + rounded combat helmet, from
+"Character identities" above) with the `right_2` pose (opposite-leg
+mid-stride passing position, side profile) — same helmet, same build,
+same camera angle and crop as the existing `soldier_02_right.png`, only
+the leg/arm positions differ.
+
+If these aren't generated, units keep walking exactly as they do today
+(smooth glide, single static pose) — same graceful-fallback pattern as
+every other not-yet-generated asset in this doc.
+
 ## Not included in this pass (intentionally)
 
 - **"Not built" building ghost state** — stays the existing dashed-outline
@@ -805,10 +918,10 @@ other not-yet-generated asset in this doc, so there's no urgency.
   generation work or a runtime generation pipeline wired into the recruit
   flow — that's a bigger, separate decision (ties into the "art pipeline"
   open question in `CLAUDE.md`), not something to fold into this batch.
-- **Walk-cycle animation frames** — the 3 directional poses (down/up/right)
-  are each a single static frame, not an animated stride cycle. Units
-  glide between waypoints without a leg-swinging animation. A later
-  upgrade, not this pass.
+- **A 3rd+ walk-cycle frame** — the new "Walk-cycle animation" section
+  above specs a 2-frame cycle (the minimum that actually reads as
+  walking, matching this project's cheapest-option-that-works pattern).
+  A smoother 3-4 frame cycle is possible later but isn't this pass.
 - **A separate `left` sprite** — deliberately not generated; it's the
   `right` sprite flipped horizontally in code. See "Character direction
   system" above.
@@ -843,8 +956,14 @@ other not-yet-generated asset in this doc, so there's no urgency.
 | 44 | `civilian_sitting.png` | `assets/units/civilians/civilian_sitting.png` | 128×192px | PNG-24 + alpha |
 | 45 | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` | 128×192px | PNG-24 + alpha |
 | 46 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
+| 47-73 | `{character}_{down\|up\|right}_2.png` | see the walk-cycle 27-file table above | 128×192px | PNG-24 + alpha |
 
-**All 46 files are generated and in the repo — nothing outstanding.**
+**#1-46 are generated and in the repo. #47-73 (the 27 walk-cycle "frame
+2" files) are new** — `render.js`/`unit.js` are already fully wired to
+use them the moment they land (alternating with the existing frame 1
+while a unit is moving); until then, units just keep using the single
+existing pose, so there's no urgency, but this is the one set of files
+actually worth generating next — see the walk-cycle section above.
 
 ## Folder structure
 
@@ -876,12 +995,21 @@ assets/
       civilian_down.png         (done)
       civilian_up.png           (done)
       civilian_right.png        (done)
+      civilian_down_2.png        (needed — walk-cycle frame 2)
+      civilian_up_2.png          (needed — walk-cycle frame 2)
+      civilian_right_2.png       (needed — walk-cycle frame 2)
       bus_rider_down.png        (done)
       bus_rider_up.png          (done)
       bus_rider_right.png       (done)
+      bus_rider_down_2.png       (needed — walk-cycle frame 2)
+      bus_rider_up_2.png         (needed — walk-cycle frame 2)
+      bus_rider_right_2.png      (needed — walk-cycle frame 2)
       taxi_down.png              (done)
       taxi_up.png                (done)
       taxi_right.png             (done)
+      taxi_down_2.png             (needed — walk-cycle frame 2)
+      taxi_up_2.png               (needed — walk-cycle frame 2)
+      taxi_right_2.png            (needed — walk-cycle frame 2)
       civilian_sitting.png       (done)
       bus_rider_sitting.png      (done)
       taxi_sitting.png           (done)
@@ -890,25 +1018,45 @@ assets/
       soldier_01_down.png       (done)
       soldier_01_up.png         (done)
       soldier_01_right.png      (done)
+      soldier_01_down_2.png      (needed — walk-cycle frame 2)
+      soldier_01_up_2.png        (needed — walk-cycle frame 2)
+      soldier_01_right_2.png     (needed — walk-cycle frame 2)
       soldier_02_down.png       (done)
       soldier_02_up.png         (done)
       soldier_02_right.png      (done)
+      soldier_02_down_2.png      (needed — walk-cycle frame 2)
+      soldier_02_up_2.png        (needed — walk-cycle frame 2)
+      soldier_02_right_2.png     (needed — walk-cycle frame 2)
       soldier_03_down.png       (done)
       soldier_03_up.png         (done)
       soldier_03_right.png      (done)
+      soldier_03_down_2.png      (needed — walk-cycle frame 2)
+      soldier_03_up_2.png        (needed — walk-cycle frame 2)
+      soldier_03_right_2.png     (needed — walk-cycle frame 2)
       soldier_04_down.png       (done)
       soldier_04_up.png         (done)
       soldier_04_right.png      (done)
+      soldier_04_down_2.png      (needed — walk-cycle frame 2)
+      soldier_04_up_2.png        (needed — walk-cycle frame 2)
+      soldier_04_right_2.png     (needed — walk-cycle frame 2)
       soldier_05_down.png       (done)
       soldier_05_up.png         (done)
       soldier_05_right.png      (done)
+      soldier_05_down_2.png      (needed — walk-cycle frame 2)
+      soldier_05_up_2.png        (needed — walk-cycle frame 2)
+      soldier_05_right_2.png     (needed — walk-cycle frame 2)
       soldier_06_down.png       (done)
       soldier_06_up.png         (done)
       soldier_06_right.png      (done)
+      soldier_06_down_2.png      (needed — walk-cycle frame 2)
+      soldier_06_up_2.png        (needed — walk-cycle frame 2)
+      soldier_06_right_2.png     (needed — walk-cycle frame 2)
 ```
 
-All 46 files are generated, in the repo, and wired in — nothing
-outstanding from this asset pass. The old front-facing sprites
+46 of 73 files are generated, in the repo, and wired in. The 27
+walk-cycle "frame 2" files (`*_2.png`) are the one thing actually worth
+generating next — see the "Walk-cycle animation" section above for the
+full spec and prompt template. The old front-facing sprites
 (`civilian.png`, `bus_rider.png`, `taxi.png`,
 `soldier_01.png`...`soldier_06.png`) are superseded by the directional
 set but kept on disk as a fallback chain in `render.js` — safe to delete

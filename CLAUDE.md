@@ -303,17 +303,34 @@ pattern; **the Build panel's list only re-renders when the whole-dollar
 cash amount changes, not every animation frame** — re-rendering on every
 frame was found to detach whatever button the player was mid-click on,
 keep that guard if you touch `renderBuildList()`/`refreshBuildButtons()`.
+**Increment 10 done**: walk-cycle animation is fully wired code-side —
+`Unit.advanceWalkAnim()` toggles `unit.walkFrame` (0/1) by actual pixels
+moved (`WALK_FRAME_STRIDE_PX`, 16px), `render.js`'s `unitSprite()`
+alternates to a `_2`-suffixed sprite while moving. **This is a no-op
+until the 27 `_2` art files exist** — `spriteReady()` gates every lookup,
+so today it always resolves back to the single original pose, byte-for-
+byte the same rendering as before this increment. `ASSETS.md` has the
+full spec (down_2/up_2/right_2 per identity — "opposite stride" pose,
+same camera/crop as frame 1). Mission results also got a
+`gameState.missionLog` (capped at 8, flavor-texted via
+`mission.js`'s `pickMissionFlavor()`) rendered in a new "Recent results"
+section of the Missions panel — missions used to resolve completely
+silently, this is what actually shows the player something happened.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Character walk-cycle animation** — raised by the user, not yet
-   scoped. The last item of the entrance-hall/terrain/animation order
-   agreed earlier (both other items are done — see increments 7/8 above),
-   and the most expensive of the three: needs several new frames per
-   direction plus frame-timing code.
-2. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
+1. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
+   A full question list was drafted for the user (see chat) covering
+   trigger/UI flow, what carries over, Base 2's starting state, whether
+   Base 1 stays viewable/interactive, and whether Base 2 introduces new
+   content or is a "reset the numbers" loop.
+2. **Deeper soldier mechanics (equipment effects, specializations, etc.)**
+   — `Unit.equipment` has been an empty array since Phase 0 with a
+   comment flagging "Phase 3 will add effects," but nothing has ever
+   defined what the system actually does. Also drafted as questions for
+   the user rather than guessed at.
 3. **Building construction time + higher levels + an "under construction"
    art state** — raised by the user, not yet scoped. Right now upgrading a
    building is instant (one cash deduction, `building.upgrade()`

@@ -69,12 +69,22 @@ function getTerrainPattern(ctx, key) {
 // isSeatedCivilian() below) for the Entrance Hall waiting chairs; a single
 // fixed orientation, no down/up/right variants, since a seated figure
 // doesn't turn to face a direction of travel.
+//
+// down2/up2/right2 are the walk-cycle's second frame (ASSETS.md's
+// "Walk-cycle animation" spec) — not generated yet, so these all resolve
+// to a broken Image until they land, which is fine: unitSprite() only
+// ever reaches for them via spriteReady(), falling back to the existing
+// single-pose frame otherwise (same graceful-degrade pattern as every
+// other not-yet-generated asset in this file).
 function civilianSpriteSet(outfit) {
   const base = `assets/units/civilians/${outfit}`;
   return {
     down: loadSprite(`${base}_down.png`),
     up: loadSprite(`${base}_up.png`),
     right: loadSprite(`${base}_right.png`),
+    down2: loadSprite(`${base}_down_2.png`),
+    up2: loadSprite(`${base}_up_2.png`),
+    right2: loadSprite(`${base}_right_2.png`),
     sitting: loadSprite(`${base}_sitting.png`),
     fallback: loadSprite(`${base}.png`),
   };
@@ -87,6 +97,9 @@ function soldierSpriteSet(variant) {
     down: loadSprite(`${base}_down.png`),
     up: loadSprite(`${base}_up.png`),
     right: loadSprite(`${base}_right.png`),
+    down2: loadSprite(`${base}_down_2.png`),
+    up2: loadSprite(`${base}_up_2.png`),
+    right2: loadSprite(`${base}_right_2.png`),
     fallback: loadSprite(`assets/units/soldiers/soldier_${padded}.png`),
   };
 }
@@ -132,12 +145,22 @@ function isSeatedCivilian(unit) {
 // their fixed sitting pose instead, when it's loaded — falls back to the
 // normal standing/directional chain otherwise, same graceful-degrade idea
 // as every other sprite lookup in this file.
+//
+// While actually walking (not isAtTarget()) and on the second half of its
+// stride (unit.walkFrame === 1 — see Unit.advanceWalkAnim()), reaches for
+// the "_2" walk-cycle frame instead, if it's loaded. A stationary unit, or
+// one whose "_2" art hasn't been generated yet, always shows the original
+// single frame — so this is a pure visual bonus, never a requirement.
 function unitSprite(unit) {
   const set = unitSpriteSet(unit);
   if (isSeatedCivilian(unit) && spriteReady(set.sitting)) {
     return set.sitting;
   }
   const dirKey = unit.facing === 'left' ? 'right' : unit.facing;
+  if (unit.walkFrame === 1 && !unit.isAtTarget()) {
+    const frame2 = set[dirKey + '2'];
+    if (spriteReady(frame2)) return frame2;
+  }
   const img = set[dirKey];
   return spriteReady(img) ? img : set.fallback;
 }

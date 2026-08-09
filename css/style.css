@@ -330,6 +330,26 @@ button:disabled {
   padding: 2px 0;
 }
 
+.mission-log-list {
+  margin-top: 6px;
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.mission-log-row {
+  font-size: 0.8rem;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.mission-log-row.mission-log-success {
+  color: var(--text);
+}
+
+.mission-log-row.mission-log-failure {
+  color: var(--danger);
+}
+
 /* ---------- Build panel ---------- */
 
 #buildPanel {

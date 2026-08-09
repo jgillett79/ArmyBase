@@ -27,6 +27,7 @@ const ENERGY_RATE_SLEEPING = -1;     // per game-hour
 const ENERGY_RATE_EATING_FED = 15;   // per game-hour, only if food is available
 const ENERGY_RATE_EATING_HUNGRY = -3; // per game-hour, standing at an empty Mess Hall
 const ARRIVAL_RADIUS = 30; // px — how close counts as "at the building"
+const WALK_FRAME_STRIDE_PX = 16; // px moved per walk-cycle frame toggle — tuned by eye, not measured
 // Per-stat training gain rates now live on the building (building.js `trains`
 // map) since Phase 2 added multiple training buildings — a single constant
 // here stopped being able to describe "how fast does X stat grow."
@@ -92,6 +93,14 @@ class Unit {
     // so a stationary unit keeps facing whichever way it last walked rather
     // than snapping to a default.
     this.facing = 'down';
+    // 2-frame walk-cycle toggle (0 or 1) — see render.js's unitSprite() and
+    // ASSETS.md's walk-cycle spec. walkCycleDist accumulates actual pixels
+    // moved (via step()) and flips walkFrame every WALK_FRAME_STRIDE_PX, so
+    // faster units animate faster instead of on a fixed timer. Harmless
+    // no-op until the "_2" frame art exists — render.js falls back to the
+    // single existing pose per direction until then.
+    this.walkFrame = 0;
+    this.walkCycleDist = 0;
 
     // Visual variety so units are distinguishable at a glance even as
     // rectangles — this is the "different views of them as they're walking
@@ -266,6 +275,17 @@ class Unit {
     }
   }
 
+  // Ticks the 2-frame walk cycle by actual distance moved (see the
+  // constructor comment) — called from step() for every real movement
+  // segment, never for a stationary unit.
+  advanceWalkAnim(distMoved) {
+    this.walkCycleDist += distMoved;
+    if (this.walkCycleDist >= WALK_FRAME_STRIDE_PX) {
+      this.walkCycleDist = 0;
+      this.walkFrame = this.walkFrame === 0 ? 1 : 0;
+    }
+  }
+
   // Advance position toward target, consuming as many legs of a multi-leg
   // route as dtSeconds' movement budget allows within this single call.
   // This matters for offline catch-up, which applies elapsed time as one
@@ -290,6 +310,7 @@ class Unit {
       if (remaining >= dist) {
         this.x = this.targetX;
         this.y = this.targetY;
+        this.advanceWalkAnim(dist);
         remaining -= dist;
         if (this.advancePath()) return true;
         if (remaining <= 0) return false;
@@ -298,6 +319,7 @@ class Unit {
 
       this.x += (dx / dist) * remaining;
       this.y += (dy / dist) * remaining;
+      this.advanceWalkAnim(remaining);
       return false;
     }
   }

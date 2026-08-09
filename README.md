@@ -453,18 +453,54 @@ Three fixes/additions from live feedback the same evening as art pass 3:
   the panel hides it, mission tier tooltips include XP, no page errors
   anywhere in the flow).
 
+## Phase 2 — increment 10 (done): walk-cycle wiring + mission results log
+
+- **Walk-cycle animation, code side.** The frame-timing/toggle system is
+  fully built and wired: `Unit.advanceWalkAnim()` (`unit.js`) accumulates
+  actual pixels moved and flips `unit.walkFrame` (0/1) every
+  `WALK_FRAME_STRIDE_PX` (16px), so the animation speed is tied to real
+  movement rather than a fixed timer — a fast unit's legs "move" faster
+  than a slow one's. `render.js`'s `unitSprite()` alternates between the
+  existing pose and a new `_2`-suffixed frame while a unit is actually
+  moving (`!isAtTarget()`); a stationary unit always shows frame 1.
+  **Nothing changes visually yet** — the `_2` sprite files don't exist,
+  so `spriteReady()` gates every lookup back to the original single pose,
+  exactly as before. `ASSETS.md` gained the full spec for the 27 new
+  files (9 characters x 3 directions, one new "opposite-stride" frame
+  each) — this is the one thing actually worth generating next.
+- **Mission results log.** Missions used to resolve completely
+  silently — cash/resources/XP changed and a unit either walked back in
+  or went to the hospital, but nothing told you it had happened. Every
+  `resolveMissionForUnit()` call now pushes a flavor-texted result
+  (`mission.js`'s `pickMissionFlavor()`) into `gameState.missionLog`
+  (capped at 8, newest first, not persisted — transient like the
+  active-missions list), rendered as a new "Recent results" section in
+  the Missions panel, color-coded green/red for success/failure.
+  `renderMissionLog()` only re-renders when the newest entry's timestamp
+  actually changes, not every frame — same fix as the Build panel's
+  60fps-innerHTML-replacement bug from increment 9, applied proactively
+  here since a static (non-interactive) list doesn't have the
+  detached-button failure mode but re-rendering unchanged content 60x/sec
+  was still pointless work.
+- Tested headlessly (walkFrame toggles between 0/1 while genuinely
+  moving, never toggles for a stationary unit, survives a huge single
+  dt/offline-catchup-style step without breaking) and via Playwright (a
+  resolved mission produces a log entry with the right flavor/rewards,
+  the rendered row shows XP earned, zero page errors).
+
 ## Open questions still remaining for Phase 2
 
-1. **Walk-cycle animation.** User feedback: units don't have an actual
-   walk-cycle (multiple frames per direction), just a static pose per
-   facing — they glide between waypoints without a leg-swinging animation.
-   The last item in the entrance-hall/terrain/animation order agreed
-   earlier, and the most expensive of the three (needs several new frames
-   per direction plus frame-timing code). The only open item left on the
-   art/UX punch list — no outstanding asset generation remains otherwise.
-2. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+1. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
-   and multi-base save-state handling for the legacy Base 1.
+   and multi-base save-state handling for the legacy Base 1. See the
+   question list drafted for the user covering exactly this.
+2. **Deeper soldier mechanics** (equipment effects, specializations,
+   etc.) — `Unit.equipment` has existed as an empty array since Phase 0
+   with a comment flagging "Phase 3 will add effects"; nothing has
+   defined what that system actually looks like yet.
+3. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
+   code is 100% ready to consume them the moment they land, zero further
+   engineering work needed on this side.
 
 ## File layout
 

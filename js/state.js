@@ -8,6 +8,7 @@ const CELL_SIZE = 48; // px, matches canvas 960x576
 const CASH_PER_SECOND_IDLE = 0.5; // passive trickle, proves offline catch-up works
 const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
 const CIVILIAN_WALK_TIMEOUT_MS = 12000; // how long they linger before leaving
+const MISSION_LOG_MAX = 8; // most recent mission results kept for the panel
 
 // ---------------------------------------------------------------------------
 // THREE CLOCKS — read this before touching any timing code.
@@ -97,6 +98,9 @@ class GameState {
     this.lumber = 0;
     this.steel = 0;
     this.gems = 0;
+    // Most recent mission outcomes, newest first — see resolveMissionForUnit().
+    // Transient like the active-missions list, not persisted across saves.
+    this.missionLog = [];
     this.units = [];
     this.barracks = new Barracks(2, 2);
     this.shootingRange = new ShootingRange(8, 2);
@@ -389,13 +393,33 @@ class GameState {
     const tier = missionTierById(unit.missionTierId);
     const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit]);
 
+    let cashEarned = 0;
+    let resourceEarned = null;
+    let xpEarned = 0;
     if (succeeded) {
-      this.cash += rollInRange(tier.cashReward);
+      cashEarned = rollInRange(tier.cashReward);
+      this.cash += cashEarned;
       if (tier.resourceReward) {
-        this[tier.resourceReward.type] += rollInRange(tier.resourceReward.amount);
+        const amount = rollInRange(tier.resourceReward.amount);
+        this[tier.resourceReward.type] += amount;
+        resourceEarned = { type: tier.resourceReward.type, amount };
       }
-      unit.addXp(rollInRange(tier.xpReward));
+      xpEarned = rollInRange(tier.xpReward);
+      unit.addXp(xpEarned);
     }
+
+    // Missions used to resolve completely silently — the log is what
+    // actually makes the system feel alive in the UI. Capped, not
+    // persisted (transient, same idea as the active-missions list).
+    this.missionLog.unshift({
+      unitName: unit.name,
+      tierName: tier ? tier.name : 'Unknown Mission',
+      succeeded,
+      flavor: pickMissionFlavor(succeeded),
+      cashEarned, resourceEarned, xpEarned,
+      timestamp: nowMs,
+    });
+    if (this.missionLog.length > MISSION_LOG_MAX) this.missionLog.length = MISSION_LOG_MAX;
 
     unit.missionReturnAt = null;
     unit.missionTierId = null;

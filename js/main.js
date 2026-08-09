@@ -70,6 +70,7 @@ const missionUnitListEl = document.getElementById('missionUnitList');
 const missionChancePreviewEl = document.getElementById('missionChancePreview');
 const dispatchMissionBtn = document.getElementById('dispatchMissionBtn');
 const activeMissionsListEl = document.getElementById('activeMissionsList');
+const missionLogListEl = document.getElementById('missionLogList');
 
 let gameState = GameState.load();
 let selectedUnitId = null;
@@ -284,6 +285,37 @@ function renderActiveMissions() {
   }).join('');
 }
 
+// Missions used to resolve completely silently — you'd only notice a
+// squad was back if you happened to check. This surfaces the outcome
+// (with a bit of flavor text — see mission.js's pickMissionFlavor())
+// so the system feels like it's actually happening, not a black box.
+function missionLogRowHtml(entry) {
+  const rewardBits = [];
+  if (entry.succeeded) {
+    rewardBits.push(`+$${entry.cashEarned}`);
+    rewardBits.push(`+${entry.xpEarned} XP`);
+    if (entry.resourceEarned) rewardBits.push(`+${entry.resourceEarned.amount} ${entry.resourceEarned.type}`);
+  }
+  const rewardText = rewardBits.length ? ` (${rewardBits.join(', ')})` : '';
+  const cls = entry.succeeded ? 'mission-log-success' : 'mission-log-failure';
+  return `<div class="mission-log-row ${cls}">${entry.tierName} — ${entry.unitName} ${entry.flavor}${rewardText}</div>`;
+}
+
+// Newest entry's timestamp is enough to detect "did anything change" —
+// the log only ever grows via unshift(), so a new mission resolving is
+// the only thing that can change what entry 0 is. Same
+// only-re-render-on-actual-change idea as the Build panel above.
+let missionLogRenderedAt = null;
+
+function renderMissionLog() {
+  const latest = gameState.missionLog[0]?.timestamp ?? null;
+  if (latest === missionLogRenderedAt) return;
+  missionLogRenderedAt = latest;
+  missionLogListEl.innerHTML = gameState.missionLog.length
+    ? gameState.missionLog.map(missionLogRowHtml).join('')
+    : '<div class="mission-unit-empty">No missions completed yet.</div>';
+}
+
 // ---------- Build panel ----------
 // A single "Build" button opening a panel listing every building, instead
 // of one HUD button per building — the HUD grew to 8 build buttons across
@@ -446,6 +478,7 @@ function frame(now) {
 
   updateHud();
   renderActiveMissions();
+  renderMissionLog();
   renderFrame(ctx, gameState, selectedUnitId);
 
   if (Date.now() - lastSaveTime > SAVE_INTERVAL_MS) {
