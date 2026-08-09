@@ -620,6 +620,64 @@ Not implemented yet -- flagged here so it isn't guessed at differently
 later.
 
 ---
+
+## Civilian sitting pose (3 files — Entrance Hall waiting chairs)
+
+Civilians waiting in the Entrance Hall (see `entrance_hall.png` above)
+currently stand at their chair using the normal `down`/`up`/`right`
+walking sprite, whichever direction they happened to be facing when they
+arrived — it works, but looks stiff next to an actual seated pose. This
+adds a dedicated `sitting` variant, **civilians only** — soldiers never
+sit in these chairs, so unlike the 27-file walking set above, this is
+just 3 files, one per civilian identity, not per identity-times-direction.
+
+A seated figure doesn't turn to face a direction of travel, so there's
+only **one** sitting image per identity — no `down`/`up`/`right`/`left`
+variants. `render.js` swaps to this pose the moment a civilian has fully
+arrived at their assigned chair (mid-walk-in, they still use the normal
+directional sprites) and ignores `unit.facing` entirely while seated.
+
+**Shared specs for all 3 files (same as the 27-file walking set):**
+- **Save format:** PNG-24, transparent background
+- **In-game display size:** 32 × 48 px
+- **Generate at:** 128 × 192 px exactly (4× display size)
+- **Aspect ratio:** 2:3 (portrait)
+- **Palette:** character base palette ONLY (`#8a897d` `#6e6d63` `#b8b6a8`
+  `#4a4942`) — see "why characters must be desaturated" above
+- **Camera/pose:** same 30-40° top-down isometric angle as the walking
+  set, but seated — facing forward/toward the camera (matching the chairs
+  in `entrance_hall.png`, which face the viewer), hands resting in lap or
+  on knees, both feet on the ground, upright relaxed posture, not
+  slouched. Chair/bench itself is NOT part of this image — the Entrance
+  Hall art already draws the chairs; this is the character alone, same as
+  every other character sprite in this doc.
+
+| Identity | Filename | Path |
+|---|---|---|
+| `civilian` | `civilian_sitting.png` | `assets/units/civilians/civilian_sitting.png` |
+| `bus_rider` | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` |
+| `taxi` | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` |
+
+**Prompt (combine with the identity description from "Character
+identities" above — e.g. for `bus_rider_sitting.png`, add "duffel bag
+resting beside them or on their lap"):** A civilian pedestrian seated on
+a chair, viewed from a 30-40° top-down isometric angle, flat vector
+game-art illustration style with a consistent 2-3px dark outline
+(#1a1d14) on the figure's edges. Upright relaxed seated posture, facing
+forward toward the camera, both feet flat on the ground, hands resting in
+lap or on knees. Character base palette only (`#8a897d` `#6e6d63`
+`#b8b6a8` `#4a4942`), no other colors. Flat ambient lighting from
+upper-left, no hard shadows, optional soft 10% contact shadow directly
+under the figure only. Do not render a chair, bench, or any furniture —
+figure only. Fully transparent background, no text, no props, no other
+characters in frame. Figure fills about 80% of canvas height, centered
+with even padding.
+**Generate at 128×192px, PNG with alpha transparency.**
+
+If this isn't generated, civilians just keep using their normal standing
+directional sprite while seated — same graceful-fallback pattern as every
+other not-yet-generated asset in this doc, so there's no urgency.
+
 ## Not included in this pass (intentionally)
 
 - **"Not built" building ghost state** — stays the existing dashed-outline
@@ -645,6 +703,9 @@ later.
 - **Diagonal (NE/SE/SW/NW) directional sprites** — the road network only
   ever produces axis-aligned movement, so these would never render. Only
   add them if free-roam diagonal movement gets built later.
+- **A soldier sitting pose** — soldiers never use the Entrance Hall
+  waiting chairs (only civilians pass through there), so there's no
+  equivalent need for one.
 
 ## Quick-reference table
 
@@ -665,12 +726,16 @@ later.
 | 13 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
 | 14 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
 | 15-41 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
+| 42 | `civilian_sitting.png` | `assets/units/civilians/civilian_sitting.png` | 128×192px | PNG-24 + alpha |
+| 43 | `bus_rider_sitting.png` | `assets/units/civilians/bus_rider_sitting.png` | 128×192px | PNG-24 + alpha |
+| 44 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
 
 **#1-8 and #12-41 (35 files) are already generated and in the repo — no
-action needed.** **#9 `showers.png`, #10 `rec_room.png`, and #11
-`entrance_hall.png` are new** — `render.js` already has a sprite slot for
-all three and falls back to a procedural colored box until they land, so
-there's no urgency.
+action needed.** **#9 `showers.png`, #10 `rec_room.png`, #11
+`entrance_hall.png`, and #42-44 (the 3 sitting-pose files) are new** —
+`render.js` already has a sprite slot for all of them and falls back to a
+procedural colored box (buildings) or the normal standing sprite
+(sitting poses) until they land, so there's no urgency.
 
 ## Folder structure
 
@@ -706,6 +771,9 @@ assets/
       taxi_down.png              (done)
       taxi_up.png                (done)
       taxi_right.png             (done)
+      civilian_sitting.png       (needed)
+      bus_rider_sitting.png      (needed)
+      taxi_sitting.png           (needed)
     soldiers/
       soldier_01.png ... soldier_06.png   (old front-facing — superseded, kept as fallback)
       soldier_01_down.png       (done)

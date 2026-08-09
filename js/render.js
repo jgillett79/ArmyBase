@@ -61,12 +61,17 @@ function getTerrainPattern(ctx, key) {
 // "Character direction system") plus the original single-pose sprite as a
 // fallback for whichever directional file hasn't loaded yet. There's no
 // 'left' file — see unitSprite() below, it's the 'right' image mirrored.
+// Civilians also get a 'sitting' pose (soldiers never sit — see
+// isSeatedCivilian() below) for the Entrance Hall waiting chairs; a single
+// fixed orientation, no down/up/right variants, since a seated figure
+// doesn't turn to face a direction of travel.
 function civilianSpriteSet(outfit) {
   const base = `assets/units/civilians/${outfit}`;
   return {
     down: loadSprite(`${base}_down.png`),
     up: loadSprite(`${base}_up.png`),
     right: loadSprite(`${base}_right.png`),
+    sitting: loadSprite(`${base}_sitting.png`),
     fallback: loadSprite(`${base}.png`),
   };
 }
@@ -107,11 +112,27 @@ function unitSpriteSet(unit) {
   return UNIT_SPRITES['soldier_' + (unit.soldierVariant || 1)];
 }
 
+// True once a waiting civilian has actually reached their assigned chair
+// (not just been assigned one — see state.js's assignChair(), which sets
+// chairIndex the moment they cross the gate, well before they arrive).
+// isAtTarget() requires the walk to be fully done, so this only flips on
+// once they're really standing at the seat.
+function isSeatedCivilian(unit) {
+  return unit.isCivilian && unit.status === UNIT_STATUS.CIVILIAN_APPROACHING
+    && unit.chairIndex !== null && unit.isAtTarget();
+}
+
 // Picks the directional image for unit.facing ('left' reuses 'right' — see
 // drawUnit(), which mirrors it) and falls back to the older single-pose
-// sprite if that specific direction hasn't loaded yet.
+// sprite if that specific direction hasn't loaded yet. Seated civilians use
+// their fixed sitting pose instead, when it's loaded — falls back to the
+// normal standing/directional chain otherwise, same graceful-degrade idea
+// as every other sprite lookup in this file.
 function unitSprite(unit) {
   const set = unitSpriteSet(unit);
+  if (isSeatedCivilian(unit) && spriteReady(set.sitting)) {
+    return set.sitting;
+  }
   const dirKey = unit.facing === 'left' ? 'right' : unit.facing;
   const img = set[dirKey];
   return spriteReady(img) ? img : set.fallback;
@@ -386,7 +407,10 @@ function drawUnit(ctx, unit, isSelected) {
     ctx.save();
     const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
     ctx.filter = `hue-rotate(${hue}deg) saturate(${sat})`;
-    if (unit.facing === 'left') {
+    // The sitting pose is a single fixed orientation (facing forward, out
+    // of the chair) — it doesn't turn to face unit.facing like the
+    // walking sprites do, so skip the left-mirror for a seated civilian.
+    if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
       // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
       // sprite around the unit's own draw position instead.
       ctx.translate(unit.x + halfW, top);
