@@ -28,6 +28,10 @@ const ENERGY_RATE_EATING_FED = 15;   // per game-hour, only if food is available
 const ENERGY_RATE_EATING_HUNGRY = -3; // per game-hour, standing at an empty Mess Hall
 const ARRIVAL_RADIUS = 30; // px — how close counts as "at the building"
 const WALK_FRAME_STRIDE_PX = 16; // px moved per walk-cycle frame toggle — tuned by eye, not measured
+
+// Level-up stat allocation — see levelUp()/allocateStatPoint() below.
+const ALLOCATABLE_STATS = ['strength', 'accuracy', 'endurance'];
+const STAT_POINTS_PER_LEVEL = 3; // placeholder, matches the old auto-gain's rough total
 // Per-stat training gain rates now live on the building (building.js `trains`
 // map) since Phase 2 added multiple training buildings — a single constant
 // here stopped being able to describe "how fast does X stat grow."
@@ -146,6 +150,13 @@ class Unit {
     // see state.js's assignChair()/releaseChair(). Only meaningful while
     // isCivilian && status === CIVILIAN_APPROACHING.
     this.chairIndex = null;
+
+    // Stat points earned on level-up, waiting to be spent — see
+    // levelUp()/allocateStatPoint(). Player-directed instead of the old
+    // auto-random gain, per user request ("a little star... allocate their
+    // extra stats"). render.js draws a star badge above any soldier with
+    // unspentStatPoints > 0.
+    this.unspentStatPoints = 0;
   }
 
   recruit() {
@@ -169,9 +180,27 @@ class Unit {
     this.xpToNext = Math.round(this.xpToNext * 1.35);
     this.maxHp += randInt(2, 4);
     this.hp = this.maxHp;
-    this.strength += randInt(1, 2);
-    this.accuracy = clamp(this.accuracy + randInt(1, 3), 0, 95);
-    this.endurance = clamp(this.endurance + randInt(1, 3), 0, 95);
+    // strength/accuracy/endurance no longer auto-grow here — the player
+    // spends these via allocateStatPoint() instead (see the star badge in
+    // render.js). STAT_POINTS_PER_LEVEL roughly matches the old auto-gain's
+    // total magnitude (was ~1-2 + 1-3 + 1-3 spread across 3 stats), just
+    // player-directed now instead of random.
+    this.unspentStatPoints += STAT_POINTS_PER_LEVEL;
+  }
+
+  // statName must be one of ALLOCATABLE_STATS. No-op if there's nothing
+  // left to spend or the stat isn't allocatable — callers (state.js) are
+  // expected to only expose this for valid stats, this is just the safety
+  // net on the model itself.
+  allocateStatPoint(statName) {
+    if (this.unspentStatPoints <= 0 || !ALLOCATABLE_STATS.includes(statName)) return false;
+    this.unspentStatPoints -= 1;
+    if (statName === 'strength') {
+      this.strength += 1;
+    } else {
+      this[statName] = clamp(this[statName] + 1, 0, 95);
+    }
+    return true;
   }
 
   sendToHospital(nowMs) {

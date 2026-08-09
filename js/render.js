@@ -572,6 +572,21 @@ function drawUnit(ctx, unit, isSelected) {
     ctx.setLineDash([]);
   }
 
+  // level-up star — a soldier with unspentStatPoints > 0 has a stat point
+  // waiting to be manually assigned (see the profile panel's "Allocate
+  // stat points" section in main.js); the star is what makes that visible
+  // without opening every soldier's profile to check.
+  if (!unit.isCivilian && unit.unspentStatPoints > 0) {
+    ctx.save();
+    ctx.font = '14px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 3;
+    ctx.fillStyle = '#f2e9a8';
+    ctx.fillText('★', unit.x, top - 14);
+    ctx.restore();
+  }
+
   // label — soldiers always show name (that's the point); civilians show
   // their outfit marker so you can tell "bus rider" from "taxi" from "walk-in"
   ctx.font = '10px monospace';

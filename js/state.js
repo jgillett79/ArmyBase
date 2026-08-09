@@ -282,6 +282,12 @@ class GameState {
     return true;
   }
 
+  allocateStatPoint(unitId, statName) {
+    const unit = this.units.find(u => u.id === unitId);
+    if (!unit || unit.isCivilian) return false;
+    return unit.allocateStatPoint(statName);
+  }
+
   // Shared "buy it once, no levels" build action for the NeedsBuilding trio
   // (Mess Hall, Showers, Rec Room) — mirrors upgradeBuilding()'s role for
   // the training buildings below.
@@ -596,7 +602,7 @@ class GameState {
         .filter(u => !u.isCivilian) // don't persist transient civilians
         .map(u => ({
           id: u.id, name: u.name, x: u.x, y: u.y, colorSeed: u.colorSeed,
-          level: u.level, xp: u.xp, xpToNext: u.xpToNext,
+          level: u.level, xp: u.xp, xpToNext: u.xpToNext, unspentStatPoints: u.unspentStatPoints,
           maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
           maxEnergy: u.maxEnergy, energy: u.energy, hygiene: u.hygiene, morale: u.morale, assignedBuildingId: u.assignedBuildingId,
           equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil,

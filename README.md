@@ -488,17 +488,80 @@ Three fixes/additions from live feedback the same evening as art pass 3:
   resolved mission produces a log entry with the right flavor/rewards,
   the rendered row shows XP earned, zero page errors).
 
-## Open questions still remaining for Phase 2
+## Phase 2 — increment 11 (done): level-up stat allocation
 
-1. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
-   units, what resets on the new base vs. carries over (cash? equipment?),
-   and multi-base save-state handling for the legacy Base 1. See the
-   question list drafted for the user covering exactly this.
-2. **Deeper soldier mechanics** (equipment effects, specializations,
-   etc.) — `Unit.equipment` has existed as an empty array since Phase 0
-   with a comment flagging "Phase 3 will add effects"; nothing has
-   defined what that system actually looks like yet.
-3. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
+- Leveling up used to auto-randomize strength/accuracy/endurance gains.
+  `Unit.levelUp()` now grants `STAT_POINTS_PER_LEVEL` (3, placeholder)
+  unspent points instead — the player chooses where they go via
+  `Unit.allocateStatPoint(statName)`. maxHp still grows automatically on
+  level-up (a natural toughness increase, not a build choice).
+- A gold star renders above any soldier with unspent points (`render.js`,
+  procedural — no new art needed, same convention as the hospital ring),
+  visible on the map without opening their profile. Clicking the soldier
+  opens the existing profile panel, which now shows an "Allocate stat
+  points" section (Strength/Accuracy/Endurance buttons) whenever points
+  are available, and hides once they're all spent.
+- `unspentStatPoints` is persisted through save/load like every other
+  per-unit stat.
+- Tested headlessly (`levelUp()` no longer touches the 3 stats directly,
+  grants the right point total, `allocateStatPoint()` increments the
+  right stat and decrements the pool, refuses when the pool is empty or
+  the stat name is invalid, accuracy/endurance stay clamped at 95,
+  `GameState.allocateStatPoint()` refuses civilians and unknown unit
+  ids, `serialize()` includes the new field) and via Playwright (the star
+  renders correctly, the panel section shows/hides based on unspent
+  points, clicking a button actually increments the stat and updates the
+  remaining count).
+
+## Phase 3 (design locked, not built yet): Promotion, multi-base, equipment, classes
+
+A long design conversation settled the shape of the next major feature
+set — full reasoning lives in `CLAUDE.md`'s "Decisions already made."
+Summary:
+
+- **Promotion**: trigger is all Base 1 buildings maxed + unit cap of 20
+  reached (already locked). Exactly 2 chosen units promote to Base 2 with
+  everything they have; the other 18 stay at Base 1 permanently. A
+  "General" character congratulates the player and prompts the move.
+- **Exactly 2 bases total**, not an open-ended ladder.
+- **Base 1 stays a real, playable base after Promotion** — visitable,
+  its remaining soldiers can still run missions and use weapons, still
+  earns cash whether or not you're looking at it. Planned implementation:
+  whichever base isn't the active view reuses the existing offline
+  catch-up "one big tick" pattern rather than being simulated in real
+  time in parallel.
+- **Equipment is a per-base inventory with an explicit "ship" action**
+  to move resources/weapons between the two bases — not a single global
+  pool. Weapons in particular always carry forward (they may become
+  real-money purchases later); consumables (grenades) are single-use,
+  persistent gear (guns) carries forward. Shipping is instant on visit
+  for v1.
+- **Base 2 reuses Base 1's existing art for now** — distinct biomes per
+  base (snow/sand/forest/mountain) is a real future direction, explicitly
+  deferred so Promotion doesn't get blocked on a whole new art pass.
+- **Base 2 needs higher soldier/building level caps, ideally new
+  building types**, so it reads as "unlocking more" rather than
+  "resetting the numbers." Exact caps and new buildings are still open —
+  a modest cap raise on existing content is enough for v1.
+- **Veteran classes/specializations, wanted.** Proposed roster (tied to
+  existing stats, no new systems needed): Marksman (accuracy),
+  Heavy Gunner (strength), Scout (endurance), Medic (support — speeds up
+  squadmate recovery), Demolitions (equipment specialist). Final list to
+  be confirmed once actually built.
+- **Parked, not scoped:** a Base 2 "Weapons Factory" building tied to a
+  freemium monetization idea (grind hard missions to unlock free basic
+  weapon crafting, parallel to weapons sold for real money). No payment
+  integration exists in this project — this needs its own scoping pass
+  before any of it gets built.
+
+## Open questions still remaining for Phase 2/3
+
+1. **Exact Base 2 level caps and any brand-new building designs** — user
+   explicitly deferred ("we can work that through").
+2. **Weapons Factory / freemium weapon-crafting** — parked, not scoped.
+3. **Final veteran class roster** — proposed set above, not yet confirmed
+   as final.
+4. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
    code is 100% ready to consume them the moment they land, zero further
    engineering work needed on this side.
 

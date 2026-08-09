@@ -171,6 +171,27 @@ button:disabled {
   background: #c98a4a;
 }
 
+.profile-stat-points {
+  margin-top: 10px;
+  border: 1px solid var(--highlight);
+  border-radius: 4px;
+  padding: 6px 8px;
+  background: rgba(242, 233, 168, 0.08);
+}
+
+.profile-stat-points-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.profile-stat-points-buttons button {
+  flex: 1 1 auto;
+  font-size: 0.75rem;
+  padding: 5px 7px;
+}
+
 .profile-training {
   margin-top: 10px;
 }

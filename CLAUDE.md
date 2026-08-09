@@ -96,6 +96,56 @@ with a stat-weighted success chance → return, or don't.
   18 would cut against the individual-attachment thesis this whole game is
   built on (see top of this file). Don't quietly change this to "units are
   released" as a save-state simplification later.
+- **Base 1 stays a real, playable base after Promotion — not just a
+  passive number.** You can still visit it, its remaining 18 soldiers can
+  still be dispatched on missions and equipped with weapons, and it keeps
+  earning cash in the background whether or not you're currently looking
+  at it. Implementation approach (an engineering call, not a separate
+  user decision): whichever base ISN'T the one currently being viewed
+  reuses the existing offline-catch-up "one big tick" pattern (see the
+  three-clocks section) rather than being simulated in real time
+  alongside the active base — switching to it catches it up in one call,
+  same as reopening the game after time away.
+- **Exactly 2 bases, no Base 3 planned.** Don't build the promotion/base
+  system as an open-ended N-base ladder — it's a one-time step-up.
+- **Equipment is a per-base inventory, not a single shared pool, with an
+  explicit "ship" action to move things between bases.** When you visit
+  either base you can transfer resources/weapons to the other one —
+  weapons in particular carry value (they may become real-money
+  purchases later) so they're never destroyed or stranded by a
+  promotion, but they still live at whichever base they were shipped to,
+  not in some base-agnostic global stash. Shipping is instant on visit
+  for now (matches every other instant action already in this game) —
+  a real transit-time mechanic is a possible later addition, not
+  required for v1.
+- **Base 2 reuses Base 1's existing art initially — no new biome art
+  yet.** The idea of each base having a distinct landscape (snow / sand /
+  forest / mountain) is a real future direction, explicitly deferred —
+  don't block shipping the Promotion mechanics on a whole new terrain art
+  pass. Revisit once the mechanics are proven.
+- **Base 2 needs higher soldier level caps and higher building level
+  caps, ideally new building types too** — so Promotion reads as
+  "unlocking more," not "starting over with reset numbers." Exact new
+  cap values and which new buildings are still open — user explicitly
+  deferred the detailed design ("we can work that through"), so don't
+  guess specific numbers/buildings without asking; a modest cap raise on
+  existing content is enough for a first version.
+- **Monetization idea, parked, not scoped:** a Base 2 "Weapons Factory"
+  building that lets free-to-play players grind hard-tier missions to
+  unlock basic weapon crafting, parallel to weapons potentially being
+  sold for real money later. Explicitly not ready to build — no payment
+  integration exists in this project at all, and the resource-gating
+  design hasn't been worked out. Flagged here so it isn't forgotten, not
+  because it's next.
+- **Level-up stat allocation.** Replacing the current auto-random stat
+  gain in `Unit.levelUp()`: a unit who's leveled up shows a star
+  indicator; clicking it lets the player manually choose which stat(s)
+  the new point(s) go into, instead of the game rolling it randomly.
+- **Classes/specializations for veteran soldiers, wanted but not
+  finalized.** User is enthusiastic about this; a proposed class roster
+  (tied to the existing strength/accuracy/endurance stats so it doesn't
+  need new systems) was drafted in chat — see README once built for the
+  actual list shipped.
 
 ## Tech constraints — don't introduce a build step
 
@@ -316,31 +366,44 @@ same camera/crop as frame 1). Mission results also got a
 `mission.js`'s `pickMissionFlavor()`) rendered in a new "Recent results"
 section of the Missions panel — missions used to resolve completely
 silently, this is what actually shows the player something happened.
+**Increment 11 done**: level-up stat allocation. `Unit.levelUp()` no
+longer auto-randomizes strength/accuracy/endurance — it grants
+`STAT_POINTS_PER_LEVEL` unspent points instead, spent via
+`Unit.allocateStatPoint(statName)` (`ALLOCATABLE_STATS` = strength/
+accuracy/endurance). A gold star renders above any soldier with unspent
+points (procedural, no new art); the profile panel gained an "Allocate
+stat points" section that shows/hides based on `unit.unspentStatPoints`.
+maxHp still auto-grows on level-up — only the 3 allocatable stats moved
+to player choice.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
-   what resets vs. carries over onto the new base, and multi-base save
-   state now that Base 1 persists as a legacy base rather than resetting.
-   A full question list was drafted for the user (see chat) covering
-   trigger/UI flow, what carries over, Base 2's starting state, whether
-   Base 1 stays viewable/interactive, and whether Base 2 introduces new
-   content or is a "reset the numbers" loop.
-2. **Deeper soldier mechanics (equipment effects, specializations, etc.)**
-   — `Unit.equipment` has been an empty array since Phase 0 with a
-   comment flagging "Phase 3 will add effects," but nothing has ever
-   defined what the system actually does. Also drafted as questions for
-   the user rather than guessed at.
-3. **Building construction time + higher levels + an "under construction"
-   art state** — raised by the user, not yet scoped. Right now upgrading a
-   building is instant (one cash deduction, `building.upgrade()`
-   synchronously) and levels cap at 3. Whether to add a real-time build
-   timer (same pattern as the hospital timer — `Date.now()`-based, not
-   compressed game-time, per the three-clocks rule), raise the level cap,
-   and/or add a shared "construction in progress" sprite (one asset reused
-   across all 6 upgradeable buildings, same idea as `vacant_lot.png`) is an
-   open question — see README for the recommendation given (basic
-   gameplay/missions first, this is a polish layer that can come later).
+Promotion's shape and the core equipment model are now locked (see
+"Decisions already made" above) — what's genuinely still open:
+
+1. **Exact new level/building caps for Base 2, and any brand-new
+   building types** — user explicitly deferred this ("we can work that
+   through"). Don't invent specific numbers or new building designs
+   without checking first; a modest cap raise on existing buildings is
+   enough for a first version.
+2. **Weapons Factory / freemium weapon-crafting idea** — parked, not
+   scoped. No payment integration exists in this project. Don't start
+   building this without a real scoping pass first.
+3. **Final class roster for veteran soldiers** — a set was proposed in
+   chat (Marksman/Heavy Gunner/Scout/Medic/Demolitions, roughly mapped to
+   existing stats); confirm the actual shipped list against README once
+   built rather than assuming this doc's mention of it is exhaustive.
+4. **Building construction time + an "under construction" art state** —
+   raised by the user, not yet scoped. Right now upgrading a building is
+   instant (one cash deduction, `building.upgrade()` synchronously).
+   Whether to add a real-time build timer (same pattern as the hospital
+   timer — `Date.now()`-based, not compressed game-time, per the
+   three-clocks rule) and/or a shared "construction in progress" sprite
+   (one asset reused across all upgradeable buildings, same idea as
+   `vacant_lot.png`) is open — see README for the recommendation given
+   (basic gameplay/missions first, this is a polish layer that can come
+   later). Note the "takes ages to build" weapon-crafting idea above
+   would likely reuse this same timer mechanic once both exist.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

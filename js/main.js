@@ -39,6 +39,8 @@ const profileEndurance = document.getElementById('profileEndurance');
 const profileEquipment = document.getElementById('profileEquipment');
 const closeProfileBtn = document.getElementById('closeProfile');
 const recallBtn = document.getElementById('recallBtn');
+const profileStatPoints = document.getElementById('profileStatPoints');
+const profileStatPointsLeft = document.getElementById('profileStatPointsLeft');
 
 // One entry per TrainingBuilding (building.js) — drives both the assign
 // buttons in the profile panel and the Build panel's upgrade rows.
@@ -47,6 +49,14 @@ const trainingBuildingUi = [
   { key: 'weightRoom', label: 'Weight Room', assignBtn: document.getElementById('assignWeightRoomBtn') },
   { key: 'obstacleCourse', label: 'Obstacle Course', assignBtn: document.getElementById('assignObstacleCourseBtn') },
   { key: 'drillYard', label: 'Combat Drill Yard', assignBtn: document.getElementById('assignDrillYardBtn') },
+];
+
+// One entry per allocatable stat (unit.js's ALLOCATABLE_STATS) — drives
+// the profile panel's "Allocate stat points" buttons.
+const statAllocationUi = [
+  { stat: 'strength', btn: document.getElementById('allocateStrengthBtn') },
+  { stat: 'accuracy', btn: document.getElementById('allocateAccuracyBtn') },
+  { stat: 'endurance', btn: document.getElementById('allocateEnduranceBtn') },
 ];
 
 const recruitPopup = document.getElementById('recruitPopup');
@@ -105,6 +115,12 @@ function openProfile(unit) {
   profileEquipment.textContent = unit.equipment.length ? unit.equipment.join(', ') : 'None';
   profilePanel.classList.remove('hidden');
 
+  profileStatPoints.classList.toggle('hidden', unit.unspentStatPoints <= 0);
+  profileStatPointsLeft.textContent = unit.unspentStatPoints;
+  for (const { btn } of statAllocationUi) {
+    btn.disabled = unit.unspentStatPoints <= 0;
+  }
+
   // Neither a hospitalized unit nor one still walking in to enlist
   // (RECRUITING — see state.js) can be assigned to training.
   const locked = unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.RECRUITING;
@@ -134,6 +150,15 @@ for (const { key, assignBtn } of trainingBuildingUi) {
 recallBtn.addEventListener('click', () => {
   if (selectedUnitId) gameState.unassignFromTraining(selectedUnitId);
 });
+
+for (const { stat, btn } of statAllocationUi) {
+  btn.addEventListener('click', () => {
+    if (!selectedUnitId) return;
+    gameState.allocateStatPoint(selectedUnitId, stat);
+    const unit = gameState.units.find(u => u.id === selectedUnitId);
+    if (unit) openProfile(unit); // refresh the panel's numbers/remaining points immediately
+  });
+}
 
 profileName.addEventListener('change', () => {
   const unit = gameState.units.find(u => u.id === selectedUnitId);
