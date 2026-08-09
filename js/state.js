@@ -90,6 +90,13 @@ class GameState {
     this.weightRoom = new WeightRoom(2, 5);
     this.obstacleCourse = new ObstacleCourse(8, 5);
     this.drillYard = new CombatDrillYard(14, 5);
+    // Third row, BELOW the road spine (y=8) rather than above it like rows
+    // one/two — reuses spokes A/B (same gridX as Barracks/Weight Room and
+    // Shooting Range/Obstacle Course) so no new spoke position is needed;
+    // routeTo()'s spine-then-target shape already works in either direction,
+    // only the road *drawing* in render.js needed to know about these two.
+    this.showers = new Showers(2, 8);
+    this.recRoom = new RecRoom(8, 8);
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
@@ -160,6 +167,10 @@ class GameState {
   routeForStatus(unit) {
     if (unit.status === UNIT_STATUS.EATING) {
       this.routeToBuilding(unit, this.messHall);
+    } else if (unit.status === UNIT_STATUS.HYGIENE) {
+      this.routeToBuilding(unit, this.showers);
+    } else if (unit.status === UNIT_STATUS.RECREATION) {
+      this.routeToBuilding(unit, this.recRoom);
     } else if (unit.status === UNIT_STATUS.TRAINING) {
       const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
       this.routeToBuilding(unit, building);
@@ -209,6 +220,17 @@ class GameState {
     const unit = this.units.find(u => u.id === unitId);
     if (!unit) return false;
     unit.assignedBuildingId = null;
+    return true;
+  }
+
+  // Shared "buy it once, no levels" build action for the NeedsBuilding trio
+  // (Mess Hall, Showers, Rec Room) — mirrors upgradeBuilding()'s role for
+  // the training buildings below.
+  buildNeedsBuilding(key) {
+    const building = this[key];
+    if (!building || building.isBuilt || this.cash < building.buildCost()) return false;
+    this.cash -= building.buildCost();
+    building.build();
     return true;
   }
 
@@ -341,7 +363,6 @@ class GameState {
     // dtSeconds (real) * GAME_MS_PER_REAL_MS = game-ms elapsed per real-second-of-dt.
     // Divide by 3600 (not 3.6M) since dtSeconds is already in seconds, not ms.
     const gameHours = (dtSeconds * GAME_MS_PER_REAL_MS) / 3600;
-    const isDaytime = this.isDaytime;
     const foodAvailable = this.food > 0;
 
     const toRemove = new Set();
@@ -390,12 +411,14 @@ class GameState {
       }
 
       // Decide + apply transition if the desired status differs from current
-      const desired = unit.desiredStatus(isDaytime);
+      const desired = unit.desiredStatus(this.hourOfDay);
       if (desired !== unit.status) this.transitionUnit(unit, desired);
 
       unit.step(dtSeconds);
 
       unit.applyEnergyDelta(gameHours, foodAvailable);
+      unit.applyHygieneDelta(gameHours, this.showers.isBuilt);
+      unit.applyMoraleDelta(gameHours, this.recRoom.isBuilt);
       if (unit.status === UNIT_STATUS.EATING && foodAvailable && unit.isAtTarget()) {
         foodConsumedThisTick += FOOD_CONSUMED_PER_GAME_HOUR * gameHours;
       }
@@ -470,6 +493,8 @@ class GameState {
       weightRoomLevel: this.weightRoom.level,
       obstacleCourseLevel: this.obstacleCourse.level,
       drillYardLevel: this.drillYard.level,
+      showersLevel: this.showers.level,
+      recRoomLevel: this.recRoom.level,
       lastTick: Date.now(),
       units: this.units
         .filter(u => !u.isCivilian) // don't persist transient civilians
@@ -477,7 +502,7 @@ class GameState {
           id: u.id, name: u.name, x: u.x, y: u.y, colorSeed: u.colorSeed,
           level: u.level, xp: u.xp, xpToNext: u.xpToNext,
           maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
-          maxEnergy: u.maxEnergy, energy: u.energy, assignedBuildingId: u.assignedBuildingId,
+          maxEnergy: u.maxEnergy, energy: u.energy, hygiene: u.hygiene, morale: u.morale, assignedBuildingId: u.assignedBuildingId,
           equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil,
           missionReturnAt: u.missionReturnAt, missionTierId: u.missionTierId,
         })),
@@ -503,6 +528,8 @@ class GameState {
       state.weightRoom.level = data.weightRoomLevel ?? 0;
       state.obstacleCourse.level = data.obstacleCourseLevel ?? 0;
       state.drillYard.level = data.drillYardLevel ?? 0;
+      state.showers.level = data.showersLevel ?? 0;
+      state.recRoom.level = data.recRoomLevel ?? 0;
 
       state.units = (data.units || []).map(d => {
         const u = new Unit({ x: d.x, y: d.y, isCivilian: false });

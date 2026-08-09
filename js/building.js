@@ -132,24 +132,46 @@ class CombatDrillYard extends TrainingBuilding {
   }
 }
 
-// Mess Hall: deliberately NOT leveled in Phase 1 — built once, unlimited
-// capacity. The needs loop (food purchase, energy) is complex enough on its
-// own; adding a mess-hall-capacity constraint on top wasn't validated as
-// necessary and can be added later if food logistics needs more friction.
-class MessHall {
-  constructor(gridX, gridY) {
-    this.id = 'mess_hall'; // fixed ID — see Barracks comment above
-    this.type = 'mess_hall';
+// Shared shape for "built once, unlimited capacity, no levels" needs
+// buildings — Mess Hall (Energy/Food), Showers (Hygiene), Rec Room
+// (Morale). Deliberately NOT leveled, same reasoning as Mess Hall
+// originally: the needs loop is complex enough on its own, a capacity
+// constraint wasn't validated as necessary. Generalized out of the
+// original one-off MessHall class now that the pattern repeats 3 times —
+// same "no longer premature" reasoning as TrainingBuilding above.
+class NeedsBuilding {
+  constructor({ id, type, gridX, gridY, cost }) {
+    this.id = id; // fixed string — see Barracks comment above on why
+    this.type = type;
     this.gridX = gridX;
     this.gridY = gridY;
     this.level = 0;
+    this.cost = cost;
   }
 
   get isBuilt() { return this.level > 0; }
 
   buildCost() {
-    return 120;
+    return this.cost;
   }
 
   build() { this.level = 1; }
+}
+
+class MessHall extends NeedsBuilding {
+  constructor(gridX, gridY) {
+    super({ id: 'mess_hall', type: 'mess_hall', gridX, gridY, cost: 120 });
+  }
+}
+
+class Showers extends NeedsBuilding {
+  constructor(gridX, gridY) {
+    super({ id: 'showers', type: 'showers', gridX, gridY, cost: 100 });
+  }
+}
+
+class RecRoom extends NeedsBuilding {
+  constructor(gridX, gridY) {
+    super({ id: 'rec_room', type: 'rec_room', gridX, gridY, cost: 100 });
+  }
 }

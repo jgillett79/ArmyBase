@@ -261,25 +261,63 @@ test, not by playing — worth keeping smoke tests for this reason.
   with a live success-chance preview, and an active-missions list with
   time remaining.
 
+## Phase 2 — increment 6 (done): Daily schedule + Hygiene/Morale
+
+- New `UNIT_STATUS.HYGIENE`/`RECREATION`, plus `Unit.hygiene`/`morale`
+  (0-100, start at 100). `DAILY_SCHEDULE` in `unit.js` is a fixed table of
+  `{start, end, status}` blocks in **game-clock** hours (compressed, not
+  real time — three-clocks rule applies): sleep 22:00-06:00, eat 06:00-08:00,
+  shower 08:00-09:00, train 09:00-12:00, eat 12:00-13:00, train 13:00-17:00,
+  recreation 17:00-20:00, eat 20:00-22:00. `scheduledStatusFor(hourOfDay)`
+  handles the midnight-wrapping sleep block (`end > 24`).
+- `Unit.desiredStatus(hourOfDay)` (signature changed from the old
+  `isDaytime` boolean) checks the energy-critical override first, then the
+  schedule; a unit whose scheduled block is TRAINING but who isn't assigned
+  to a training building falls back to IDLE rather than standing at a
+  building with no job.
+- **Hygiene feeds Energy's decay rate, per the locked design — it is NOT a
+  second death path.** Below `HYGIENE_LOW_THRESHOLD` (30), Energy decays
+  1.5x faster regardless of status. **Morale softly reduces training
+  gain** — below `MORALE_LOW_THRESHOLD` (30), stat gain from training is
+  halved. Neither stat can send a unit to the hospital on its own; "Energy
+  hits 0" stays the single failure funnel this game already committed to.
+- New `NeedsBuilding` base class (`building.js`) generalizes `MessHall`
+  alongside the two new buildings it now shares a shape with: `Showers`
+  (100 cash, Hygiene climbs while a unit is there during its Hygiene
+  block) and `RecRoom` (100 cash, Morale climbs the same way during
+  Recreation). Both sit below the road spine, reusing the existing spoke
+  x-positions (`routeTo()`'s spine-then-target shape already works in
+  either direction).
+- HUD gained Showers/Rec Room build buttons (generic `needsBuildingUi`
+  loop shared with Mess Hall — no more bespoke per-building click
+  handlers); the unit profile panel gained Hygiene/Morale bars.
+- Render fallback: `showers.png`/`rec_room.png` aren't generated yet, so
+  both draw as a procedural colored box with a label until the art lands —
+  same zero-code-change pattern used for every other not-yet-generated
+  asset this project has hit.
+- Tested headlessly (schedule covers all 24h incl. midnight wrap; a unit
+  cycles through every scheduled status across a simulated day; low
+  hygiene measurably speeds energy decay; low morale measurably slows
+  training gain; unassigned units stay IDLE during train blocks) and via
+  Playwright (Showers/Rec Room render, a unit's status label updates
+  correctly as the game clock is advanced through each block).
+
 ## Open questions still remaining for Phase 2
 
-1. **Full daily schedule.** Sleep (Barracks, night) → shower (new Showers
-   building, Hygiene) → training → lunch (Mess Hall) → recreation (new Rec
-   Room, Morale) → repeat. Hygiene/Morale + Showers/Rec Room are decided in
-   shape (see above) but not built; the schedule *sequencing* itself (what
-   order, how long at each stop) is a design pass that hasn't happened yet.
-   Will need 2 new building sprites (Showers, Rec Room) added to
-   `ASSETS.md`.
-3. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
+1. **Entrance hall + waiting chairs / terrain variety / walk-cycle
+   animation.** User feedback: civilians currently wander the whole base
+   instead of queuing near the gate; there's only one ground texture; units
+   don't have an actual walk-cycle (multiple frames per direction), just a
+   static pose per facing. Agreed order: entrance hall (cheap, reuses
+   existing sprites) → terrain variety (medium) → walk animation (most
+   expensive — needs several new frames per direction plus frame-timing
+   code) → do next, after this increment.
+2. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
-4. **Character art is moving to isometric with directional sprites** — in
-   progress. All 9 character sprites (3 civilians + 6 soldiers, soldiers
-   also gaining a walking pose) are being regenerated to match the
-   buildings' isometric perspective; open question on directional-sprite
-   scope (full 8-direction vs. the 4 cardinal directions the current road
-   network — orthogonal legs only, no diagonal movement — actually
-   produces) is being finalized before the new `ASSETS.md` spec goes out.
+3. **`showers.png`/`rec_room.png` art** — spec'd in `ASSETS.md`, not yet
+   generated; the game already renders a procedural fallback box for both
+   so this isn't blocking anything.
 
 ## File layout
 

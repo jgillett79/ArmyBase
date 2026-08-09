@@ -18,10 +18,21 @@ const obstacleCourseCostEl = document.getElementById('obstacleCourseCost');
 const buildDrillYardBtn = document.getElementById('buildDrillYardBtn');
 const drillYardCostEl = document.getElementById('drillYardCost');
 const buildMessHallBtn = document.getElementById('buildMessHallBtn');
+const buildShowersBtn = document.getElementById('buildShowersBtn');
+const buildRecRoomBtn = document.getElementById('buildRecRoomBtn');
 const buyFoodBtn = document.getElementById('buyFoodBtn');
 const lumberValueEl = document.getElementById('lumberValue');
 const steelValueEl = document.getElementById('steelValue');
 const gemsValueEl = document.getElementById('gemsValue');
+
+// One entry per NeedsBuilding (building.js) — the "buy it once, no levels"
+// trio. Drives the HUD build buttons the same way trainingBuildingUi below
+// drives the training buttons.
+const needsBuildingUi = [
+  { key: 'messHall', label: 'Mess Hall', buildBtn: buildMessHallBtn },
+  { key: 'showers', label: 'Showers', buildBtn: buildShowersBtn },
+  { key: 'recRoom', label: 'Rec Room', buildBtn: buildRecRoomBtn },
+];
 
 const profilePanel = document.getElementById('profilePanel');
 const profileName = document.getElementById('profileName');
@@ -32,6 +43,10 @@ const profileEnergyBar = document.getElementById('profileEnergyBar');
 const profileEnergyText = document.getElementById('profileEnergyText');
 const profileHpBar = document.getElementById('profileHpBar');
 const profileHpText = document.getElementById('profileHpText');
+const profileHygieneBar = document.getElementById('profileHygieneBar');
+const profileHygieneText = document.getElementById('profileHygieneText');
+const profileMoraleBar = document.getElementById('profileMoraleBar');
+const profileMoraleText = document.getElementById('profileMoraleText');
 const profileStrength = document.getElementById('profileStrength');
 const profileAccuracy = document.getElementById('profileAccuracy');
 const profileEndurance = document.getElementById('profileEndurance');
@@ -88,6 +103,10 @@ function openProfile(unit) {
   profileEnergyText.textContent = `${Math.round(unit.energy)}/${unit.maxEnergy}`;
   profileHpBar.style.width = `${Math.round((unit.hp / unit.maxHp) * 100)}%`;
   profileHpText.textContent = `${unit.hp}/${unit.maxHp}`;
+  profileHygieneBar.style.width = `${Math.round(unit.hygiene)}%`;
+  profileHygieneText.textContent = `${Math.round(unit.hygiene)}%`;
+  profileMoraleBar.style.width = `${Math.round(unit.morale)}%`;
+  profileMoraleText.textContent = `${Math.round(unit.morale)}%`;
   profileStrength.textContent = unit.strength;
   profileAccuracy.textContent = `${Math.round(unit.accuracy)}%`;
   profileEndurance.textContent = `${Math.round(unit.endurance)}%`;
@@ -284,13 +303,11 @@ for (const { key, buildBtn } of trainingBuildingUi) {
   });
 }
 
-buildMessHallBtn.addEventListener('click', () => {
-  if (gameState.messHall.isBuilt) return;
-  const cost = gameState.messHall.buildCost();
-  if (gameState.cash < cost) return;
-  gameState.cash -= cost;
-  gameState.messHall.build();
-});
+for (const { key, buildBtn } of needsBuildingUi) {
+  buildBtn.addEventListener('click', () => {
+    gameState.buildNeedsBuilding(key);
+  });
+}
 
 buyFoodBtn.addEventListener('click', () => {
   gameState.buyFood(20);
@@ -318,11 +335,14 @@ function refreshBuildButtons() {
     }
   }
 
-  if (gameState.messHall.isBuilt) {
-    buildMessHallBtn.disabled = true;
-    buildMessHallBtn.textContent = 'Mess Hall Built';
-  } else {
-    buildMessHallBtn.disabled = gameState.cash < gameState.messHall.buildCost();
+  for (const { key, label, buildBtn } of needsBuildingUi) {
+    const building = gameState[key];
+    if (building.isBuilt) {
+      buildBtn.disabled = true;
+      buildBtn.textContent = `${label} Built`;
+    } else {
+      buildBtn.disabled = gameState.cash < building.buildCost();
+    }
   }
 
   buyFoodBtn.disabled = gameState.cash < 30;

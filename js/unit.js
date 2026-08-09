@@ -11,6 +11,8 @@ const UNIT_STATUS = {
   TRAINING: 'training',                          // assigned to Shooting Range, accuracy climbing
   EATING: 'eating',                              // at Mess Hall, energy critical or topping up
   SLEEPING: 'sleeping',                          // night hours, at Barracks, low decay
+  HYGIENE: 'hygiene',                            // scheduled block, at Showers, hygiene climbs
+  RECREATION: 'recreation',                      // scheduled block, at Rec Room, morale climbs
   HOSPITAL: 'hospital',                          // energy hit 0 OR failed a mission — same consequence
   ON_MISSION: 'on_mission',                      // away on a mission (async/black-box — see mission.js);
                                                   // excluded from the normal tick loop and not rendered
@@ -28,6 +30,47 @@ const ARRIVAL_RADIUS = 30; // px — how close counts as "at the building"
 // Per-stat training gain rates now live on the building (building.js `trains`
 // map) since Phase 2 added multiple training buildings — a single constant
 // here stopped being able to describe "how fast does X stat grow."
+
+// Hygiene/Morale — placeholder rates, same caveat as Energy above. Per the
+// locked design (CLAUDE.md): Hygiene feeds Energy's decay rate rather than
+// being its own path to the hospital, and Morale softly reduces training
+// gain rather than being a death path either — "no permadeath, one
+// consequence funnel" stays true with these two needs stats added.
+const HYGIENE_RATE_GAIN = 60;    // per game-hour, only while at built Showers during the Hygiene block
+const HYGIENE_RATE_DECAY = -3;   // per game-hour, otherwise
+const HYGIENE_LOW_THRESHOLD = 30;
+const ENERGY_DECAY_HYGIENE_PENALTY = 1.5; // energy drains 50% faster below the hygiene threshold
+
+const MORALE_RATE_GAIN = 40;     // per game-hour, only while at built Rec Room during the Recreation block
+const MORALE_RATE_DECAY = -2;    // per game-hour, otherwise
+const MORALE_LOW_THRESHOLD = 30;
+const TRAINING_GAIN_MORALE_PENALTY = 0.5; // training gain halved below the morale threshold
+
+// The fixed daily schedule — see README/CLAUDE.md for the design. Hours are
+// game-clock hours (0-24, compressed — see the three-clocks comment in
+// state.js), NOT real time. `end` past 24 means the block wraps midnight
+// (22-30 reads as 22:00-24:00 plus 00:00-06:00).
+const DAILY_SCHEDULE = [
+  { start: 22, end: 30, status: UNIT_STATUS.SLEEPING },
+  { start: 6, end: 8, status: UNIT_STATUS.EATING },
+  { start: 8, end: 9, status: UNIT_STATUS.HYGIENE },
+  { start: 9, end: 12, status: UNIT_STATUS.TRAINING },
+  { start: 12, end: 13, status: UNIT_STATUS.EATING },
+  { start: 13, end: 17, status: UNIT_STATUS.TRAINING },
+  { start: 17, end: 20, status: UNIT_STATUS.RECREATION },
+  { start: 20, end: 22, status: UNIT_STATUS.EATING },
+];
+
+function scheduledStatusFor(hourOfDay) {
+  for (const block of DAILY_SCHEDULE) {
+    if (block.end <= 24) {
+      if (hourOfDay >= block.start && hourOfDay < block.end) return block.status;
+    } else if (hourOfDay >= block.start || hourOfDay < block.end - 24) {
+      return block.status;
+    }
+  }
+  return UNIT_STATUS.IDLE; // unreachable if DAILY_SCHEDULE covers all 24h, kept as a safe fallback
+}
 
 class Unit {
   constructor({ x, y, isCivilian = true }) {
@@ -77,6 +120,8 @@ class Unit {
 
     this.maxEnergy = 100;
     this.energy = 100;
+    this.hygiene = 100;
+    this.morale = 100;
 
     this.assignedBuildingId = null; // which building this unit's "job" is, if any
 
@@ -129,14 +174,18 @@ class Unit {
   }
 
   // Decide what this unit *should* be doing right now. Pure function of its
-  // own state plus the two facts state.js knows that it doesn't: whether
-  // it's currently daytime, and whether food is available. Doesn't mutate
-  // anything — state.js applies the transition if it differs from current status.
-  desiredStatus(isDaytime) {
-    if (this.energy <= ENERGY_CRITICAL) return UNIT_STATUS.EATING;
-    if (this.assignedBuildingId && isDaytime) return UNIT_STATUS.TRAINING;
-    if (!isDaytime) return UNIT_STATUS.SLEEPING;
-    return UNIT_STATUS.IDLE;
+  // own state plus the game-clock hour state.js knows that it doesn't.
+  // Doesn't mutate anything — state.js applies the transition if it differs
+  // from current status.
+  desiredStatus(hourOfDay) {
+    if (this.energy <= ENERGY_CRITICAL) return UNIT_STATUS.EATING; // safety net overrides the schedule
+    const scheduled = scheduledStatusFor(hourOfDay);
+    // Training is opt-in per unit (must be assigned to a training building —
+    // see CLAUDE.md's "auto-schedule, not manual job-walking" decision, which
+    // covers *when*, not *which building*). Everyone else's block applies
+    // uniformly regardless of assignment.
+    if (scheduled === UNIT_STATUS.TRAINING && !this.assignedBuildingId) return UNIT_STATUS.IDLE;
+    return scheduled;
   }
 
   applyEnergyDelta(gameHours, foodAvailable) {
@@ -147,7 +196,18 @@ class Unit {
       case UNIT_STATUS.EATING: rate = foodAvailable ? ENERGY_RATE_EATING_FED : ENERGY_RATE_EATING_HUNGRY; break;
       default: rate = ENERGY_RATE_IDLE;
     }
+    if (rate < 0 && this.hygiene < HYGIENE_LOW_THRESHOLD) rate *= ENERGY_DECAY_HYGIENE_PENALTY;
     this.energy = clamp(this.energy + rate * gameHours, 0, this.maxEnergy);
+  }
+
+  applyHygieneDelta(gameHours, showersBuilt) {
+    const rate = (this.status === UNIT_STATUS.HYGIENE && showersBuilt) ? HYGIENE_RATE_GAIN : HYGIENE_RATE_DECAY;
+    this.hygiene = clamp(this.hygiene + rate * gameHours, 0, 100);
+  }
+
+  applyMoraleDelta(gameHours, recRoomBuilt) {
+    const rate = (this.status === UNIT_STATUS.RECREATION && recRoomBuilt) ? MORALE_RATE_GAIN : MORALE_RATE_DECAY;
+    this.morale = clamp(this.morale + rate * gameHours, 0, 100);
   }
 
   // Only counts as "at" the target once every leg of a multi-leg route is
@@ -164,8 +224,9 @@ class Unit {
   // building.trains map the unit is currently assigned to. A building that
   // trains multiple stats (Combat Drill Yard) just has multiple keys here.
   applyTrainingGain(gameHours, trains) {
+    const moralePenalty = this.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1;
     for (const stat in trains) {
-      this[stat] = clamp(this[stat] + trains[stat] * gameHours, 0, 95);
+      this[stat] = clamp(this[stat] + trains[stat] * gameHours * moralePenalty, 0, 95);
     }
   }
 

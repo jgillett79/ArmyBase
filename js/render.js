@@ -22,6 +22,8 @@ const BUILDING_SPRITES = {
   obstacle_course: loadSprite('assets/buildings/obstacle_course.png'),
   drill_yard: loadSprite('assets/buildings/drill_yard.png'),
   mess_hall: loadSprite('assets/buildings/mess_hall.png'),
+  showers: loadSprite('assets/buildings/showers.png'),
+  rec_room: loadSprite('assets/buildings/rec_room.png'),
   gatehouse: loadSprite('assets/buildings/gatehouse.png'),
   vacant_lot: loadSprite('assets/buildings/vacant_lot.png'),
 };
@@ -216,8 +218,12 @@ function drawRoads(ctx, gameState) {
   ctx.lineTo(GATE_INSIDE_X, ROAD_Y_SPINE);
   ctx.stroke();
 
-  const row1Buildings = [gameState.barracks, gameState.shootingRange, gameState.messHall];
-  for (const b of row1Buildings) {
+  // Every building that sits on a spoke — above the spine (row 1) or below
+  // it (Showers/Rec Room, row 3, reusing spokes A/B). buildingDoor()/the
+  // moveTo-to-lineTo pair below work identically in either direction, so
+  // adding a below-spine building here is all drawing needs.
+  const spokeBuildings = [gameState.barracks, gameState.shootingRange, gameState.messHall, gameState.showers, gameState.recRoom];
+  for (const b of spokeBuildings) {
     const door = buildingDoor(b);
     ctx.beginPath();
     ctx.moveTo(door.x, ROAD_Y_SPINE);
@@ -235,7 +241,7 @@ function drawRoads(ctx, gameState) {
   ctx.lineTo(gameState.bounds.maxX, ROAD_Y_SPINE);
   ctx.stroke();
 
-  for (const b of row1Buildings) {
+  for (const b of spokeBuildings) {
     const door = buildingDoor(b);
     ctx.beginPath();
     ctx.moveTo(door.x, ROAD_Y_SPINE);
@@ -310,6 +316,16 @@ function drawTrainingBuilding(ctx, building, occupancy, label, color, spriteKey)
 function drawMessHall(ctx, hall, food) {
   drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
     'Mess Hall', `Food: ${Math.floor(food)}`, '#40605a', 'mess_hall');
+}
+
+function drawShowers(ctx, showers) {
+  drawBuildingBox(ctx, showers.gridX, showers.gridY, showers.isBuilt,
+    'Showers', 'Hygiene', '#4a7a8a', 'showers');
+}
+
+function drawRecRoom(ctx, recRoom) {
+  drawBuildingBox(ctx, recRoom.gridX, recRoom.gridY, recRoom.isBuilt,
+    'Rec Room', 'Morale', '#8a6a4a', 'rec_room');
 }
 
 function drawClock(ctx, hourOfDay, isDaytime) {
@@ -431,6 +447,8 @@ function statusLabel(unit) {
     case UNIT_STATUS.TRAINING: return 'training';
     case UNIT_STATUS.EATING: return 'eating';
     case UNIT_STATUS.SLEEPING: return 'sleeping';
+    case UNIT_STATUS.HYGIENE: return 'showering';
+    case UNIT_STATUS.RECREATION: return 'recreation';
     case UNIT_STATUS.HOSPITAL: return 'hospital';
     default: return `Lv${unit.level}`;
   }
@@ -447,6 +465,8 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   drawTrainingBuilding(ctx, gameState.obstacleCourse, gameState.occupancyOf(gameState.obstacleCourse), 'Obstacle Course', '#6a5a30', 'obstacle_course');
   drawTrainingBuilding(ctx, gameState.drillYard, gameState.occupancyOf(gameState.drillYard), 'Combat Drill Yard', '#4a5a6a', 'drill_yard');
   drawMessHall(ctx, gameState.messHall, gameState.food);
+  drawShowers(ctx, gameState.showers);
+  drawRecRoom(ctx, gameState.recRoom);
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 
   for (const unit of gameState.units) {

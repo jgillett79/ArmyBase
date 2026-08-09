@@ -218,6 +218,38 @@ text, no people, no other structures in frame. Building fills about 80% of
 canvas width, centered with even padding.
 **Generate at 576×384px, PNG with alpha transparency.**
 
+### `showers.png`
+**Path:** `assets/buildings/showers.png`
+
+**Prompt:** A military shower/washroom block, viewed from a 30-40°
+top-down isometric angle, flat vector game-art illustration style with a
+consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular
+footprint, flat roof, walls in steel-blue (#4a7a8a). A row of 3-4 simple
+shower-head/spigot shapes visible along the camera-facing wall (either
+through an open front or small window openings), a low drain/gutter line
+along the base of the wall. Flat ambient lighting from upper-left, no
+hard shadows, optional soft 10% contact shadow directly under the
+building only. Fully transparent background, no ground/grass texture, no
+text, no people, no other structures in frame. Building fills about 80%
+of canvas width, centered with even padding.
+**Generate at 576×384px, PNG with alpha transparency.**
+
+### `rec_room.png`
+**Path:** `assets/buildings/rec_room.png`
+
+**Prompt:** A military recreation room / lounge building, viewed from a
+30-40° top-down isometric angle, flat vector game-art illustration style
+with a consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular
+footprint, flat roof, walls in warm amber-brown (#8a6a4a). A large window
+or open front revealing simple interior shapes — a table with a couple of
+chairs, maybe a simple TV/board-game shape — rendered flatly (clear
+silhouettes, no fine detail). Flat ambient lighting from upper-left, no
+hard shadows, optional soft 10% contact shadow directly under the
+building only. Fully transparent background, no ground/grass texture, no
+text, no people, no other structures in frame. Building fills about 80%
+of canvas width, centered with even padding.
+**Generate at 576×384px, PNG with alpha transparency.**
+
 ### `gatehouse.png`
 **Path:** `assets/buildings/gatehouse.png`
 
@@ -581,21 +613,18 @@ later.
 | 6 | `mess_hall.png` | `assets/buildings/mess_hall.png` | 576×384px | PNG-24 + alpha |
 | 7 | `gatehouse.png` | `assets/buildings/gatehouse.png` | 192×384px | PNG-24 + alpha |
 | 8 | `vacant_lot.png` | `assets/buildings/vacant_lot.png` | 576×384px | PNG-24 + alpha |
-| 9 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
-| 10 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
-| 11 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
-| 12-38 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
+| 9 | `showers.png` | `assets/buildings/showers.png` | 576×384px | PNG-24 + alpha |
+| 10 | `rec_room.png` | `assets/buildings/rec_room.png` | 576×384px | PNG-24 + alpha |
+| 11 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
+| 12 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
+| 13 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
+| 14-40 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
 
-**#1-6 (6 files) are already generated and in the repo — no action
-needed.** **#7 `gatehouse.png` and #8 `vacant_lot.png`** are needed;
-`render.js` already has a sprite slot for both and falls back to a
-procedural placeholder until they land. **#9-11, the 3 terrain textures**,
-are new — none of the ground/wall/road surfaces have any real art yet,
-just flat procedural colors. **#12-38, the 27 directional character
-files**, are also new — they **replace** the original 9 front-facing
-character sprites (which still exist in the repo and keep the game
-working exactly as-is until the new set is generated AND wired in — see
-the wiring notes above).
+**#1-8 and #11-40 (35 files) are already generated and in the repo — no
+action needed.** **#9 `showers.png` and #10 `rec_room.png` are new** —
+added for the daily-schedule pass (Hygiene/Morale); `render.js` already
+has a sprite slot for both and falls back to a procedural colored box
+until they land, so there's no urgency.
 
 ## Folder structure
 
@@ -608,50 +637,54 @@ assets/
     obstacle_course.png       (done)
     drill_yard.png            (done)
     mess_hall.png             (done)
-    gatehouse.png              (needed)
-    vacant_lot.png             (needed)
+    gatehouse.png              (done)
+    vacant_lot.png             (done)
+    showers.png                (needed)
+    rec_room.png                (needed)
   terrain/
-    ground.png                 (needed, tileable)
-    wall.png                   (needed, tileable)
-    road.png                   (needed, tileable)
+    ground.png                 (done, tileable)
+    wall.png                   (done, tileable)
+    road.png                   (done, tileable)
   units/
     civilians/
-      civilian.png             (old front-facing — superseded, do not delete yet)
-      bus_rider.png            (old front-facing — superseded, do not delete yet)
-      taxi.png                 (old front-facing — superseded, do not delete yet)
-      civilian_down.png         (needed)
-      civilian_up.png           (needed)
-      civilian_right.png        (needed)
-      bus_rider_down.png        (needed)
-      bus_rider_up.png          (needed)
-      bus_rider_right.png       (needed)
-      taxi_down.png              (needed)
-      taxi_up.png                (needed)
-      taxi_right.png             (needed)
+      civilian.png             (old front-facing — superseded, kept as fallback)
+      bus_rider.png            (old front-facing — superseded, kept as fallback)
+      taxi.png                 (old front-facing — superseded, kept as fallback)
+      civilian_down.png         (done)
+      civilian_up.png           (done)
+      civilian_right.png        (done)
+      bus_rider_down.png        (done)
+      bus_rider_up.png          (done)
+      bus_rider_right.png       (done)
+      taxi_down.png              (done)
+      taxi_up.png                (done)
+      taxi_right.png             (done)
     soldiers/
-      soldier_01.png ... soldier_06.png   (old front-facing — superseded, do not delete yet)
-      soldier_01_down.png       (needed)
-      soldier_01_up.png         (needed)
-      soldier_01_right.png      (needed)
-      soldier_02_down.png       (needed)
-      soldier_02_up.png         (needed)
-      soldier_02_right.png      (needed)
-      soldier_03_down.png       (needed)
-      soldier_03_up.png         (needed)
-      soldier_03_right.png      (needed)
-      soldier_04_down.png       (needed)
-      soldier_04_up.png         (needed)
-      soldier_04_right.png      (needed)
-      soldier_05_down.png       (needed)
-      soldier_05_up.png         (needed)
-      soldier_05_right.png      (needed)
-      soldier_06_down.png       (needed)
-      soldier_06_up.png         (needed)
-      soldier_06_right.png      (needed)
+      soldier_01.png ... soldier_06.png   (old front-facing — superseded, kept as fallback)
+      soldier_01_down.png       (done)
+      soldier_01_up.png         (done)
+      soldier_01_right.png      (done)
+      soldier_02_down.png       (done)
+      soldier_02_up.png         (done)
+      soldier_02_right.png      (done)
+      soldier_03_down.png       (done)
+      soldier_03_up.png         (done)
+      soldier_03_right.png      (done)
+      soldier_04_down.png       (done)
+      soldier_04_up.png         (done)
+      soldier_04_right.png      (done)
+      soldier_05_down.png       (done)
+      soldier_05_up.png         (done)
+      soldier_05_right.png      (done)
+      soldier_06_down.png       (done)
+      soldier_06_up.png         (done)
+      soldier_06_right.png      (done)
 ```
 
-Drop each generated file at the exact path above. The game keeps working
-throughout — the old front-facing sprites keep rendering until the new
-directional set is both fully generated and wired into `render.js` (a
-follow-up coding pass, not automatic), at which point the old 9 files can
-be deleted.
+35 of 40 files are already in the repo and wired into `render.js`/`state.js`.
+Only `showers.png` and `rec_room.png` remain — drop them at the paths above
+when generated; the game already renders a procedural colored-box fallback
+for both until then, so there's no urgency. The old front-facing sprites
+(`civilian.png`, `bus_rider.png`, `taxi.png`, `soldier_01.png`...`soldier_06.png`)
+are superseded by the directional set but kept on disk as a fallback chain
+in `render.js` — safe to delete later once confirmed unused.

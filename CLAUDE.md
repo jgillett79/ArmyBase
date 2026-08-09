@@ -245,14 +245,26 @@ ground/wall/road are `ctx.createPattern()` fills now, not flat colors.
 level AND trained stats, real-time duration, `UNIT_STATUS.ON_MISSION`
 excluded from tick/render, failure reuses `sendToHospital()`, success
 reuses `routeForStatus()`). Lumber/Steel/Gems are real tracked resources
-now, no longer just a documented decision.
+now, no longer just a documented decision. **Increment 6 done**: full
+daily schedule (`DAILY_SCHEDULE` in `unit.js`, game-clock hours, handles
+the midnight-wrapping sleep block) plus Hygiene/Morale as real per-unit
+stats — Hygiene below threshold multiplies Energy's decay rate (NOT an
+independent death path, per the locked "one failure funnel" decision),
+Morale below threshold halves training gain (a soft debuff, also not a
+death path). New `NeedsBuilding` base class generalizes `MessHall` with
+the two new buildings, `Showers` and `RecRoom`, reusing existing spoke
+positions below the road spine. `Unit.desiredStatus()`'s signature changed
+from `isDaytime` (bool) to `hourOfDay` (number) — anything still calling
+it with the old boolean needs updating.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Hygiene/Morale + Showers/Rec Room + full daily schedule sequencing**
-   — shape is decided (see above), not implemented yet. Needs both the two
-   new buildings AND a real design pass on what order/how-long a unit's
-   day actually goes through sleep → shower → train → lunch → recreation.
+1. **Entrance hall + waiting chairs, terrain variety beyond one ground
+   texture, and character walk-cycle animation** — raised by the user, not
+   yet scoped. Agreed order (see README): entrance hall (cheap, reuses
+   existing sprites) → terrain variety (medium) → walk animation (most
+   expensive — needs several new frames per direction plus frame-timing
+   code). This is the next work after increment 6.
 2. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
@@ -266,11 +278,9 @@ now, no longer just a documented decision.
    across all 6 buildings, same idea as `vacant_lot.png`) is an open
    question — see README for the recommendation given (basic gameplay/
    missions first, this is a polish layer that can come later).
-4. **Character walk-cycle animation, terrain variety beyond one ground
-   texture, and a proper base entrance ("waiting area" for civilians
-   before they're recruited, not just open wandering)** — raised by the
-   user, not yet scoped. See README's newest notes for the breakdown and
-   recommended order before building any of it.
+4. **`showers.png`/`rec_room.png` art** — spec'd in `ASSETS.md`, not yet
+   generated; renders as a procedural fallback box until it lands, so
+   this isn't blocking anything.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 
