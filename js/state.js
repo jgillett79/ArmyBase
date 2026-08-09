@@ -47,6 +47,22 @@ const GATE_OUTSIDE_X = -20; // off-canvas, just past the wall's outer face
 const GATE_INSIDE_X = WALL_THICKNESS + 8; // just inside the wall, matches bounds.minX
 
 // ---------------------------------------------------------------------------
+// ENTRANCE HALL — civilians used to pick one random point anywhere inside
+// the walls and wander there, which read as "aimless" (user feedback).
+// Now they walk to a fixed waiting chair in the Entrance Hall instead, same
+// idea as any other job/need routing to a fixed building spot. Chair
+// positions are offsets from the building's door (buildingDoor() below) so
+// they move if the building ever does. Placeholder spacing, like every
+// other pixel-tuned number in this file — not a balance-critical value.
+// ---------------------------------------------------------------------------
+const ENTRANCE_HALL_CHAIRS = [
+  { dx: -48, dy: -30 },
+  { dx: -16, dy: -30 },
+  { dx: 16, dy: -30 },
+  { dx: 48, dy: -30 },
+];
+
+// ---------------------------------------------------------------------------
 // ROADS — a fixed "comb" network: one horizontal spine plus a vertical spoke
 // under each column of buildings. Every recruited unit's movement (walking
 // to a job, wandering when idle) travels via this network instead of
@@ -97,6 +113,11 @@ class GameState {
     // only the road *drawing* in render.js needed to know about these two.
     this.showers = new Showers(2, 8);
     this.recRoom = new RecRoom(8, 8);
+    // Completes the 3x3 building grid (row 3's third slot, alongside Showers/
+    // Rec Room) — always present, no cost, see EntranceHall's class comment.
+    this.entranceHall = new EntranceHall(14, 8);
+    // Which unit (by id) occupies each ENTRANCE_HALL_CHAIRS slot, or null.
+    this.chairOccupants = new Array(ENTRANCE_HALL_CHAIRS.length).fill(null);
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
@@ -124,6 +145,32 @@ class GameState {
       x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
       y: building.gridY * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.h * CELL_SIZE) / 2,
     };
+  }
+
+  // Absolute pixel position of a specific Entrance Hall waiting chair.
+  chairPosition(index) {
+    const door = buildingDoor(this.entranceHall);
+    const offset = ENTRANCE_HALL_CHAIRS[index];
+    return { x: door.x + offset.dx, y: door.y + offset.dy };
+  }
+
+  // Claims the first free chair for a waiting civilian. Returns the chair
+  // index, or null if every chair is already taken (spawnCivilianIfRoom
+  // caps concurrent civilians at ENTRANCE_HALL_CHAIRS.length so this should
+  // be rare, but two civilians can still both be mid-walk toward the gate
+  // when the last chair fills — see tickCivilian's fallback for that case).
+  assignChair(unit) {
+    const index = this.chairOccupants.indexOf(null);
+    if (index === -1) return null;
+    this.chairOccupants[index] = unit.id;
+    unit.chairIndex = index;
+    return index;
+  }
+
+  releaseChair(unit) {
+    if (unit.chairIndex === null) return;
+    this.chairOccupants[unit.chairIndex] = null;
+    unit.chairIndex = null;
   }
 
   // The 3 x-positions the road spokes run along — derived from the row-1
@@ -268,11 +315,14 @@ class GameState {
   spawnCivilianIfRoom() {
     if (this.soldierCount >= this.unitCap) return; // no point spawning if base is full
     const approaching = this.units.filter(u => u.status === UNIT_STATUS.CIVILIAN_APPROACHING);
-    if (approaching.length >= 2) return; // don't flood the screen
+    // Capped at the Entrance Hall's chair count, not an arbitrary number —
+    // no point letting more civilians in than there's a seat for.
+    if (approaching.length >= ENTRANCE_HALL_CHAIRS.length) return;
 
     // The wall means there's only one way in: the gate. Spawn just outside
-    // it and head for the inside-gate waypoint first — tickCivilian() picks
-    // a normal interior wander target once they've actually passed through.
+    // it and head for the inside-gate waypoint first — tickCivilian() sends
+    // them to a waiting chair in the Entrance Hall once they've actually
+    // passed through.
     const civ = new Unit({ x: GATE_OUTSIDE_X, y: GATE_Y_CENTER + randRange(-20, 20), isCivilian: true });
     civ.spawnedAt = Date.now();
     civ.enteredGate = false;
@@ -288,6 +338,7 @@ class GameState {
     const cost = 50;
     if (this.cash < cost) return false;
     this.cash -= cost;
+    this.releaseChair(unit); // free their seat for the next civilian
     unit.recruit();
     this.routeForStatus(unit); // RECRUITING -> routes them to the Barracks, see tick()
     return true;
@@ -449,20 +500,32 @@ class GameState {
 
   // Every civilian's walk has up to 4 legs, all funneled through the single
   // gate (there's no other opening in the wall): outside gate -> inside gate
-  // -> interior wander -> inside gate -> outside gate -> despawn.
+  // -> Entrance Hall waiting chair -> inside gate -> outside gate -> despawn.
   tickCivilian(unit, dtSeconds, nowMs, toRemove) {
     const reached = unit.step(dtSeconds);
     if (unit.status === UNIT_STATUS.CIVILIAN_APPROACHING) {
       if (!unit.enteredGate) {
         if (reached) {
           unit.enteredGate = true;
-          unit.targetX = randRange(this.bounds.minX + 60, this.bounds.maxX - 60);
-          unit.targetY = randRange(this.bounds.minY + 60, this.bounds.maxY - 60);
+          const chairIndex = this.assignChair(unit);
+          if (chairIndex !== null) {
+            const seat = this.chairPosition(chairIndex);
+            unit.targetX = seat.x;
+            unit.targetY = seat.y;
+          } else {
+            // Every chair taken by another civilian still mid-walk — wait
+            // just inside the gate rather than crossing the whole base with
+            // nowhere to actually sit (spawnCivilianIfRoom keeps this rare,
+            // not impossible).
+            unit.targetX = GATE_INSIDE_X + 20;
+            unit.targetY = GATE_Y_CENTER;
+          }
         }
         return;
       }
       const waited = nowMs - unit.spawnedAt;
       if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
+        this.releaseChair(unit);
         unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
         unit.targetX = GATE_INSIDE_X;
         unit.targetY = GATE_Y_CENTER;

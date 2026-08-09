@@ -255,16 +255,26 @@ death path). New `NeedsBuilding` base class generalizes `MessHall` with
 the two new buildings, `Showers` and `RecRoom`, reusing existing spoke
 positions below the road spine. `Unit.desiredStatus()`'s signature changed
 from `isDaytime` (bool) to `hourOfDay` (number) — anything still calling
-it with the old boolean needs updating.
+it with the old boolean needs updating. **Increment 7 done**: Entrance
+Hall + waiting chairs. New `EntranceHall` (`building.js`) is the one
+exception to "every building is purchasable/upgradeable" — level is
+forced to 1 in its constructor (cost 0), always present from the start,
+same idea as the wall/gatehouse. It fills the previously-empty 9th slot of
+the 3x3 building grid, so it needed no new placement/road-spoke logic.
+Civilians now claim one of 4 fixed `ENTRANCE_HALL_CHAIRS` (`state.js`)
+pixel offsets the moment they cross the gate, instead of picking a random
+wander point — `assignChair()`/`releaseChair()` track occupancy in
+`chairOccupants`, released on recruit or on timing out. No new character
+art needed; `entrance_hall.png` is the only new sprite, spec'd in
+`ASSETS.md`, not yet generated.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
-1. **Entrance hall + waiting chairs, terrain variety beyond one ground
-   texture, and character walk-cycle animation** — raised by the user, not
-   yet scoped. Agreed order (see README): entrance hall (cheap, reuses
-   existing sprites) → terrain variety (medium) → walk animation (most
-   expensive — needs several new frames per direction plus frame-timing
-   code). This is the next work after increment 6.
+1. **Terrain variety beyond one ground texture, and character walk-cycle
+   animation** — raised by the user, not yet scoped. Agreed order (see
+   README): terrain variety (medium) → walk animation (most expensive —
+   needs several new frames per direction plus frame-timing code). This is
+   the next work after increment 7.
 2. **Promotion mechanics in detail** — the actual pick-2-units UI/flow,
    what resets vs. carries over onto the new base, and multi-base save
    state now that Base 1 persists as a legacy base rather than resetting.
@@ -275,12 +285,12 @@ it with the old boolean needs updating.
    timer (same pattern as the hospital timer — `Date.now()`-based, not
    compressed game-time, per the three-clocks rule), raise the level cap,
    and/or add a shared "construction in progress" sprite (one asset reused
-   across all 6 buildings, same idea as `vacant_lot.png`) is an open
-   question — see README for the recommendation given (basic gameplay/
-   missions first, this is a polish layer that can come later).
-4. **`showers.png`/`rec_room.png` art** — spec'd in `ASSETS.md`, not yet
-   generated; renders as a procedural fallback box until it lands, so
-   this isn't blocking anything.
+   across all 6 upgradeable buildings, same idea as `vacant_lot.png`) is an
+   open question — see README for the recommendation given (basic
+   gameplay/missions first, this is a polish layer that can come later).
+4. **`showers.png`/`rec_room.png`/`entrance_hall.png` art** — all three
+   spec'd in `ASSETS.md`, not yet generated; each renders as a procedural
+   fallback box until it lands, so this isn't blocking anything.
 
 ## Working style notes for whoever (whichever Claude) picks this up
 

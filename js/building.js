@@ -175,3 +175,15 @@ class RecRoom extends NeedsBuilding {
     super({ id: 'rec_room', type: 'rec_room', gridX, gridY, cost: 100 });
   }
 }
+
+// Not a purchasable/upgradeable structure like the others above — it's
+// always present from the start (level forced to 1 in the constructor, cost
+// 0), same "fixed part of the base" idea as the perimeter wall/gatehouse.
+// It exists purely so waiting civilians have a real building + door to route
+// to (see state.js's ENTRANCE_HALL_CHAIRS) instead of wandering randomly.
+class EntranceHall extends NeedsBuilding {
+  constructor(gridX, gridY) {
+    super({ id: 'entrance_hall', type: 'entrance_hall', gridX, gridY, cost: 0 });
+    this.level = 1;
+  }
+}

@@ -86,17 +86,19 @@ full building palette as their real, final color.
 
 ---
 
-## Buildings (6 files)
+## Buildings (7 files)
 
 Each building renders as a single static image at every level — the level
 number (`Lv.1`/`Lv.2`/`Lv.3`) is drawn as a text overlay by existing code,
 not baked into the art. Only the "built" appearance needs art here — the
 "not-built" state has its own single shared asset (`vacant_lot.png`,
-below), reused across all 6 building plots rather than one per building,
-since an empty plot doesn't need to look different depending on what will
-eventually go there.
+below), reused across all 6 upgradeable building plots rather than one per
+building, since an empty plot doesn't need to look different depending on
+what will eventually go there. (`entrance_hall.png`, the 7th building
+below, is the one exception — it's a free structure present from the
+start, never shown as an empty plot — see its own entry for why.)
 
-**Shared specs for all 6 buildings:**
+**Shared specs for all 7 buildings:**
 - **Save format:** PNG-24, transparent background
 - **In-game display size:** 144 × 96 px (3×2 grid cells @ 48px/cell)
 - **Generate at:** 576 × 384 px exactly (4× display size — also a clean
@@ -105,7 +107,7 @@ eventually go there.
 - **Aspect ratio:** 3:2 (landscape)
 - **Camera:** top-down with a slight isometric tilt — roughly a 30-40°
   angle down from directly overhead, as if looking down at a base layout
-  map. Consistent across all 6 buildings so they sit together visually.
+  map. Consistent across all 7 buildings so they sit together visually.
 - **Palette:** use the building palette above; each building's dominant
   color is called out individually below
 
@@ -248,6 +250,49 @@ hard shadows, optional soft 10% contact shadow directly under the
 building only. Fully transparent background, no ground/grass texture, no
 text, no people, no other structures in frame. Building fills about 80%
 of canvas width, centered with even padding.
+**Generate at 576×384px, PNG with alpha transparency.**
+
+### `entrance_hall.png`
+**Path:** `assets/buildings/entrance_hall.png`
+
+Where civilians wait after walking through the gate, instead of the old
+"wander to a random point and stand there" behavior — the user's feedback
+was that this read as aimless. Now up to 4 civilians walk here and each
+takes a distinct waiting chair (`ENTRANCE_HALL_CHAIRS` in `state.js`) until
+either recruited or they time out and leave. Unlike the other 6 buildings,
+this one is a free structure present from the start (no cost, no upgrade
+levels, always shown built) — same idea as the gatehouse — so there's no
+"not built" state to worry about for this one.
+
+**The art needs to visually support 4 civilians standing in a row inside
+it** — see the chair layout below — so the generated room should read as
+open/spacious with visible floor space across the middle-front of the
+image, not filled edge-to-edge with furniture silhouettes the characters
+would appear to stand on top of.
+
+- Chairs are 4 simple bench/chair shapes in a horizontal row, evenly
+  spaced across roughly the middle 2/3 of the image width, positioned
+  in the lower-middle third of the image (near the "front" of the room
+  as the camera sees it, not up against the back wall)
+- Characters render as flat 32×48px sprites standing at each chair's
+  position — the art doesn't need to render people, just the empty
+  chairs/benches they'll appear to be sitting at
+
+**Prompt:** A military base reception/entrance hall building, viewed from a
+30-40° top-down isometric angle, flat vector game-art illustration style
+with a consistent 2-3px dark outline (#1a1d14) on every edge. Rectangular
+footprint, wider than deep, roof and walls in warm tan-brown (#6a5a4a). An
+open front wall or large window revealing a simple waiting room interior:
+a row of 4 plain bench-style chairs evenly spaced across the middle-front
+of the interior floor, facing the camera, with a small reception
+desk/counter shape toward the back of the room (behind the chairs, not
+blocking them). Floor rendered as a flat, slightly lighter interior tone
+so the chairs and open standing space between them read clearly. Flat
+ambient lighting from upper-left, no hard shadows, optional soft 10%
+contact shadow directly under the building only. Fully transparent
+background, no ground/grass texture, no text, no people, no other
+structures in frame. Building fills about 80% of canvas width, centered
+with even padding.
 **Generate at 576×384px, PNG with alpha transparency.**
 
 ### `gatehouse.png`
@@ -615,16 +660,17 @@ later.
 | 8 | `vacant_lot.png` | `assets/buildings/vacant_lot.png` | 576×384px | PNG-24 + alpha |
 | 9 | `showers.png` | `assets/buildings/showers.png` | 576×384px | PNG-24 + alpha |
 | 10 | `rec_room.png` | `assets/buildings/rec_room.png` | 576×384px | PNG-24 + alpha |
-| 11 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
-| 12 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
-| 13 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
-| 14-40 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
+| 11 | `entrance_hall.png` | `assets/buildings/entrance_hall.png` | 576×384px | PNG-24 + alpha |
+| 12 | `ground.png` | `assets/terrain/ground.png` | 192×192px | PNG-24 (tileable) |
+| 13 | `wall.png` | `assets/terrain/wall.png` | 384×384px | PNG-24 (tileable) |
+| 14 | `road.png` | `assets/terrain/road.png` | 192×192px | PNG-24 (tileable) |
+| 15-41 | `{character}_{down\|up\|right}.png` | see the 27-file table above | 128×192px | PNG-24 + alpha |
 
-**#1-8 and #11-40 (35 files) are already generated and in the repo — no
-action needed.** **#9 `showers.png` and #10 `rec_room.png` are new** —
-added for the daily-schedule pass (Hygiene/Morale); `render.js` already
-has a sprite slot for both and falls back to a procedural colored box
-until they land, so there's no urgency.
+**#1-8 and #12-41 (35 files) are already generated and in the repo — no
+action needed.** **#9 `showers.png`, #10 `rec_room.png`, and #11
+`entrance_hall.png` are new** — `render.js` already has a sprite slot for
+all three and falls back to a procedural colored box until they land, so
+there's no urgency.
 
 ## Folder structure
 
@@ -641,6 +687,7 @@ assets/
     vacant_lot.png             (done)
     showers.png                (needed)
     rec_room.png                (needed)
+    entrance_hall.png           (needed)
   terrain/
     ground.png                 (done, tileable)
     wall.png                   (done, tileable)

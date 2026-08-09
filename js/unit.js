@@ -132,6 +132,11 @@ class Unit {
     // Set only while status === ON_MISSION — see state.js's dispatchMission()/tick().
     this.missionReturnAt = null; // timestamp (ms), same real-time pattern as hospitalUntil
     this.missionTierId = null; // which MISSION_TIERS entry to resolve against on return
+
+    // Which Entrance Hall waiting-chair slot this civilian occupies, if any —
+    // see state.js's assignChair()/releaseChair(). Only meaningful while
+    // isCivilian && status === CIVILIAN_APPROACHING.
+    this.chairIndex = null;
   }
 
   recruit() {

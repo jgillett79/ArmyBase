@@ -24,6 +24,7 @@ const BUILDING_SPRITES = {
   mess_hall: loadSprite('assets/buildings/mess_hall.png'),
   showers: loadSprite('assets/buildings/showers.png'),
   rec_room: loadSprite('assets/buildings/rec_room.png'),
+  entrance_hall: loadSprite('assets/buildings/entrance_hall.png'),
   gatehouse: loadSprite('assets/buildings/gatehouse.png'),
   vacant_lot: loadSprite('assets/buildings/vacant_lot.png'),
 };
@@ -222,7 +223,7 @@ function drawRoads(ctx, gameState) {
   // it (Showers/Rec Room, row 3, reusing spokes A/B). buildingDoor()/the
   // moveTo-to-lineTo pair below work identically in either direction, so
   // adding a below-spine building here is all drawing needs.
-  const spokeBuildings = [gameState.barracks, gameState.shootingRange, gameState.messHall, gameState.showers, gameState.recRoom];
+  const spokeBuildings = [gameState.barracks, gameState.shootingRange, gameState.messHall, gameState.showers, gameState.recRoom, gameState.entranceHall];
   for (const b of spokeBuildings) {
     const door = buildingDoor(b);
     ctx.beginPath();
@@ -326,6 +327,14 @@ function drawShowers(ctx, showers) {
 function drawRecRoom(ctx, recRoom) {
   drawBuildingBox(ctx, recRoom.gridX, recRoom.gridY, recRoom.isBuilt,
     'Rec Room', 'Morale', '#8a6a4a', 'rec_room');
+}
+
+// Always isBuilt (see EntranceHall's class comment) — the "not built" branch
+// of drawBuildingBox never actually triggers for this one, kept anyway for
+// consistency with every other building's draw call.
+function drawEntranceHall(ctx, hall) {
+  drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
+    'Entrance Hall', 'Waiting area', '#6a5a4a', 'entrance_hall');
 }
 
 function drawClock(ctx, hourOfDay, isDaytime) {
@@ -467,6 +476,7 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   drawMessHall(ctx, gameState.messHall, gameState.food);
   drawShowers(ctx, gameState.showers);
   drawRecRoom(ctx, gameState.recRoom);
+  drawEntranceHall(ctx, gameState.entranceHall);
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 
   for (const unit of gameState.units) {

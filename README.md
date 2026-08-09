@@ -302,22 +302,52 @@ test, not by playing — worth keeping smoke tests for this reason.
   Playwright (Showers/Rec Room render, a unit's status label updates
   correctly as the game clock is advanced through each block).
 
+## Phase 2 — increment 7 (done): Entrance Hall + waiting chairs
+
+- Civilians used to enter the gate, pick one random point anywhere inside
+  the walls, and stand there — user feedback called this out as "aimless."
+  They now walk to a fixed waiting chair in a new Entrance Hall building
+  instead, same idea as any other job/need routing to a fixed spot.
+- New `EntranceHall` (`building.js`) — unlike every other building, it's
+  **not** purchasable/upgradeable: level is forced to 1 in the constructor
+  (cost 0), so it's present from the start, same "fixed part of the base"
+  idea as the perimeter wall/gatehouse. It fills the 9th slot of the
+  existing 3x3 building grid (row 3, same column as Mess Hall/Drill Yard),
+  so it needed zero new placement/road-spoke logic.
+- `ENTRANCE_HALL_CHAIRS` (`state.js`) is 4 fixed pixel offsets from the
+  building's door. `assignChair()`/`releaseChair()` track which unit (by
+  id) occupies which chair in `chairOccupants`. Civilians claim a chair the
+  moment they cross the gate and release it either on being recruited or
+  on timing out and leaving; `spawnCivilianIfRoom()`'s concurrent-civilian
+  cap is now tied to `ENTRANCE_HALL_CHAIRS.length` instead of a hardcoded
+  number, so the spawn rate can't outpace actual seating. If every chair's
+  taken by civilians still mid-walk, a new arrival waits just inside the
+  gate rather than crossing the base with nowhere to sit.
+- No new character art — civilians render with their existing directional
+  sprites, just standing at the chair pixel positions instead of a random
+  point. `ASSETS.md` gained one new building sprite, `entrance_hall.png`
+  (spec calls for painted-in chairs so the standing sprites read as
+  "seated"); renders as the usual procedural fallback box until generated.
+- Tested headlessly (spawn cap matches chair count, a civilian who crosses
+  the gate gets assigned a real chair and walks to its exact position,
+  recruiting or timing out frees the chair, two simultaneous civilians get
+  two distinct chairs) and via Playwright (3 civilians spawn and visibly
+  spread across 3 distinct chairs in the rendered Entrance Hall).
+
 ## Open questions still remaining for Phase 2
 
-1. **Entrance hall + waiting chairs / terrain variety / walk-cycle
-   animation.** User feedback: civilians currently wander the whole base
-   instead of queuing near the gate; there's only one ground texture; units
-   don't have an actual walk-cycle (multiple frames per direction), just a
-   static pose per facing. Agreed order: entrance hall (cheap, reuses
-   existing sprites) → terrain variety (medium) → walk animation (most
-   expensive — needs several new frames per direction plus frame-timing
-   code) → do next, after this increment.
+1. **Terrain variety + walk-cycle animation.** User feedback: there's only
+   one ground texture across the whole base; units don't have an actual
+   walk-cycle (multiple frames per direction), just a static pose per
+   facing. Agreed order: terrain variety next (medium effort) → walk
+   animation last (most expensive — needs several new frames per direction
+   plus frame-timing code).
 2. **Promotion mechanics in detail** — the actual UI/flow for choosing 2
    units, what resets on the new base vs. carries over (cash? equipment?),
    and multi-base save-state handling for the legacy Base 1.
-3. **`showers.png`/`rec_room.png` art** — spec'd in `ASSETS.md`, not yet
-   generated; the game already renders a procedural fallback box for both
-   so this isn't blocking anything.
+3. **`showers.png`/`rec_room.png`/`entrance_hall.png` art** — all three
+   spec'd in `ASSETS.md`, not yet generated; the game already renders a
+   procedural fallback box for each so this isn't blocking anything.
 
 ## File layout
 
