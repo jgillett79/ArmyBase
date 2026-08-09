@@ -2,7 +2,9 @@
 """
 ArmyBase — asset generator.
 
-Full local pipeline for the 15 images described in ASSETS.md:
+Full local pipeline for the images described in ASSETS.md — buildings,
+gatehouse/vacant-lot, seamless terrain textures, and the 27 directional
+character sprites:
 
     1. Send each prompt to Cloudflare Workers AI (text-to-image).
     2. Remove the (opaque) background with rembg  -> transparent RGBA.
@@ -85,6 +87,17 @@ CHAR_SOLO = ("Wholesome G-rated cartoon mascot, fully clothed. Exactly one "
              "single solo character, one person only, centered, full body "
              "head to feet, front view only. ")
 
+# Same as CHAR_SOLO but WITHOUT "front view only" -- the directional sprites
+# (down/up/right) set their own camera view via the direction modifier, so
+# forcing front view here would fight the up/right prompts. The extra
+# "fully clothed / modestly dressed" wording matters here specifically: the
+# back-view ("up") sprites trip FLUX's touchy NSFW classifier without it,
+# because a figure seen from behind reads as a false positive.
+CHAR_SOLO_DIR = ("Wholesome G-rated cartoon mascot, fully clothed and modestly "
+                 "dressed in a complete outfit covering the whole body. Exactly "
+                 "one single solo character, one person only, centered, full body "
+                 "head to feet. ")
+
 _NEG_COMMON = ("3d render, cad model, blender render, unreal engine, "
                "photorealistic, realistic, photograph, octane, ray tracing, "
                "ambient occlusion, gradient shading, glossy, metallic, "
@@ -98,11 +111,27 @@ NEG_CHAR = (_NEG_COMMON + ", colorful, saturated colors, vibrant, bright "
             "people, group, crowd, two people, character sheet, turnaround, "
             "multiple views, multiple poses, duplicate, collage, grid, "
             "car, vehicle, taxi cab")
+# Terrain textures are the opposite of the outlined subjects: no outline, no
+# single centered object, no distinct repeating feature, low contrast.
+NEG_TERRAIN = (_NEG_COMMON + ", people, characters, buildings, trees, grass, "
+               "plants, foliage, large rocks, boulder, single object, centered "
+               "object, distinct feature, focal point, vignette, border, frame, "
+               "drop shadow, directional shadow, high contrast, bold outline")
+
+# Terrain gets its own style prefix -- unlike buildings/characters it must NOT
+# have a bold dark outline (it's a flat ground/wall surface, not an icon).
+STYLE_PREFIX_TERRAIN = ("Flat 2D seamless tileable repeating texture swatch, "
+                        "mobile strategy game art, flat solid muted low-contrast "
+                        "colors, no outline, no border, even flat top-down "
+                        "surface, uniform allover pattern. ")
 
 
-def _b(prompt):
+def _b(prompt, out=BUILDING_OUT):
+    # FLUX ignores the requested gen size (returns square) and post-processing
+    # crops+fits to `out`, so `out` is what actually sets the file's aspect —
+    # hence the gatehouse can just override `out` to its tall 1:2 size.
     return {"prompt": prompt, "negative": NEG_BUILDING,
-            "gen": BUILDING_GEN, "out": BUILDING_OUT,
+            "gen": BUILDING_GEN, "out": out,
             "subdir": "buildings"}
 
 
@@ -112,8 +141,17 @@ def _c(prompt):
             "subdir": None}  # set per entry below
 
 
+def _t(prompt, out):
+    # Terrain: opaque, full-bleed, seamless-tiled. No bg removal, no
+    # crop/center -- the whole square becomes the tile (see process_image).
+    return {"prompt": prompt, "negative": NEG_TERRAIN,
+            "gen": out, "out": out, "subdir": "terrain", "terrain": True}
+
+
 # ---------------------------------------------------------------------------
-# The 15 assets (prompts copied verbatim from ASSETS.md / asset-generator.html)
+# Assets (prompts per ASSETS.md). This literal holds buildings, terrain, and
+# the ORIGINAL 9 front-facing characters; the 27 directional character sprites
+# are appended programmatically just after this dict (see below).
 # ---------------------------------------------------------------------------
 
 ASSETS = {
@@ -183,6 +221,67 @@ ASSETS = {
         "upper-left, no hard shadows. Plain solid flat background, no ground, no grass, no "
         "text, no people, no other structures. Building fills about 80% of the canvas width, "
         "centered with even padding."),
+
+    # -- Perimeter / plot (2) : assets/buildings/ --
+    "gatehouse": _b(
+        "A military base gatehouse or checkpoint archway, viewed from a 30-40 degree "
+        "top-down isometric angle, flat vector game-art illustration style with a "
+        "consistent 2-3px dark outline (#1a1d14) on every edge. A narrow tower or arch "
+        "structure spanning the full height of the image, tall and narrow rather than "
+        "wide: a raised guard-post box at the top with a small window, supporting a simple "
+        "lowered boom-gate or archway opening below it. Tones in weathered khaki-tan "
+        "(#8a9478) for the structure with dark steel-blue (#4a5a6a) accents on the gate or "
+        "boom-arm. Flat ambient lighting from upper-left, no hard shadows. Plain solid flat "
+        "background, no ground, no grass, no text, no people, no other structures. Structure "
+        "fills about 85% of the canvas height, centered with even padding on left and right.",
+        out=(192, 384)),
+    "vacant_lot": _b(
+        "A cleared, empty construction plot, viewed from a 30-40 degree top-down isometric "
+        "angle, flat vector game-art illustration style with a consistent 2-3px dark outline "
+        "(#1a1d14) on every edge. A simple flat rectangular graded dirt or gravel pad, empty, "
+        "with a few small scattered rocks or a low stack of construction materials (a couple "
+        "of planks or a small pallet) at one corner to read as 'ready to build', but mostly "
+        "empty open space. Muted olive-brown (#6a5a30) and khaki-sage (#8a9478) tones, low "
+        "contrast. Flat ambient lighting from upper-left, no hard shadows. Plain solid flat "
+        "background, no grass, no text, no people, no finished structures. The plot fills "
+        "about 80% of the canvas width, centered with even padding."),
+
+    # -- Terrain (3) : assets/terrain/ -- tileable, opaque, no outline --
+    "ground": _t(
+        "A seamlessly tileable packed-dirt military base yard ground texture, flat "
+        "digital illustration style matching a mobile strategy game (not photorealistic), "
+        "viewed from directly straight above. Muted tan-olive dirt tone (base color close "
+        "to #6a5a30 and #5a6450), very subtle low-contrast tonal variation and a faint "
+        "sparse texture (a few scattered tiny pebbles or thin hairline cracks, kept subtle "
+        "and evenly distributed, not clustered). A quiet low-detail floor, not a detailed "
+        "ground painting. No grass tufts, no large rocks, no footprints, no single distinct "
+        "feature that would obviously repeat when tiled. Flat even lighting, no directional "
+        "shadow. Left edge matches right edge and top edge matches bottom edge exactly for "
+        "seamless repeat tiling. Fills the entire square frame edge to edge, no border.",
+        out=(192, 192)),
+    "wall": _t(
+        "A seamlessly tileable military perimeter wall surface texture, flat digital "
+        "illustration style matching a mobile strategy game (not photorealistic), viewed "
+        "straight-on as a flat band. Weathered concrete reinforced-barrier look in dark gray "
+        "tones (base color close to #4a4a42, seams and joints in a lighter gray close to "
+        "#6a6a5c), with evenly-spaced subtle vertical panel-seam or support-post lines subtle "
+        "enough to repeat cleanly. Flat even lighting, no directional shadow. Left edge "
+        "matches right edge and top edge matches bottom edge exactly for seamless repeat "
+        "tiling in any direction, and it must look correct rotated 90 degrees too, so no "
+        "text, no arrow, no asymmetric detail revealing a correct orientation. Fills the "
+        "entire square frame edge to edge, no border.",
+        out=(384, 384)),
+    "road": _t(
+        "A seamlessly tileable worn dirt and gravel path texture, flat digital illustration "
+        "style matching a mobile strategy game (not photorealistic), viewed from directly "
+        "straight above. Lighter tan tone than dirt ground so it reads as a path (base color "
+        "close to #5a5548), subtle low-contrast wear and compaction texture, very faint "
+        "scattered tiny gravel flecks evenly distributed. No ruts, no tire tracks, no large "
+        "stones, quiet and low-detail. Flat even lighting, no directional shadow. Left edge "
+        "matches right edge and top edge matches bottom edge exactly for seamless repeat "
+        "tiling in any direction, correct rotated 90 degrees too. Fills the entire square "
+        "frame edge to edge, no border.",
+        out=(192, 192)),
 
     # -- Civilians (3) : assets/units/civilians/ --
     "civilian": dict(_c(
@@ -299,6 +398,101 @@ ASSETS = {
 
 
 # ---------------------------------------------------------------------------
+# Directional character sprites (27 files = 9 identities x 3 directions)
+#
+# Per ASSETS.md "Character direction system": characters now use the same
+# 30-40 degree top-down isometric camera as buildings and walk with proper
+# directional sprites. Each identity gets 3 sprites -- down/up/right -- and
+# "left" is the "right" sprite flipped horizontally in code (no art). Built
+# by combining an identity string + a direction modifier so we don't hand-
+# write 27 near-duplicate paragraphs. These SUPERSEDE the original 9
+# front-facing character entries above (which stay so the game keeps working
+# until the wiring pass swaps to the directional set).
+# ---------------------------------------------------------------------------
+
+# Shared palette/style tail appended to every directional character prompt.
+_CHAR_PALETTE_TAIL = (
+    " Use ONLY these desaturated tones: neutral warm gray #8a897d for the main "
+    "clothing or uniform, darker gray #6e6d63 for shading creases and gear, "
+    "light gray-khaki #b8b6a8 for skin and highlights, near-black gray #4a4942 "
+    "for shoes or boots and small details. No other colors, no bright or "
+    "saturated colors anywhere. Consistent 2-3px dark outline (#1a1d14). "
+    "Minimal facial detail (simple dot eyes). Flat ambient lighting from "
+    "upper-left, no hard shadows. Plain solid flat background, no ground, no "
+    "text, no props, no other characters. Figure fills about 80% of the canvas "
+    "height, centered with even padding.")
+
+# What makes each character that character (clothing / build / headgear).
+_CHAR_IDENTITIES = {
+    "civilian":   ("units/civilians",
+        "A generic civilian pedestrian in plain casual clothing, a simple "
+        "t-shirt or jacket shape and pants, no distinguishing accessories, no bag."),
+    "bus_rider":  ("units/civilians",
+        "A civilian pedestrian carrying a small duffel bag or backpack over one "
+        "shoulder (this bag is the only accessory); otherwise the same plain "
+        "casual clothing and build as a generic pedestrian."),
+    "taxi":       ("units/civilians",
+        "A civilian pedestrian in a simple collared jacket, a neater sharper "
+        "silhouette than a plain t-shirt, no bag."),
+    "soldier_01": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette, no extra gear), no headgear, bare head with a simple "
+        "short-hair silhouette."),
+    "soldier_02": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette) plus a rounded combat helmet."),
+    "soldier_03": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette), no headgear, with a noticeably bulkier broader-shouldered "
+        "build, wider torso silhouette, same overall height."),
+    "soldier_04": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette), no headgear, with a noticeably slighter narrower build, "
+        "narrower torso silhouette, same overall height."),
+    "soldier_05": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette) plus a soft beret angled slightly to one side, clearly "
+        "distinct in silhouette from a rounded combat helmet."),
+    "soldier_06": ("units/soldiers",
+        "A standard military soldier in a basic uniform (jacket and trousers "
+        "silhouette), no headgear, plus visible gear webbing straps across the "
+        "chest and a small pack on the back (only the top and sides visible)."),
+}
+
+# Camera framing + stride for each direction actually used by the road network.
+_DIR_MODIFIERS = {
+    "down":
+        " Viewed from a 30-40 degree top-down isometric angle, walking toward "
+        "the camera (down the screen): front of the body facing the viewer, "
+        "leading leg stepping toward the camera, face and front mostly visible, "
+        "head angled slightly down as if seen from just above, mid-stride "
+        "walking pose.",
+    "up":
+        " Viewed from a 30-40 degree top-down isometric angle, walking away from "
+        "the camera (up the screen): the fully-clothed character is seen from "
+        "behind, the back of their outfit toward the viewer, only the back of the "
+        "head, hair, clothed shoulders and the back of the walking stride "
+        "visible, face turned away, mid-stride walking pose.",
+    "right":
+        " Viewed from a 30-40 degree top-down isometric angle, shown in a "
+        "right-facing side profile walking toward the right of the screen: one "
+        "side of the body and the face profile visible, legs scissored "
+        "fore-and-aft along the direction of travel, mid-stride walking pose.",
+}
+
+for _cname, (_subdir, _identity) in _CHAR_IDENTITIES.items():
+    for _dir, _dirmod in _DIR_MODIFIERS.items():
+        ASSETS[f"{_cname}_{_dir}"] = {
+            "prompt": _identity + _dirmod + _CHAR_PALETTE_TAIL,
+            "negative": NEG_CHAR,
+            "gen": CHAR_GEN,
+            "out": CHAR_OUT,
+            "subdir": _subdir,
+            "solo": CHAR_SOLO_DIR,  # directional: don't force "front view only"
+        }
+
+
+# ---------------------------------------------------------------------------
 # .env loader (no dependency)
 # ---------------------------------------------------------------------------
 
@@ -404,9 +598,51 @@ def _desaturate(img, factor=0.28):
     return Image.merge("RGBA", (r2, g2, b2, a))
 
 
-def process_image(raw_bytes, out_size, do_bg, is_char):
+def _make_seamless(img, out_size):
+    """Turn an arbitrary square texture into one that tiles with no visible
+    edge seam under ctx.createPattern(..., 'repeat').
+
+    FLUX has no tiling mode, so we roll the image by half on both axes: that
+    wraps originally-adjacent interior pixels around to the four edges, which
+    makes the OUTER edges (the ones that matter for 'repeat') seamless. Rolling
+    moves the discontinuity to a cross through the center instead; we soften
+    that interior cross with a blur feathered along it. For the flat, low-detail
+    dirt/concrete these textures are, the softened center is invisible while the
+    tiled edges come out clean. Returns an opaque RGB image at out_size."""
+    import numpy as np
+    from PIL import Image, ImageFilter
+    rgb = img.convert("RGB").resize(out_size, Image.LANCZOS)
+    arr = np.asarray(rgb).astype(np.float32)
+    h, w = arr.shape[:2]
+    rolled = np.roll(arr, (h // 2, w // 2), axis=(0, 1))  # edges now seamless
+
+    # Feathered cross mask (1 along the center row/col, fading to 0) to heal the
+    # interior seam without touching the now-seamless outer edges.
+    band = max(4, int(min(h, w) * 0.10))
+    yy = np.abs(np.arange(h) - h // 2)
+    xx = np.abs(np.arange(w) - w // 2)
+    mrow = np.clip(1.0 - yy / band, 0.0, 1.0)
+    mcol = np.clip(1.0 - xx / band, 0.0, 1.0)
+    mask = np.maximum(mrow[:, None], mcol[None, :])[:, :, None]
+
+    blurred = np.asarray(
+        Image.fromarray(rolled.astype(np.uint8)).filter(
+            ImageFilter.GaussianBlur(radius=max(2, band // 2)))
+    ).astype(np.float32)
+    out = (blurred * mask + rolled * (1.0 - mask)).astype(np.uint8)
+    return Image.fromarray(out, "RGB")
+
+
+def process_image(raw_bytes, out_size, do_bg, is_char, is_terrain=False):
     from PIL import Image
     img = Image.open(io.BytesIO(raw_bytes)).convert("RGBA")
+
+    if is_terrain:
+        # Opaque, full-bleed, seamless — no bg removal, no crop/center.
+        seamless = _make_seamless(img, out_size)
+        buf = io.BytesIO()
+        seamless.save(buf, format="PNG")
+        return buf.getvalue()
 
     if do_bg:
         from rembg import remove
@@ -479,8 +715,13 @@ def main():
             continue
 
         is_char = spec["subdir"].startswith("units")
+        is_terrain = spec.get("terrain", False)
         model = args.model or (MODEL_CHAR if is_char else MODEL_BUILDING)
-        full_prompt = STYLE_PREFIX + (CHAR_SOLO if is_char else "") + spec["prompt"]
+        solo = spec.get("solo")
+        if solo is None:
+            solo = CHAR_SOLO if is_char else ""
+        prefix = STYLE_PREFIX_TERRAIN if is_terrain else STYLE_PREFIX
+        full_prompt = prefix + solo + spec["prompt"]
 
         print(f"[{i}/{len(targets)}] {name}: generating via {model.split('/')[-1]} "
               f"({spec['gen'][0]}x{spec['gen'][1]}) ...", flush=True)
@@ -494,7 +735,7 @@ def main():
             print(f"          post-processing (bg removal={'on' if do_bg else 'off'}, "
                   f"resize -> {spec['out'][0]}x{spec['out'][1]}"
                   f"{', desaturate+isolate' if is_char else ''}) ...", flush=True)
-            png = process_image(raw, tuple(spec["out"]), do_bg, is_char)
+            png = process_image(raw, tuple(spec["out"]), do_bg, is_char, is_terrain)
 
             dest.parent.mkdir(parents=True, exist_ok=True)
             dest.write_bytes(png)
