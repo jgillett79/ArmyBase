@@ -401,25 +401,58 @@ the new Equipped/Armory lists constantly) — fixed with the same
 render-only-on-actual-change guard as increments 9 and 10; if you add
 another panel section that re-renders inside a per-frame refresh
 function, add this guard from the start instead of rediscovering the bug.
+**Phase 3 increment 2 done**: multi-base architecture + Promotion, the
+biggest architectural change in the project. **Deliberately did NOT
+refactor `GameState`'s internals into a generic per-base structure** —
+`GameState` still represents exactly one base and is completely unaware
+a second exists; every existing method is untouched. "Two bases" lives
+entirely in the save file: one localStorage key holds
+`{ activeBaseId, bases: { base1, base2 } }`, and switching bases means
+saving the current instance into its slot then loading the other slot as
+a fresh `GameState` — which reuses the *already-built* offline-catch-up
+tick verbatim, since "switched away" and "was offline" are the same
+thing from a base's own point of view. **This is why `render.js` and
+virtually all of `main.js` needed zero changes** — `gameState.X` still
+just means "whichever base is active." If you're tempted to generalize
+this into a real multi-base `GameState` later, re-read this reasoning
+first — it was a deliberate risk/scope trade-off, not an oversight.
+`GameState.switchTo()`/`GameState.promote()` are the only two ways
+`gameState` ever gets reassigned (both return a new instance, never
+mutate `this` in place — the caller in `main.js` does the reassignment).
+`Barracks.maxLevel` is now an instance property (was a hardcoded module
+const) so Base 2 can raise it (`BASE2_LEVEL_CAP = 5`) without a
+subclass. `canPromote()`/`promote()` implement the exact locked trigger
+(all buildings maxed + unit cap 20) and 2-unit-plus-equipped-gear
+transfer; unequipped armory items stay at Base 1 (shipping itself isn't
+built — see open questions). Save format bumped to `armybase_save_v2`.
+`missionLog` is now actually persisted (previously explicitly
+transient) — switching bases is a real session boundary now, losing
+recent history on every switch would've been a regression.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
 Promotion's shape and the core equipment model are now locked (see
-"Decisions already made" above) — what's genuinely still open:
+"Decisions already made" above), and Promotion itself is built
+(increment 2) — what's genuinely still open:
 
-1. **Exact new level/building caps for Base 2, and any brand-new
+1. **Shipping resources/weapons between bases.** The locked design wants
+   this and the per-base armory (Phase 3 increment 1) is ready for it,
+   but no "ship" UI/action exists yet — right now the only way equipment
+   moves between bases is automatically, by being equipped on a unit at
+   the moment they're promoted.
+2. **Exact new level/building caps for Base 2, and any brand-new
    building types** — user explicitly deferred this ("we can work that
-   through"). Don't invent specific numbers or new building designs
-   without checking first; a modest cap raise on existing buildings is
-   enough for a first version.
-2. **Weapons Factory / freemium weapon-crafting idea** — parked, not
+   through"). `BASE2_LEVEL_CAP = 5` (up from the default 3) is what's
+   actually built; new building types are still unstarted. Don't invent
+   specific numbers or new building designs without checking first.
+3. **Weapons Factory / freemium weapon-crafting idea** — parked, not
    scoped. No payment integration exists in this project. Don't start
    building this without a real scoping pass first.
-3. **Final class roster for veteran soldiers** — a set was proposed in
+4. **Final class roster for veteran soldiers** — a set was proposed in
    chat (Marksman/Heavy Gunner/Scout/Medic/Demolitions, roughly mapped to
    existing stats); confirm the actual shipped list against README once
    built rather than assuming this doc's mention of it is exhaustive.
-4. **Building construction time + an "under construction" art state** —
+5. **Building construction time + an "under construction" art state** —
    raised by the user, not yet scoped. Right now upgrading a building is
    instant (one cash deduction, `building.upgrade()` synchronously).
    Whether to add a real-time build timer (same pattern as the hospital

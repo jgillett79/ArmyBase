@@ -1,6 +1,24 @@
 // state.js — single source of truth. render.js reads it, main.js drives it.
-
-const SAVE_KEY = 'armybase_save_v1'; // bumped — v0 saves don't have energy/food/schedule fields
+//
+// MULTI-BASE — read this before touching save()/load()/promote()/switchTo().
+// GameState's own shape represents exactly ONE base's live data — every
+// field/method on it (units, buildings, cash, tick(), etc.) is completely
+// unaware that a second base can exist. "Two bases" is handled entirely as
+// a SAVE-FILE concern instead: localStorage holds one wrapper object with a
+// slot per base id ({ activeBaseId, bases: { base1: {...}, base2: {...} } }),
+// and switching bases means saving the current instance into its slot, then
+// loading the other slot as a brand new GameState instance — which reuses
+// the *already-built* offline-catch-up tick verbatim, since "you haven't
+// looked at this base in a while" and "you were offline" are the same
+// situation from that base's point of view. This was a deliberate choice
+// over refactoring GameState's internals into a generic per-base structure:
+// it means render.js and virtually all of main.js need zero changes (they
+// already just read "gameState.X", which continues to mean "whichever base
+// is currently active"), at the cost of the two bases never truly running
+// in real time simultaneously — which matches the locked design anyway
+// (see CLAUDE.md: the inactive base is meant to catch up on view, not tick
+// in parallel).
+const SAVE_KEY = 'armybase_save_v2'; // bumped for the multi-base wrapper shape — v1 saves were a single flat base blob
 const GRID_COLS = 20;
 const GRID_ROWS = 12;
 const CELL_SIZE = 48; // px, matches canvas 960x576
@@ -9,6 +27,7 @@ const CASH_PER_SECOND_IDLE = 0.5; // passive trickle, proves offline catch-up wo
 const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
 const CIVILIAN_WALK_TIMEOUT_MS = 12000; // how long they linger before leaving
 const MISSION_LOG_MAX = 8; // most recent mission results kept for the panel
+const BASE2_LEVEL_CAP = 5; // placeholder like everything else — Barracks/training building maxLevel on the new base, up from the default 3
 
 // ---------------------------------------------------------------------------
 // THREE CLOCKS — read this before touching any timing code.
@@ -90,7 +109,11 @@ function buildingDoor(building) {
 }
 
 class GameState {
-  constructor() {
+  // baseId: which save-file slot this instance represents ('base1' or
+  // 'base2') — see the MULTI-BASE comment above. levelCap optionally
+  // raises every capped building's maxLevel (Base 2 only — see promote()).
+  constructor(baseId = 'base1', levelCap = null) {
+    this.baseId = baseId;
     this.cash = 200;
     this.food = 30; // starting stock so the loop is testable immediately
     // Mission-tier resources — see mission.js. All start at 0; only earned
@@ -99,7 +122,10 @@ class GameState {
     this.steel = 0;
     this.gems = 0;
     // Most recent mission outcomes, newest first — see resolveMissionForUnit().
-    // Transient like the active-missions list, not persisted across saves.
+    // Now persisted through save()/load() (including base-switching, which
+    // routes through the same save/load path — see the MULTI-BASE comment)
+    // so switching away and back doesn't erase what you'd want to catch up
+    // on; still capped at MISSION_LOG_MAX so it can't grow unbounded.
     this.missionLog = [];
     // Per-base equipment inventory — see equipment.js. Each item is
     // { id, type, assignedToUnitId }; assignedToUnitId is null while
@@ -150,6 +176,16 @@ class GameState {
       minY: WALL_THICKNESS + 8,
       maxY: GRID_ROWS * CELL_SIZE - WALL_THICKNESS - 8,
     };
+
+    // Base 2 gets higher level caps so Promotion reads as "unlocking
+    // more," not "starting over with reset numbers" — see promote()
+    // below and the locked design in CLAUDE.md. New building TYPES for
+    // Base 2 are explicitly deferred (not this pass); a modest cap raise
+    // on the existing ones is what's built for now.
+    if (levelCap !== null) {
+      this.barracks.maxLevel = levelCap;
+      for (const b of this.trainingBuildings) b.maxLevel = levelCap;
+    }
   }
 
   get hourOfDay() {
@@ -667,6 +703,8 @@ class GameState {
       showersLevel: this.showers.level,
       recRoomLevel: this.recRoom.level,
       armory: this.armory,
+      missionLog: this.missionLog,
+      levelCap: this.barracks.maxLevel, // re-applied via the constructor on load — see the MULTI-BASE comment
       lastTick: Date.now(),
       units: this.units
         .filter(u => !u.isCivilian) // don't persist transient civilians
@@ -681,13 +719,38 @@ class GameState {
     };
   }
 
-  static load() {
-    const raw = localStorage.getItem(SAVE_KEY);
-    const state = new GameState();
-    if (!raw) return state;
+  // --- Multi-base save wrapper — see the MULTI-BASE comment at the top of
+  // this file. Everything below reads/writes ONE localStorage key holding
+  // { activeBaseId, bases: { base1: {...}, base2: {...} | undefined } }. ---
+
+  static readWrapper() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return { activeBaseId: 'base1', bases: {} };
+      const parsed = JSON.parse(raw);
+      return { activeBaseId: parsed.activeBaseId || 'base1', bases: parsed.bases || {} };
+    } catch (e) {
+      console.warn('Save corrupt, starting fresh', e);
+      return { activeBaseId: 'base1', bases: {} };
+    }
+  }
+
+  static writeWrapper(wrapper) {
+    localStorage.setItem(SAVE_KEY, JSON.stringify(wrapper));
+  }
+
+  static secondBaseExists() {
+    return !!GameState.readWrapper().bases.base2;
+  }
+
+  static load(baseId) {
+    const wrapper = GameState.readWrapper();
+    const resolvedBaseId = baseId || wrapper.activeBaseId || 'base1';
+    const data = wrapper.bases[resolvedBaseId];
+    const state = new GameState(resolvedBaseId, data ? data.levelCap ?? null : null);
+    if (!data) return state;
 
     try {
-      const data = JSON.parse(raw);
       state.cash = data.cash ?? 200;
       state.food = data.food ?? 30;
       state.lumber = data.lumber ?? 0;
@@ -703,6 +766,7 @@ class GameState {
       state.showers.level = data.showersLevel ?? 0;
       state.recRoom.level = data.recRoomLevel ?? 0;
       state.armory = data.armory ?? [];
+      state.missionLog = data.missionLog ?? [];
 
       state.units = (data.units || []).map(d => {
         const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
@@ -718,6 +782,9 @@ class GameState {
 
       // Offline catch-up: 24h real-time cap, per spec — log off, come back
       // within a day, everything (hospital stays included) has accrued normally.
+      // This is also what makes switching TO this base (see switchTo() below)
+      // "just work" — a base you haven't been viewing is, from its own
+      // perspective, indistinguishable from a base you were offline from.
       // NOTE: this is one big tick, not elapsedSec sub-steps. That's a known
       // approximation — a unit training the whole time offline will apply
       // its full accuracy gain for the period BEFORE the energy-zero check
@@ -736,6 +803,73 @@ class GameState {
   }
 
   save() {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(this.serialize()));
+    const wrapper = GameState.readWrapper();
+    wrapper.bases[this.baseId] = this.serialize();
+    GameState.writeWrapper(wrapper);
+  }
+
+  // Saves the currently-active instance into its slot, marks targetBaseId
+  // as active, and returns a freshly loaded GameState for it (which runs
+  // the same offline-catch-up tick load() always does). The caller
+  // (main.js) is responsible for swapping its live `gameState` reference
+  // to the returned instance — this never mutates `this` in place.
+  static switchTo(currentState, targetBaseId) {
+    currentState.save();
+    const wrapper = GameState.readWrapper();
+    wrapper.activeBaseId = targetBaseId;
+    GameState.writeWrapper(wrapper);
+    return GameState.load(targetBaseId);
+  }
+
+  // All Base 1 buildings maxed + the unit cap (20, once Barracks is
+  // maxed) reached — the locked Promotion trigger condition. Only
+  // meaningful when this.baseId === 'base1'; Base 2 has no further
+  // promotion (see CLAUDE.md: exactly 2 bases).
+  canPromote() {
+    if (this.baseId !== 'base1') return false;
+    const buildingsMaxed = this.barracks.isMaxLevel
+      && this.trainingBuildings.every(b => b.isMaxLevel)
+      && this.messHall.isBuilt && this.showers.isBuilt && this.recRoom.isBuilt;
+    return buildingsMaxed && this.soldierCount >= this.unitCap;
+  }
+
+  // Creates Base 2, moves exactly the 2 chosen units (and any equipment
+  // they currently have equipped — unequipped armory items stay behind
+  // at Base 1 until explicitly shipped) onto it, and persists both bases.
+  // Returns the new Base 2 GameState — the caller swaps its live
+  // `gameState` reference to it, same contract as switchTo().
+  promote(chosenUnitIds) {
+    if (!this.canPromote()) return null;
+    if (!Array.isArray(chosenUnitIds) || chosenUnitIds.length !== 2) return null;
+    const chosen = chosenUnitIds.map(id => this.units.find(u => u.id === id && !u.isCivilian));
+    if (chosen.some(u => !u)) return null;
+
+    const base2 = new GameState('base2', BASE2_LEVEL_CAP);
+
+    for (const unit of chosen) {
+      this.units = this.units.filter(u => u.id !== unit.id);
+      // Equipped items travel with the soldier wearing them; anything
+      // still sitting unequipped in the armory stays at Base 1.
+      for (const itemId of unit.equipment) {
+        const item = this.armory.find(i => i.id === itemId);
+        if (item) {
+          this.armory = this.armory.filter(i => i.id !== itemId);
+          base2.armory.push(item);
+        }
+      }
+      unit.x = GATE_INSIDE_X;
+      unit.y = GATE_Y_CENTER;
+      unit.status = UNIT_STATUS.IDLE;
+      unit.assignedBuildingId = null;
+      base2.units.push(unit);
+      base2.routeForStatus(unit);
+    }
+
+    base2.save();
+    this.save();
+    const wrapper = GameState.readWrapper();
+    wrapper.activeBaseId = 'base2';
+    GameState.writeWrapper(wrapper);
+    return base2;
   }
 }

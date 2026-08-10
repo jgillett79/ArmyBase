@@ -21,6 +21,10 @@ class Barracks {
     this.gridX = gridX;
     this.gridY = gridY;
     this.level = 0; // 0 = not built yet
+    // Instance property, not just the module const, so Base 2 (see
+    // state.js's promote()) can raise this without a subclass — same
+    // pattern TrainingBuilding already uses for its own maxLevel.
+    this.maxLevel = BARRACKS_MAX_LEVEL;
   }
 
   get isBuilt() {
@@ -28,7 +32,7 @@ class Barracks {
   }
 
   get isMaxLevel() {
-    return this.level >= BARRACKS_MAX_LEVEL;
+    return this.level >= this.maxLevel;
   }
 
   nextUpgradeCost() {

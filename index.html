@@ -40,6 +40,13 @@
     <div class="hud-block">
       <button id="openBuildBtn">Build</button>
     </div>
+    <div id="baseSwitcher" class="hud-block hidden">
+      <button id="switchToBase1Btn">Base 1</button>
+      <button id="switchToBase2Btn">Base 2</button>
+    </div>
+    <div class="hud-block">
+      <button id="openPromotionBtn" class="hidden">Promote to Base 2!</button>
+    </div>
   </header>
 
   <main id="gameArea">
@@ -155,6 +162,24 @@
       <button id="closeBuild">&times;</button>
     </div>
     <div id="buildList" class="build-list"></div>
+  </div>
+
+  <!-- Promotion panel -->
+  <div id="promotionPanel" class="hidden">
+    <div class="profile-header">
+      <span class="hud-label">A General has arrived</span>
+      <button id="closePromotion">&times;</button>
+    </div>
+    <p class="promotion-flavor">
+      "Outstanding work, Commander. This base has grown as far as it can go
+      here. Choose two soldiers to lead the way to a new base — everyone
+      else stays on, keeping this one running strong."
+    </p>
+    <div class="mission-squad-select">
+      <span class="hud-label">Choose 2 soldiers (<span id="promotionChosenCount">0</span>/2)</span>
+      <div id="promotionUnitList" class="mission-unit-list"></div>
+    </div>
+    <button id="confirmPromotionBtn" disabled>Promote to Base 2</button>
   </div>
 
   <script src="js/utils.js"></script>

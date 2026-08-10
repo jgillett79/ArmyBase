@@ -12,6 +12,16 @@ const lumberValueEl = document.getElementById('lumberValue');
 const steelValueEl = document.getElementById('steelValue');
 const gemsValueEl = document.getElementById('gemsValue');
 
+const baseSwitcher = document.getElementById('baseSwitcher');
+const switchToBase1Btn = document.getElementById('switchToBase1Btn');
+const switchToBase2Btn = document.getElementById('switchToBase2Btn');
+const openPromotionBtn = document.getElementById('openPromotionBtn');
+const promotionPanel = document.getElementById('promotionPanel');
+const closePromotionBtn = document.getElementById('closePromotion');
+const promotionUnitListEl = document.getElementById('promotionUnitList');
+const promotionChosenCountEl = document.getElementById('promotionChosenCount');
+const confirmPromotionBtn = document.getElementById('confirmPromotionBtn');
+
 // One entry per NeedsBuilding (building.js) — the "buy it once, no levels"
 // trio. Drives the Build panel the same way trainingBuildingUi below does.
 const needsBuildingUi = [
@@ -88,6 +98,7 @@ let selectedUnitId = null;
 let pendingRecruitId = null;
 let selectedTierId = null;
 let selectedSquadIds = new Set();
+let selectedPromotionIds = new Set();
 let lastFrameTime = performance.now();
 let lastSaveTime = Date.now();
 
@@ -410,6 +421,95 @@ function renderMissionLog() {
     : '<div class="mission-unit-empty">No missions completed yet.</div>';
 }
 
+// ---------- Base switching + Promotion ----------
+// GameState's own shape only ever represents ONE base — "two bases" lives
+// entirely in the save-file wrapper (see state.js's MULTI-BASE comment).
+// Switching or promoting always returns a brand-new GameState instance;
+// this is the only place `gameState` itself gets reassigned.
+
+// Whichever panels/selections are open get closed on any base change —
+// they'd otherwise reference a unit id that doesn't exist on the base
+// you just switched to (harmless — every lookup already guards for a
+// missing unit — but leaving a stale panel open reads as a bug).
+function resetUiForNewBase() {
+  closeProfile();
+  closeMissionsPanel();
+  closeBuildPanel();
+  closePromotionPanel();
+}
+
+function switchToBase(targetBaseId) {
+  if (targetBaseId === gameState.baseId) return;
+  gameState = GameState.switchTo(gameState, targetBaseId);
+  resetUiForNewBase();
+}
+
+switchToBase1Btn.addEventListener('click', () => switchToBase('base1'));
+switchToBase2Btn.addEventListener('click', () => switchToBase('base2'));
+
+function refreshBaseSwitcher() {
+  const secondBaseExists = GameState.secondBaseExists();
+  baseSwitcher.classList.toggle('hidden', !secondBaseExists);
+  if (!secondBaseExists) return;
+  switchToBase1Btn.classList.toggle('active-base', gameState.baseId === 'base1');
+  switchToBase2Btn.classList.toggle('active-base', gameState.baseId === 'base2');
+}
+
+function openPromotionPanel() {
+  selectedPromotionIds = new Set();
+  promotionPanel.classList.remove('hidden');
+  renderPromotionUnitList();
+}
+
+function closePromotionPanel() {
+  promotionPanel.classList.add('hidden');
+  selectedPromotionIds = new Set();
+}
+
+openPromotionBtn.addEventListener('click', openPromotionPanel);
+closePromotionBtn.addEventListener('click', closePromotionPanel);
+
+function renderPromotionUnitList() {
+  const eligible = gameState.units.filter(u => !u.isCivilian);
+  promotionUnitListEl.innerHTML = eligible.length
+    ? eligible.map(u => `
+        <label class="mission-unit-row">
+          <input type="checkbox" data-unit-id="${u.id}" ${selectedPromotionIds.has(u.id) ? 'checked' : ''}>
+          ${u.name} (Lv${u.level})
+        </label>`).join('')
+    : '<div class="mission-unit-empty">No soldiers to choose from.</div>';
+
+  promotionUnitListEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        if (selectedPromotionIds.size >= 2) {
+          cb.checked = false;
+          return;
+        }
+        selectedPromotionIds.add(cb.dataset.unitId);
+      } else {
+        selectedPromotionIds.delete(cb.dataset.unitId);
+      }
+      updatePromotionConfirmState();
+    });
+  });
+
+  updatePromotionConfirmState();
+}
+
+function updatePromotionConfirmState() {
+  promotionChosenCountEl.textContent = selectedPromotionIds.size;
+  confirmPromotionBtn.disabled = selectedPromotionIds.size !== 2;
+}
+
+confirmPromotionBtn.addEventListener('click', () => {
+  if (selectedPromotionIds.size !== 2) return;
+  const newBase = gameState.promote([...selectedPromotionIds]);
+  if (!newBase) return; // shouldn't happen (button is only enabled with a valid choice), but don't half-transition
+  gameState = newBase;
+  resetUiForNewBase();
+});
+
 // ---------- Build panel ----------
 // A single "Build" button opening a panel listing every building, instead
 // of one HUD button per building — the HUD grew to 8 build buttons across
@@ -548,6 +648,8 @@ function updateHud() {
   steelValueEl.textContent = Math.floor(gameState.steel);
   gemsValueEl.textContent = Math.floor(gameState.gems);
   refreshBuildButtons();
+  refreshBaseSwitcher();
+  openPromotionBtn.classList.toggle('hidden', !gameState.canPromote());
 }
 
 function frame(now) {

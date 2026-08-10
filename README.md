@@ -603,14 +603,90 @@ ready for that once it does.
   Playwright (the armory/equipped lists render and update correctly
   through a full equip → unequip cycle, no page errors).
 
+## Phase 3 — increment 2 (done): multi-base architecture + Promotion
+
+The biggest architectural change in the project so far — full working
+Promotion, start to finish: trigger, UI, and a genuinely separate,
+switchable Base 2.
+
+- **Deliberately did NOT refactor `GameState`'s internals into a generic
+  multi-base structure.** `GameState` still represents exactly one base,
+  completely unaware a second one can exist — every existing method
+  (`tick()`, `recruit()`, `dispatchMission()`, all of it) is untouched.
+  "Two bases" is handled entirely as a **save-file concern**: one
+  localStorage key now holds `{ activeBaseId, bases: { base1, base2 } }`,
+  and switching bases means saving the current instance into its slot,
+  then loading the other slot as a brand-new `GameState` instance.
+  Because loading already runs the offline-catch-up tick using that
+  base's own `lastTick`, switching to a base you haven't looked at in a
+  while "just works" with **zero new tick-related code** — from that
+  base's point of view, "you switched away" and "you were offline" are
+  literally the same event. This was a deliberate trade-off over a full
+  per-base data refactor: `render.js` and virtually all of `main.js`
+  needed **zero changes**, since `gameState.X` still just means
+  "whichever base is currently active."
+- `GameState.switchTo(currentState, targetBaseId)` — saves current,
+  marks the target active, returns a freshly loaded instance for it.
+  `GameState.promote(chosenUnitIds)` — validates the trigger + exactly 2
+  chosen units, creates Base 2 (`BASE2_LEVEL_CAP = 5`, up from the
+  default 3 — the "modest cap raise" per the locked design; new building
+  *types* stay deferred), moves the 2 chosen units over with everything
+  they have, moves any *equipped* gear with them (unequipped armory
+  items stay behind at Base 1 until explicitly shipped later — shipping
+  itself isn't built yet, this pass is Promotion only), and persists
+  both bases.
+- `Barracks.maxLevel` became an instance property (was a hardcoded module
+  constant) so Base 2 can raise it without a subclass — `TrainingBuilding`
+  already worked this way.
+- `canPromote()` — all Base 1 buildings maxed (Barracks + all 4 training
+  buildings at max level, Mess Hall/Showers/Rec Room built) and the unit
+  cap (20, once Barracks is maxed) reached. A "Promote to Base 2!" button
+  appears in the HUD once true; clicking it opens a modal — "A General
+  has arrived," congratulatory flavor text, a checkbox list capped at
+  exactly 2 soldiers — matching what was asked for almost verbatim.
+- A Base 1 / Base 2 switcher appears in the HUD once Base 2 exists.
+  Switching (or promoting) closes every open panel and clears selection
+  state, since they'd otherwise reference a unit id from the base you
+  just left — same idea as clearing selections when a mission panel or
+  profile closes.
+- `missionLog` is now actually persisted through save/load (previously
+  explicitly "transient, not persisted") — now that switching bases
+  routes through the same save/load path as a real session boundary,
+  losing recent mission history on every switch would have been a
+  regression, not a simplification.
+- Save format bumped to `armybase_save_v2` (was a flat single-base blob,
+  now the multi-base wrapper) — old saves start fresh, same precedent as
+  every prior save-shape change in this project.
+- Tested extremely thoroughly given the size of this change: 30 headless
+  assertions (level cap is applied and survives save/load, the wrapper
+  correctly isolates each base's slot, `switchTo()` persists the
+  outgoing base and actually runs a real catch-up tick on the incoming
+  one, `canPromote()` is accurate in both directions, `promote()` rejects
+  every invalid input, moves exactly the right 2 units, moves equipped
+  gear but leaves unequipped gear behind, and applies the raised level
+  cap) plus a full Playwright run through the real UI (maxing out every
+  building, the promote button appearing/opening/enforcing exactly 2
+  picks, confirming actually creates and switches to a working Base 2,
+  switching back to Base 1 shows the correct remaining 18-unit roster,
+  switching back to Base 2 works too) — and the entire pre-existing
+  regression suite (every prior increment's tests) re-run clean
+  afterward to confirm nothing broke.
+
 ## Open questions still remaining for Phase 2/3
 
-1. **Exact Base 2 level caps and any brand-new building designs** — user
-   explicitly deferred ("we can work that through").
-2. **Weapons Factory / freemium weapon-crafting** — parked, not scoped.
-3. **Final veteran class roster** — proposed set above, not yet confirmed
+1. **Shipping resources/weapons between bases** — the locked design
+   wants this, and the armory/per-base-inventory groundwork from Phase 3
+   increment 1 is ready for it, but the actual "ship" UI/action isn't
+   built yet. Promoted units bring their equipped gear; nothing else
+   moves between bases yet.
+2. **Exact Base 2 building-level economy** ("costs move up and down,
+   takes longer to progress") and any brand-new building designs — user
+   explicitly deferred ("we can work that through"). Base 2 currently
+   reuses Base 1's exact cost curve, just with a higher level ceiling.
+3. **Weapons Factory / freemium weapon-crafting** — parked, not scoped.
+4. **Final veteran class roster** — proposed set above, not yet confirmed
    as final.
-4. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
+5. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
    code is 100% ready to consume them the moment they land, zero further
    engineering work needed on this side.
 

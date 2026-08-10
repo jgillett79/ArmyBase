@@ -452,3 +452,53 @@ button:disabled {
   flex-shrink: 0;
   white-space: nowrap;
 }
+
+/* ---------- Base switcher + Promotion ---------- */
+
+#baseSwitcher {
+  display: flex;
+  gap: 4px;
+}
+
+#baseSwitcher button.active-base {
+  border-color: var(--highlight);
+  color: var(--highlight);
+}
+
+#openPromotionBtn {
+  border-color: var(--highlight);
+  color: var(--highlight);
+  animation: promotion-pulse 2s ease-in-out infinite;
+}
+
+@keyframes promotion-pulse {
+  0%, 100% { background: var(--panel); }
+  50% { background: rgba(242, 233, 168, 0.15); }
+}
+
+#promotionPanel {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 1px solid var(--highlight);
+  border-radius: 6px;
+  padding: 14px;
+  width: 380px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.promotion-flavor {
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin: 0 0 12px;
+}
+
+#confirmPromotionBtn {
+  width: 100%;
+  margin-top: 10px;
+}
