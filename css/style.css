@@ -192,6 +192,40 @@ button:disabled {
   padding: 5px 7px;
 }
 
+.profile-equipment {
+  margin-top: 10px;
+}
+
+.profile-equipment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 8px;
+}
+
+.profile-equipment-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 0.8rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.profile-equipment-row button {
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  flex-shrink: 0;
+}
+
+.profile-equipment-empty {
+  color: var(--text-dim);
+  font-size: 0.8rem;
+  padding: 2px 0 6px;
+}
+
 .profile-training {
   margin-top: 10px;
 }

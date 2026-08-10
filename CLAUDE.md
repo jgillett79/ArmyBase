@@ -182,17 +182,25 @@ js/
   unit.js            - Unit class: the core data model. Stats, leveling,
                        wander/movement, the day/night schedule state
                        machine (desiredStatus/applyEnergyDelta/etc.)
-  building.js        - Barracks, ShootingRange, MessHall classes.
-                       IMPORTANT: building IDs are fixed strings
-                       ('barracks', 'shooting_range', 'mess_hall'), NOT
+  building.js        - Barracks, ShootingRange, MessHall, and every other
+                       building class. IMPORTANT: building IDs are fixed
+                       strings ('barracks', 'shooting_range', etc.), NOT
                        randomly generated — see "bugs already found" below
                        for why this matters.
+  mission.js         - MISSION_TIERS + pure functions (eligibility,
+                       success chance, flavor text). No game state — see
+                       its own file-header comment.
+  equipment.js        - EQUIPMENT_CATALOG + pure helpers. Same
+                       pure-data-and-functions shape as mission.js — the
+                       armory itself (which items exist, who has what
+                       equipped) lives on GameState, not here.
   state.js           - GameState: single source of truth. Tick loop, the
                        three-clock system (see below), save/load, resource
-                       management (cash, food). Everything else reads this,
-                       nothing else owns state.
-  render.js           - canvas drawing only. No game logic. Placeholder
-                       shapes/colors — no real art yet.
+                       management (cash, food, lumber/steel/gems, armory).
+                       Everything else reads this, nothing else owns state.
+  render.js           - canvas drawing, reading real generated art (see
+                       ASSETS.md) with a procedural fallback for anything
+                       not yet generated — never blocks on missing art.
   main.js            - DOM wiring, input handling, game loop driver. Also
                        no game logic — dispatches into state.js.
 README.md            - build-phase log, aimed at a human reader (what's
@@ -374,7 +382,25 @@ accuracy/endurance). A gold star renders above any soldier with unspent
 points (procedural, no new art); the profile panel gained an "Allocate
 stat points" section that shows/hides based on `unit.unspentStatPoints`.
 maxHp still auto-grows on level-up — only the 3 allocatable stats moved
-to player choice.
+to player choice. **Phase 3 increment 1 done**: equipment/armory system,
+single-base first (Base 2 doesn't exist yet). New `equipment.js`
+(`EQUIPMENT_CATALOG`: rifle=persistent/+5% mission success,
+grenade=consumable/+10%, consumed on dispatch not resolution).
+`GameState.armory` is the per-base inventory — **a `Unit` never owns
+equipment outright, only holds an id referencing the armory**
+(`equipUnit()`/`unequipUnit()`), matching the locked per-base/shippable
+design above; don't change this back to equipment living directly on
+units. Equipment enters play only via mission rewards for now
+(`MISSION_TIERS`' new `equipmentReward` field) — the Weapons Factory idea
+is still parked, this isn't it. `missionSuccessChance()` gained an
+optional 3rd `equipmentBonus` argument (a plain number, computed by
+`state.js`'s `equipmentBonusForUnit()`) so `mission.js` stays fully pure.
+**Hit the exact same 60fps-innerHTML-detach bug a third time**
+(`openProfile()` runs every frame for live bars, which was rebuilding
+the new Equipped/Armory lists constantly) — fixed with the same
+render-only-on-actual-change guard as increments 9 and 10; if you add
+another panel section that re-renders inside a per-frame refresh
+function, add this guard from the start instead of rediscovering the bug.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

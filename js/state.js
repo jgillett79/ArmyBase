@@ -101,6 +101,14 @@ class GameState {
     // Most recent mission outcomes, newest first — see resolveMissionForUnit().
     // Transient like the active-missions list, not persisted across saves.
     this.missionLog = [];
+    // Per-base equipment inventory — see equipment.js. Each item is
+    // { id, type, assignedToUnitId }; assignedToUnitId is null while
+    // sitting unequipped in the armory. Deliberately NOT a per-unit
+    // possession (see equipUnit()/unequipUnit() below) — the locked
+    // design has equipment belonging to whichever base it's currently
+    // at, with an explicit "ship" action to move it to the other base
+    // once Base 2 exists, not something a unit carries with it.
+    this.armory = [];
     this.units = [];
     this.barracks = new Barracks(2, 2);
     this.shootingRange = new ShootingRange(8, 2);
@@ -288,6 +296,41 @@ class GameState {
     return unit.allocateStatPoint(statName);
   }
 
+  // --- Equipment / armory — see equipment.js for the catalog + the
+  // per-base-not-per-unit design reasoning ---
+
+  // Sum of every equipped item's missionBonus for one unit — used by
+  // missionSuccessChance()'s optional 3rd argument. Squad-level bonus is
+  // just this summed again across the squad, computed at each call site
+  // rather than cached, since equipment can change between dispatch and
+  // resolution (a unit could be re-equipped mid-mission in theory, even
+  // though nothing currently does that).
+  equipmentBonusForUnit(unit) {
+    return unit.equipment.reduce((sum, itemId) => {
+      const item = this.armory.find(i => i.id === itemId);
+      const entry = item && equipmentCatalogEntry(item.type);
+      return sum + (entry ? entry.missionBonus : 0);
+    }, 0);
+  }
+
+  equipUnit(unitId, itemId) {
+    const unit = this.units.find(u => u.id === unitId);
+    const item = this.armory.find(i => i.id === itemId);
+    if (!unit || unit.isCivilian || !item || item.assignedToUnitId) return false;
+    item.assignedToUnitId = unitId;
+    unit.equipment.push(itemId);
+    return true;
+  }
+
+  unequipUnit(unitId, itemId) {
+    const unit = this.units.find(u => u.id === unitId);
+    const item = this.armory.find(i => i.id === itemId && i.assignedToUnitId === unitId);
+    if (!unit || !item) return false;
+    item.assignedToUnitId = null;
+    unit.equipment = unit.equipment.filter(id => id !== itemId);
+    return true;
+  }
+
   // Shared "buy it once, no levels" build action for the NeedsBuilding trio
   // (Mess Hall, Showers, Rec Room) — mirrors upgradeBuilding()'s role for
   // the training buildings below.
@@ -387,8 +430,27 @@ class GameState {
       unit.status = UNIT_STATUS.ON_MISSION;
       unit.missionReturnAt = returnAt;
       unit.missionTierId = tier.id;
+      this.consumeConsumableEquipment(unit);
     }
     return true;
+  }
+
+  // Consumable equipment (grenades) is used up the moment a mission
+  // carrying it is dispatched, win or lose — see equipment.js's comment
+  // on why this happens here rather than on resolution. Persistent gear
+  // (rifles) is untouched.
+  consumeConsumableEquipment(unit) {
+    const remaining = [];
+    for (const itemId of unit.equipment) {
+      const item = this.armory.find(i => i.id === itemId);
+      const entry = item && equipmentCatalogEntry(item.type);
+      if (entry && entry.consumable) {
+        this.armory = this.armory.filter(i => i.id !== itemId);
+      } else {
+        remaining.push(itemId);
+      }
+    }
+    unit.equipment = remaining;
   }
 
   // Resolves one returning unit's mission — called once per squad-mate from
@@ -397,11 +459,13 @@ class GameState {
   // than all-or-nothing.
   resolveMissionForUnit(unit, nowMs) {
     const tier = missionTierById(unit.missionTierId);
-    const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit]);
+    const equipmentBonus = this.equipmentBonusForUnit(unit);
+    const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit], equipmentBonus);
 
     let cashEarned = 0;
     let resourceEarned = null;
     let xpEarned = 0;
+    let equipmentEarned = null;
     if (succeeded) {
       cashEarned = rollInRange(tier.cashReward);
       this.cash += cashEarned;
@@ -412,6 +476,11 @@ class GameState {
       }
       xpEarned = rollInRange(tier.xpReward);
       unit.addXp(xpEarned);
+      if (tier.equipmentReward && Math.random() < tier.equipmentReward.chance) {
+        const entry = equipmentCatalogEntry(tier.equipmentReward.type);
+        this.armory.push({ id: makeId('equip'), type: tier.equipmentReward.type, assignedToUnitId: null });
+        equipmentEarned = entry ? entry.name : tier.equipmentReward.type;
+      }
     }
 
     // Missions used to resolve completely silently — the log is what
@@ -422,7 +491,7 @@ class GameState {
       tierName: tier ? tier.name : 'Unknown Mission',
       succeeded,
       flavor: pickMissionFlavor(succeeded),
-      cashEarned, resourceEarned, xpEarned,
+      cashEarned, resourceEarned, xpEarned, equipmentEarned,
       timestamp: nowMs,
     });
     if (this.missionLog.length > MISSION_LOG_MAX) this.missionLog.length = MISSION_LOG_MAX;
@@ -597,6 +666,7 @@ class GameState {
       drillYardLevel: this.drillYard.level,
       showersLevel: this.showers.level,
       recRoomLevel: this.recRoom.level,
+      armory: this.armory,
       lastTick: Date.now(),
       units: this.units
         .filter(u => !u.isCivilian) // don't persist transient civilians
@@ -632,6 +702,7 @@ class GameState {
       state.drillYard.level = data.drillYardLevel ?? 0;
       state.showers.level = data.showersLevel ?? 0;
       state.recRoom.level = data.recRoomLevel ?? 0;
+      state.armory = data.armory ?? [];
 
       state.units = (data.units || []).map(d => {
         const u = new Unit({ x: d.x, y: d.y, isCivilian: false });

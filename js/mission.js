@@ -15,6 +15,11 @@
 // units could never actually level up despite the roster having a whole
 // level/xp/xpToNext system. state.js's resolveMissionForUnit() calls this
 // on success only, same "no reward for failure" rule as cash/resources.
+//
+// equipmentReward: missions are also the only way equipment enters the
+// game right now (see equipment.js) — a real "Weapons Factory" build
+// path is a parked idea, not built yet (CLAUDE.md). null on tiers where
+// dropping a weapon wouldn't make sense yet (the very first tier).
 const MISSION_TIERS = [
   {
     id: 'local_patrol',
@@ -28,6 +33,7 @@ const MISSION_TIERS = [
     cashReward: [40, 80],
     resourceReward: null,
     xpReward: [20, 40],
+    equipmentReward: null,
   },
   {
     id: 'supply_run',
@@ -41,6 +47,7 @@ const MISSION_TIERS = [
     cashReward: [80, 150],
     resourceReward: { type: 'lumber', amount: [10, 20] },
     xpReward: [40, 70],
+    equipmentReward: { type: 'grenade', chance: 0.15 },
   },
   {
     id: 'fortified_outpost',
@@ -54,6 +61,7 @@ const MISSION_TIERS = [
     cashReward: [150, 300],
     resourceReward: { type: 'steel', amount: [5, 12] },
     xpReward: [70, 120],
+    equipmentReward: { type: 'rifle', chance: 0.2 },
   },
   {
     id: 'high_value_target',
@@ -69,6 +77,7 @@ const MISSION_TIERS = [
     cashReward: [300, 600],
     resourceReward: { type: 'gems', amount: [1, 3] },
     xpReward: [120, 200],
+    equipmentReward: { type: 'rifle', chance: 0.35 },
   },
 ];
 
@@ -90,12 +99,17 @@ function unitMeetsMissionRequirements(unit, tier) {
 }
 
 // Base tier chance, nudged by how far the squad's average stat exceeds the
-// tier's minimum — training past the bare requirement actually helps.
-function missionSuccessChance(tier, squad) {
+// tier's minimum (training past the bare requirement actually helps) plus
+// an optional equipment bonus. equipmentBonus is computed by the caller
+// (state.js's equipmentBonusForUnit(), summed across the squad) rather
+// than looked up here, so this stays a pure function with no dependency
+// on the armory's shape — mission.js only knows a number came from
+// somewhere, not what it means.
+function missionSuccessChance(tier, squad, equipmentBonus = 0) {
   if (squad.length === 0) return 0;
   const squadAvg = squad.reduce((sum, u) => sum + unitStatAvg(u), 0) / squad.length;
-  const bonus = (squadAvg - tier.minStatAvg) * 0.005; // +0.5% per stat point above the minimum
-  return clamp(tier.baseSuccessChance + bonus, 0.05, 0.95);
+  const statBonus = (squadAvg - tier.minStatAvg) * 0.005; // +0.5% per stat point above the minimum
+  return clamp(tier.baseSuccessChance + statBonus + equipmentBonus, 0.05, 0.95);
 }
 
 function rollInRange([min, max]) {

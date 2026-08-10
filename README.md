@@ -554,6 +554,55 @@ Summary:
   integration exists in this project — this needs its own scoping pass
   before any of it gets built.
 
+## Phase 3 — increment 1 (done): equipment / armory system
+
+First real piece of Phase 3, built single-base first since Base 2 doesn't
+exist yet to ship anything to or from — but the shape is deliberately
+ready for that once it does.
+
+- New `js/equipment.js` (same pure-data-and-functions shape as
+  `mission.js`) — `EQUIPMENT_CATALOG` currently has `rifle` (persistent,
+  +5% mission success while equipped) and `grenade` (consumable, +10%,
+  used up the instant a mission carrying it is dispatched, win or lose).
+- `GameState.armory` is the per-base inventory — an array of
+  `{ id, type, assignedToUnitId }`. **Equipment is deliberately NOT
+  something a `Unit` owns outright** — a unit only holds a reference (an
+  id) into the armory via `unit.equipment`, per the locked per-base/
+  "ship between bases" design (see "Decisions already made" in
+  `CLAUDE.md`). `equipUnit()`/`unequipUnit()` manage the
+  assignment either direction; `consumeConsumableEquipment()` runs on
+  `dispatchMission()` so grenades disappear the moment the squad leaves,
+  not on return.
+- Equipment currently enters the game only through missions —
+  `MISSION_TIERS` gained an `equipmentReward: { type, chance }` field
+  (supply_run/fortified_outpost/high_value_target only; the first tier
+  doesn't drop gear yet), rolled independently from the cash/XP/resource
+  rewards on success. A real "Weapons Factory" build path is the parked
+  idea from above, not this.
+- `mission.js`'s `missionSuccessChance(tier, squad, equipmentBonus)`
+  gained a 3rd optional argument — kept as a plain number the caller
+  computes (`state.js`'s `equipmentBonusForUnit()`), so mission.js still
+  has zero knowledge of what "equipment" even is, same purity as before.
+- Profile panel gained an interactive "Equipped" / "Armory" pair of
+  lists (replacing the old static "Equipment: None" text row) — click
+  Equip/Unequip on any item, no separate panel needed since a unit is
+  already selected whenever the profile is open.
+- Caught the same bug class as increments 9-10 a third time: `openProfile()`
+  runs every frame to keep HP/energy bars live, which was rebuilding the
+  equipment lists' innerHTML 60x/second and detaching whatever
+  Equip/Unequip button the player was mid-click on. Fixed the same way —
+  `renderProfileEquipment()` now skips the rebuild unless the actual
+  equipped/available item lists changed since the last render.
+- Tested headlessly (equip/unequip round-trips correctly and refuses
+  double-equipping or civilians, `equipmentBonusForUnit()` sums multiple
+  items correctly, the bonus actually raises `missionSuccessChance()`'s
+  result, a consumable is removed from both the unit and the armory on
+  dispatch while a persistent item survives, a mission's equipment
+  reward actually adds a new armory item on success, save/load
+  round-trips the armory and equipped-item references) and via
+  Playwright (the armory/equipped lists render and update correctly
+  through a full equip → unequip cycle, no page errors).
+
 ## Open questions still remaining for Phase 2/3
 
 1. **Exact Base 2 level caps and any brand-new building designs** — user

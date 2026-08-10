@@ -36,11 +36,12 @@ const profileMoraleText = document.getElementById('profileMoraleText');
 const profileStrength = document.getElementById('profileStrength');
 const profileAccuracy = document.getElementById('profileAccuracy');
 const profileEndurance = document.getElementById('profileEndurance');
-const profileEquipment = document.getElementById('profileEquipment');
 const closeProfileBtn = document.getElementById('closeProfile');
 const recallBtn = document.getElementById('recallBtn');
 const profileStatPoints = document.getElementById('profileStatPoints');
 const profileStatPointsLeft = document.getElementById('profileStatPointsLeft');
+const profileEquippedListEl = document.getElementById('profileEquippedList');
+const profileArmoryListEl = document.getElementById('profileArmoryList');
 
 // One entry per TrainingBuilding (building.js) — drives both the assign
 // buttons in the profile panel and the Build panel's upgrade rows.
@@ -112,7 +113,6 @@ function openProfile(unit) {
   profileStrength.textContent = unit.strength;
   profileAccuracy.textContent = `${Math.round(unit.accuracy)}%`;
   profileEndurance.textContent = `${Math.round(unit.endurance)}%`;
-  profileEquipment.textContent = unit.equipment.length ? unit.equipment.join(', ') : 'None';
   profilePanel.classList.remove('hidden');
 
   profileStatPoints.classList.toggle('hidden', unit.unspentStatPoints <= 0);
@@ -120,6 +120,8 @@ function openProfile(unit) {
   for (const { btn } of statAllocationUi) {
     btn.disabled = unit.unspentStatPoints <= 0;
   }
+
+  renderProfileEquipment(unit);
 
   // Neither a hospitalized unit nor one still walking in to enlist
   // (RECRUITING — see state.js) can be assigned to training.
@@ -139,7 +141,64 @@ function closeProfile() {
   profilePanel.classList.add('hidden');
 }
 
+// Two lists: what this unit currently has equipped (with an Unequip
+// button each) and what's sitting unassigned in the base's armory (with
+// an Equip button each). Both read live off gameState.armory/unit.equipment
+// rather than anything cached, so they always reflect the current state.
+//
+// openProfile() calls this every frame to keep the rest of the panel
+// (HP/energy bars etc.) live, but re-building this innerHTML on every one
+// of those calls detaches whatever Equip/Unequip button the player is
+// mid-click on — same 60fps-innerHTML-replacement bug already fixed once
+// for the Build panel (increment 9) and guarded against proactively for
+// the mission log (increment 10). Skip the rebuild unless the equipped/
+// available item lists actually changed since the last render.
+let profileEquipmentRenderedSignature = null;
+
+function renderProfileEquipment(unit) {
+  const equipped = unit.equipment
+    .map(id => gameState.armory.find(i => i.id === id))
+    .filter(Boolean);
+  const available = gameState.armory.filter(i => i.assignedToUnitId === null);
+
+  const signature = unit.id + '|' + equipped.map(i => i.id).join(',') + '|' + available.map(i => i.id).join(',');
+  if (signature === profileEquipmentRenderedSignature) return;
+  profileEquipmentRenderedSignature = signature;
+
+  profileEquippedListEl.innerHTML = equipped.length
+    ? equipped.map(item => {
+        const entry = equipmentCatalogEntry(item.type);
+        const name = entry ? entry.name : item.type;
+        return `<div class="profile-equipment-row"><span>${name}</span><button class="unequip-btn" data-item-id="${item.id}">Unequip</button></div>`;
+      }).join('')
+    : '<div class="profile-equipment-empty">Nothing equipped</div>';
+
+  profileArmoryListEl.innerHTML = available.length
+    ? available.map(item => {
+        const entry = equipmentCatalogEntry(item.type);
+        const name = entry ? entry.name : item.type;
+        return `<div class="profile-equipment-row"><span>${name}</span><button class="equip-btn" data-item-id="${item.id}">Equip</button></div>`;
+      }).join('')
+    : '<div class="profile-equipment-empty">Armory is empty</div>';
+}
+
 closeProfileBtn.addEventListener('click', closeProfile);
+
+profileEquippedListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.unequip-btn');
+  if (!btn || !selectedUnitId) return;
+  gameState.unequipUnit(selectedUnitId, btn.dataset.itemId);
+  const unit = gameState.units.find(u => u.id === selectedUnitId);
+  if (unit) renderProfileEquipment(unit);
+});
+
+profileArmoryListEl.addEventListener('click', (e) => {
+  const btn = e.target.closest('.equip-btn');
+  if (!btn || !selectedUnitId) return;
+  gameState.equipUnit(selectedUnitId, btn.dataset.itemId);
+  const unit = gameState.units.find(u => u.id === selectedUnitId);
+  if (unit) renderProfileEquipment(unit);
+});
 
 for (const { key, assignBtn } of trainingBuildingUi) {
   assignBtn.addEventListener('click', () => {
@@ -201,7 +260,10 @@ function rewardText(tier) {
   const resource = tier.resourceReward
     ? ` + ${tier.resourceReward.amount[0]}-${tier.resourceReward.amount[1]} ${tier.resourceReward.type}`
     : '';
-  return `${cash} + ${xp}${resource}`;
+  const equipment = tier.equipmentReward
+    ? ` + ${Math.round(tier.equipmentReward.chance * 100)}% chance of a ${equipmentCatalogEntry(tier.equipmentReward.type).name}`
+    : '';
+  return `${cash} + ${xp}${resource}${equipment}`;
 }
 
 function openMissionsPanel() {
@@ -282,8 +344,14 @@ function updateMissionPreview() {
   const tier = missionTierById(selectedTierId);
   missionSquadCountEl.textContent = selectedSquadIds.size;
   const squad = [...selectedSquadIds].map(id => gameState.units.find(u => u.id === id)).filter(Boolean);
+  // Equipment bonus averaged across the squad, same shape as
+  // resolveMissionForUnit()'s per-unit roll — this is just the preview,
+  // the actual resolution always rolls per-unit independently.
+  const avgEquipmentBonus = squad.length
+    ? squad.reduce((sum, u) => sum + gameState.equipmentBonusForUnit(u), 0) / squad.length
+    : 0;
   missionChancePreviewEl.textContent = tier && squad.length
-    ? `${Math.round(missionSuccessChance(tier, squad) * 100)}%`
+    ? `${Math.round(missionSuccessChance(tier, squad, avgEquipmentBonus) * 100)}%`
     : '--';
   dispatchMissionBtn.disabled = !(tier && squad.length > 0 && squad.length <= tier.maxSquadSize);
 }
@@ -320,6 +388,7 @@ function missionLogRowHtml(entry) {
     rewardBits.push(`+$${entry.cashEarned}`);
     rewardBits.push(`+${entry.xpEarned} XP`);
     if (entry.resourceEarned) rewardBits.push(`+${entry.resourceEarned.amount} ${entry.resourceEarned.type}`);
+    if (entry.equipmentEarned) rewardBits.push(`found a ${entry.equipmentEarned}`);
   }
   const rewardText = rewardBits.length ? ` (${rewardBits.join(', ')})` : '';
   const cls = entry.succeeded ? 'mission-log-success' : 'mission-log-failure';

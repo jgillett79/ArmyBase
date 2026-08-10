@@ -82,7 +82,6 @@
       <div class="profile-row"><span>Strength</span><span id="profileStrength"></span></div>
       <div class="profile-row"><span>Accuracy</span><span id="profileAccuracy"></span></div>
       <div class="profile-row"><span>Endurance</span><span id="profileEndurance"></span></div>
-      <div class="profile-row"><span>Equipment</span><span id="profileEquipment">None</span></div>
     </div>
     <div id="profileStatPoints" class="profile-stat-points hidden">
       <span class="hud-label">Allocate stat points (<span id="profileStatPointsLeft">0</span> left)</span>
@@ -91,6 +90,12 @@
         <button id="allocateAccuracyBtn">+ Accuracy</button>
         <button id="allocateEnduranceBtn">+ Endurance</button>
       </div>
+    </div>
+    <div class="profile-equipment">
+      <span class="hud-label">Equipped</span>
+      <div id="profileEquippedList" class="profile-equipment-list"></div>
+      <span class="hud-label">Armory</span>
+      <div id="profileArmoryList" class="profile-equipment-list"></div>
     </div>
     <div class="profile-training">
       <span class="hud-label">Assign to training</span>
@@ -156,6 +161,7 @@
   <script src="js/unit.js"></script>
   <script src="js/building.js"></script>
   <script src="js/mission.js"></script>
+  <script src="js/equipment.js"></script>
   <script src="js/state.js"></script>
   <script src="js/render.js"></script>
   <script src="js/main.js"></script>
