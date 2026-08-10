@@ -730,6 +730,31 @@ base and the unit shadow was confirmed to look correct. Worth remembering
 for next time: check what the art is already doing before layering a
 generic effect on top of it.
 
+**Same-session follow-up: training-action animation.** The activity icon
+above a training unit's head answered "what are they doing" but not "show
+me them doing it" — user specifically asked for men actually firing guns
+at the rifle range, running the obstacle course, and similar for the
+other two training buildings. Delivered without any new art: each
+training building now gets its own small animation applied to the
+existing static sprite —
+
+- **Shooting Range** — a sharp recoil kick plus a small muzzle-flash spark
+  and tracer line, timed together on a fast pulse cycle. This is the most
+  literal version of "firing guns" achievable without a dedicated aiming
+  pose.
+- **Weight Room** — a slow squat/rise rep cycle.
+- **Obstacle Course** — a fast running-in-place hop.
+- **Combat Drill Yard** — a side-to-side sparring shuffle.
+
+Each unit's animation is phase-offset by its own identity, so a full
+squad training at the same building doesn't move in unison like a single
+puppet. Only plays once a unit has actually arrived at the building (same
+gate the activity icon already used), never while still walking there.
+Tested by sampling the animation function across a 2-second time window
+per building type and confirming real variation frame to frame (not a
+frozen pose) plus confirming the muzzle flash genuinely pulses on and off
+rather than staying lit or never firing.
+
 ## Open questions still remaining for Phase 2/3
 
 1. **Shipping resources/weapons between bases** — the locked design

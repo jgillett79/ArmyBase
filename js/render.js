@@ -421,12 +421,89 @@ const ACTIVITY_ICONS = {
   [UNIT_STATUS.SLEEPING]: '💤',
 };
 
+// Which of the 4 TrainingBuilding instances a unit is assigned to, as a
+// short key — shared by the activity icon below and by
+// trainingActionOffset()'s per-building animation, so both stay in sync off
+// one lookup instead of two separately-maintained id comparisons.
+function trainingBuildingKind(gameState, buildingId) {
+  if (buildingId === gameState.shootingRange.id) return 'shootingRange';
+  if (buildingId === gameState.weightRoom.id) return 'weightRoom';
+  if (buildingId === gameState.obstacleCourse.id) return 'obstacleCourse';
+  if (buildingId === gameState.drillYard.id) return 'drillYard';
+  return null;
+}
+
+const TRAINING_ICONS = {
+  shootingRange: '🎯',
+  weightRoom: '🏋',
+  obstacleCourse: '🏃',
+  drillYard: '⚔️',
+};
+
 function trainingActivityIcon(gameState, buildingId) {
-  if (buildingId === gameState.shootingRange.id) return '🎯';
-  if (buildingId === gameState.weightRoom.id) return '🏋';
-  if (buildingId === gameState.obstacleCourse.id) return '🏃';
-  if (buildingId === gameState.drillYard.id) return '⚔️';
-  return '🏋';
+  return TRAINING_ICONS[trainingBuildingKind(gameState, buildingId)] || '🏋';
+}
+
+// A cheap substitute for dedicated action-pose art (aiming/firing, running,
+// lifting, sparring) — reuses the existing static sprite with a small
+// per-frame transform instead of new frames. Returns {dx, dy, rot, flash}
+// in local sprite-space (px/px/radians/0-1 alpha) applied by drawUnit().
+// `t` is performance.now(); phase is offset per-unit (colorSeed) so a full
+// squad training together doesn't move in lockstep.
+function trainingActionOffset(unit, kind, t) {
+  const phase = t + unit.colorSeed * 37;
+  switch (kind) {
+    case 'shootingRange': {
+      // Sharp, snappy recoil kick on a ~260ms cycle — deliberately NOT a
+      // smooth sine, so it reads as a "kick" (firing) rather than a sway.
+      // flash drives the muzzle-flash sprite below, same cycle.
+      const cyclePos = (phase / 260) % 1;
+      const kick = cyclePos < 0.15 ? 1 - cyclePos / 0.15 : 0;
+      return { dx: -kick * 3, dy: -kick, rot: -kick * 0.06, flash: kick };
+    }
+    case 'weightRoom': {
+      // Slow squat/rise rep cycle.
+      const s = (Math.sin(phase / 500) + 1) / 2; // 0..1
+      return { dx: 0, dy: -s * 3, rot: 0, flash: 0 };
+    }
+    case 'obstacleCourse': {
+      // Fast running-in-place hop + forward lean.
+      const s = Math.abs(Math.sin(phase / 130));
+      return { dx: 0, dy: s * 4, rot: -0.08, flash: 0 };
+    }
+    case 'drillYard': {
+      // Quick side-to-side sparring shuffle.
+      const s = Math.sin(phase / 170);
+      return { dx: s * 3, dy: 0, rot: s * 0.05, flash: 0 };
+    }
+    default:
+      return { dx: 0, dy: 0, rot: 0, flash: 0 };
+  }
+}
+
+// A small spark + tracer near the unit's hands, timed to the recoil kick
+// above — the most literal answer to "men firing guns at the rifle range."
+function drawMuzzleFlash(ctx, unit, actionDx, actionDy, alpha) {
+  if (alpha <= 0) return;
+  const facingLeft = unit.facing === 'left';
+  const fx = unit.x + actionDx + (facingLeft ? -14 : 14);
+  // Minus actionDy, not plus — matches the sign convention drawUnit()'s
+  // sprite draw uses (positive actionDy = sprite moves up), so the flash
+  // tracks the same recoil dip instead of moving opposite to it.
+  const fy = unit.y - UNIT_H * 0.35 - actionDy;
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = '#fff2b0';
+  ctx.beginPath();
+  ctx.arc(fx, fy, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 230, 150, 0.7)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(fx, fy);
+  ctx.lineTo(fx + (facingLeft ? -18 : 18), fy - 4);
+  ctx.stroke();
+  ctx.restore();
 }
 
 // Mirrors GameState.routeForStatus()'s own status->building mapping, so this
@@ -598,7 +675,28 @@ function drawUnit(ctx, gameState, unit, isSelected) {
   // from performance.now(), never touches unit.x/y or anything persisted,
   // so it can't interact with movement/pathing or an offline-catchup dt jump.
   const walking = !unit.isAtTarget() && !isSeatedCivilian(unit);
-  const bob = walking ? Math.sin(performance.now() / 110 + hue) * 2 : 0;
+  const now = performance.now();
+
+  // Once actually training at a building (not just walking there), swap the
+  // walking bob for a per-building action animation — see
+  // trainingActionOffset() above. Answers "I want men firing guns at the
+  // rifle range, running the obstacle course" without needing dedicated
+  // action-pose art: the existing static sprite gets a small transform
+  // (recoil kick / rep cycle / running hop / sparring shuffle) instead.
+  const trainingKind = (!unit.isCivilian && unit.status === UNIT_STATUS.TRAINING && unit.isAtTarget())
+    ? trainingBuildingKind(gameState, unit.assignedBuildingId)
+    : null;
+
+  let actionDx = 0, actionDy = 0, actionRot = 0, actionFlash = 0;
+  if (walking) {
+    actionDy = Math.sin(now / 110 + hue) * 2;
+  } else if (trainingKind) {
+    const action = trainingActionOffset(unit, trainingKind, now);
+    actionDx = action.dx;
+    actionDy = action.dy;
+    actionRot = action.rot;
+    actionFlash = action.flash;
+  }
 
   ctx.save();
   ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.5 : 1;
@@ -628,29 +726,36 @@ function drawUnit(ctx, gameState, unit, isSelected) {
     ctx.save();
     const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
     ctx.filter = `hue-rotate(${hue}deg) saturate(${sat})`;
-    // The sitting pose is a single fixed orientation (facing forward, out
-    // of the chair) — it doesn't turn to face unit.facing like the
-    // walking sprites do, so skip the left-mirror for a seated civilian.
+    // Pivot at the feet (unit.x + actionDx, bottom) rather than the sprite's
+    // top-left corner — a single transform pipeline (translate, then an
+    // optional recoil/lean rotate, then an optional left-mirror) now covers
+    // walking bob, training action animation, and facing all at once,
+    // instead of three separately-coded branches. The sitting pose is a
+    // single fixed orientation (facing forward, out of the chair) — it
+    // doesn't turn to face unit.facing like the walking sprites do, so skip
+    // the left-mirror for a seated civilian.
+    ctx.translate(unit.x + actionDx, bottom);
+    if (actionRot) ctx.rotate(actionRot);
     if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
       // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
-      // sprite around the unit's own draw position instead.
-      ctx.translate(unit.x + halfW, top - bob);
+      // sprite around the pivot instead. Symmetric around x=0, so this
+      // works the same regardless of the recoil/lean rotate above.
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0, UNIT_W, UNIT_H);
-    } else {
-      ctx.drawImage(img, unit.x - halfW, top - bob, UNIT_W, UNIT_H);
     }
+    ctx.drawImage(img, -halfW, -UNIT_H - actionDy, UNIT_W, UNIT_H);
     ctx.restore();
   } else {
     // fallback: original colored dot until the sprite loads
     const radius = unit.isCivilian ? 6 : 8;
     ctx.beginPath();
-    ctx.arc(unit.x, unit.y - bob, radius, 0, Math.PI * 2);
+    ctx.arc(unit.x + actionDx, unit.y - actionDy, radius, 0, Math.PI * 2);
     ctx.fillStyle = unit.isCivilian
       ? `hsl(${hue}, 25%, 55%)`
       : `hsl(${hue}, 55%, 50%)`;
     ctx.fill();
   }
+
+  if (actionFlash > 0) drawMuzzleFlash(ctx, unit, actionDx, actionDy, actionFlash);
 
   // hospital ring — the only status shown as a ring (a "problem" signal);
   // other statuses are shown via the text label so the canvas stays readable.

@@ -471,6 +471,25 @@ it. Buildings no longer get a code-drawn shadow at all; units keep theirs
 future generic "add polish" pass: check what the art already does before
 adding a generic effect on top of it** — this asset pack turned out to be
 better than the shadow code assumed.
+**Same-session follow-up: training-action animation.** User wanted actual
+visible action — "men firing guns at the rifle range, running the
+obstacle course" — not just a static figure with an icon over its head.
+Built with the existing static sprites, no new art: `trainingActionOffset()`
+returns a per-building-kind `{dx, dy, rot, flash}` transform (shooting
+range: sharp recoil kick on a ~260ms cycle, deliberately not a smooth sine
+so it reads as a kick, not a sway; weight room: slow squat/rise; obstacle
+course: fast running-in-place hop; drill yard: side-to-side sparring
+shuffle), phase-offset per unit via `colorSeed` so a full squad training
+together doesn't move in lockstep. `drawUnit()` was refactored to a single
+translate/rotate/mirror transform pipeline pivoted at the unit's feet
+(previously walking-bob and the left-mirror were two separately-coded
+branches) — this is what let the training animation slot in as a third
+case alongside walking bob and idle, instead of a fourth special-cased
+branch. `shootingRange`'s `flash` value also drives `drawMuzzleFlash()` — a
+small spark + tracer line timed to the recoil kick, the most literal
+answer to "firing guns." All of this is gated the same way the activity
+icon already was (`isAtTarget()`, i.e. actually arrived, not just
+assigned), so it can't fire while a unit is still walking to the building.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 
