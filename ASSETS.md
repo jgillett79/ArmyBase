@@ -958,12 +958,11 @@ every other not-yet-generated asset in this doc.
 | 46 | `taxi_sitting.png` | `assets/units/civilians/taxi_sitting.png` | 128×192px | PNG-24 + alpha |
 | 47-73 | `{character}_{down\|up\|right}_2.png` | see the walk-cycle 27-file table above | 128×192px | PNG-24 + alpha |
 
-**#1-46 are generated and in the repo. #47-73 (the 27 walk-cycle "frame
-2" files) are new** — `render.js`/`unit.js` are already fully wired to
-use them the moment they land (alternating with the existing frame 1
-while a unit is moving); until then, units just keep using the single
-existing pose, so there's no urgency, but this is the one set of files
-actually worth generating next — see the walk-cycle section above.
+**#1-73 are all generated and in the repo.** The 27 walk-cycle "frame 2"
+files (#47-73) were generated last, via `tools/generate_assets.py`
+(FLUX on Cloudflare Workers AI); `render.js`/`unit.js` were already wired
+to alternate them with frame 1 while a unit moves, so the walk animation
+is live now.
 
 ## Folder structure
 
@@ -995,21 +994,21 @@ assets/
       civilian_down.png         (done)
       civilian_up.png           (done)
       civilian_right.png        (done)
-      civilian_down_2.png        (needed — walk-cycle frame 2)
-      civilian_up_2.png          (needed — walk-cycle frame 2)
-      civilian_right_2.png       (needed — walk-cycle frame 2)
+      civilian_down_2.png        (done)
+      civilian_up_2.png          (done)
+      civilian_right_2.png       (done)
       bus_rider_down.png        (done)
       bus_rider_up.png          (done)
       bus_rider_right.png       (done)
-      bus_rider_down_2.png       (needed — walk-cycle frame 2)
-      bus_rider_up_2.png         (needed — walk-cycle frame 2)
-      bus_rider_right_2.png      (needed — walk-cycle frame 2)
+      bus_rider_down_2.png       (done)
+      bus_rider_up_2.png         (done)
+      bus_rider_right_2.png      (done)
       taxi_down.png              (done)
       taxi_up.png                (done)
       taxi_right.png             (done)
-      taxi_down_2.png             (needed — walk-cycle frame 2)
-      taxi_up_2.png               (needed — walk-cycle frame 2)
-      taxi_right_2.png            (needed — walk-cycle frame 2)
+      taxi_down_2.png             (done)
+      taxi_up_2.png               (done)
+      taxi_right_2.png            (done)
       civilian_sitting.png       (done)
       bus_rider_sitting.png      (done)
       taxi_sitting.png           (done)
@@ -1018,45 +1017,45 @@ assets/
       soldier_01_down.png       (done)
       soldier_01_up.png         (done)
       soldier_01_right.png      (done)
-      soldier_01_down_2.png      (needed — walk-cycle frame 2)
-      soldier_01_up_2.png        (needed — walk-cycle frame 2)
-      soldier_01_right_2.png     (needed — walk-cycle frame 2)
+      soldier_01_down_2.png      (done)
+      soldier_01_up_2.png        (done)
+      soldier_01_right_2.png     (done)
       soldier_02_down.png       (done)
       soldier_02_up.png         (done)
       soldier_02_right.png      (done)
-      soldier_02_down_2.png      (needed — walk-cycle frame 2)
-      soldier_02_up_2.png        (needed — walk-cycle frame 2)
-      soldier_02_right_2.png     (needed — walk-cycle frame 2)
+      soldier_02_down_2.png      (done)
+      soldier_02_up_2.png        (done)
+      soldier_02_right_2.png     (done)
       soldier_03_down.png       (done)
       soldier_03_up.png         (done)
       soldier_03_right.png      (done)
-      soldier_03_down_2.png      (needed — walk-cycle frame 2)
-      soldier_03_up_2.png        (needed — walk-cycle frame 2)
-      soldier_03_right_2.png     (needed — walk-cycle frame 2)
+      soldier_03_down_2.png      (done)
+      soldier_03_up_2.png        (done)
+      soldier_03_right_2.png     (done)
       soldier_04_down.png       (done)
       soldier_04_up.png         (done)
       soldier_04_right.png      (done)
-      soldier_04_down_2.png      (needed — walk-cycle frame 2)
-      soldier_04_up_2.png        (needed — walk-cycle frame 2)
-      soldier_04_right_2.png     (needed — walk-cycle frame 2)
+      soldier_04_down_2.png      (done)
+      soldier_04_up_2.png        (done)
+      soldier_04_right_2.png     (done)
       soldier_05_down.png       (done)
       soldier_05_up.png         (done)
       soldier_05_right.png      (done)
-      soldier_05_down_2.png      (needed — walk-cycle frame 2)
-      soldier_05_up_2.png        (needed — walk-cycle frame 2)
-      soldier_05_right_2.png     (needed — walk-cycle frame 2)
+      soldier_05_down_2.png      (done)
+      soldier_05_up_2.png        (done)
+      soldier_05_right_2.png     (done)
       soldier_06_down.png       (done)
       soldier_06_up.png         (done)
       soldier_06_right.png      (done)
-      soldier_06_down_2.png      (needed — walk-cycle frame 2)
-      soldier_06_up_2.png        (needed — walk-cycle frame 2)
-      soldier_06_right_2.png     (needed — walk-cycle frame 2)
+      soldier_06_down_2.png      (done)
+      soldier_06_up_2.png        (done)
+      soldier_06_right_2.png     (done)
 ```
 
-46 of 73 files are generated, in the repo, and wired in. The 27
-walk-cycle "frame 2" files (`*_2.png`) are the one thing actually worth
-generating next — see the "Walk-cycle animation" section above for the
-full spec and prompt template. The old front-facing sprites
+All 73 files are generated, in the repo, and wired in — including the 27
+walk-cycle "frame 2" files (`*_2.png`), generated via
+`tools/generate_assets.py` (see the "Walk-cycle animation" section above
+for the spec/prompt template that produced them). The old front-facing sprites
 (`civilian.png`, `bus_rider.png`, `taxi.png`,
 `soldier_01.png`...`soldier_06.png`) are superseded by the directional
 set but kept on disk as a fallback chain in `render.js` — safe to delete

@@ -599,6 +599,59 @@ for _cname, (_subdir, _identity) in _CHAR_IDENTITIES.items():
 
 
 # ---------------------------------------------------------------------------
+# Walk-cycle "frame 2" sprites (27 files = 9 identities x 3 directions)
+#
+# Per ASSETS.md "Walk-cycle animation": frame 1 is the existing directional
+# sprite as-is; frame 2 is the SAME identity/direction/camera/crop with only
+# the legs+arms swapped to the opposite mid-stride position. render.js
+# alternates the two on unit.walkFrame while moving. Generated the same way as
+# the directional set -- identity + a frame-2 direction modifier + palette tail
+# -- and _fit_canvas() normalizes both frames' scale/centering so the swap
+# reads as a step, not a jitter. Files land at {identity}_{dir}_2.png.
+# ---------------------------------------------------------------------------
+
+# Same camera framing as _DIR_MODIFIERS, but the OPPOSITE leg leads and the
+# opposite arm swings -- a natural mid-stride weight shift, not a mirror image.
+_DIR_MODIFIERS_F2 = {
+    "down":
+        " Viewed from a 30-40 degree top-down isometric angle, walking toward "
+        "the camera (down the screen): front of the body facing the viewer, "
+        "face and front mostly visible, head angled slightly down as if seen "
+        "from just above. Mid-stride walking pose caught on the OPPOSITE step "
+        "from a leading-left-leg frame: the right leg is now stepping forward "
+        "toward the camera and the left arm swings forward, the left leg "
+        "trailing behind.",
+    "up":
+        " Viewed from a 30-40 degree top-down isometric angle, walking away from "
+        "the camera (up the screen): the fully-clothed character is seen from "
+        "behind, the back of their outfit toward the viewer, only the back of "
+        "the head, hair, clothed shoulders and the back of the stride visible, "
+        "face turned away. Mid-stride walking pose caught on the OPPOSITE step: "
+        "the right leg is now stepping forward and the left arm swings forward, "
+        "the left leg trailing behind.",
+    "right":
+        " Viewed from a 30-40 degree top-down isometric angle, shown in a "
+        "right-facing side profile walking toward the right of the screen: one "
+        "side of the body and the face profile visible. Mid-stride walking pose "
+        "caught on the OPPOSITE scissor step from a front-leg-forward frame: the "
+        "legs are now passing each other with the back leg swinging through "
+        "forward and the front leg pushing off behind, and the opposite arm "
+        "swings forward.",
+}
+
+for _cname, (_subdir, _identity) in _CHAR_IDENTITIES.items():
+    for _dir, _dirmod in _DIR_MODIFIERS_F2.items():
+        ASSETS[f"{_cname}_{_dir}_2"] = {
+            "prompt": _identity + _dirmod + _CHAR_PALETTE_TAIL,
+            "negative": NEG_CHAR,
+            "gen": CHAR_GEN,
+            "out": CHAR_OUT,
+            "subdir": _subdir,
+            "solo": CHAR_SOLO_DIR,  # directional: don't force "front view only"
+        }
+
+
+# ---------------------------------------------------------------------------
 # .env loader (no dependency)
 # ---------------------------------------------------------------------------
 
