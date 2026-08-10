@@ -400,7 +400,62 @@ function drawRoads(ctx, gameState) {
   ctx.setLineDash([]);
 }
 
-function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spriteKey) {
+// --- "boxy and rough" polish pass ------------------------------------------
+// Three cheap, code-only additions — no new art needed, nothing here touches
+// Unit/GameState state, movement, or the road network:
+//   1. A ground-contact shadow under every building and unit, so they read
+//      as sitting on the ground instead of flat stickers pasted on the grid.
+//   2. A small vertical bob while a unit is actually walking (on top of the
+//      existing 2-frame walk-cycle swap) — gliding in a perfectly flat line
+//      with zero vertical motion is what reads as robotic/stiff.
+//   3. A per-status activity icon above a unit once it's truly arrived
+//      (isAtTarget(), same gate as isSeatedCivilian()) plus a soft pulsing
+//      glow on the building it's using — direct answer to "units don't
+//      interact with buildings": previously a unit just stood at the door
+//      with no visible link to what it was doing there.
+
+const ACTIVITY_ICONS = {
+  [UNIT_STATUS.EATING]: '🍖',
+  [UNIT_STATUS.HYGIENE]: '🚿',
+  [UNIT_STATUS.RECREATION]: '🎮',
+  [UNIT_STATUS.SLEEPING]: '💤',
+};
+
+function trainingActivityIcon(gameState, buildingId) {
+  if (buildingId === gameState.shootingRange.id) return '🎯';
+  if (buildingId === gameState.weightRoom.id) return '🏋';
+  if (buildingId === gameState.obstacleCourse.id) return '🏃';
+  if (buildingId === gameState.drillYard.id) return '⚔️';
+  return '🏋';
+}
+
+// Mirrors GameState.routeForStatus()'s own status->building mapping, so this
+// can't point at the wrong building even if that mapping ever changes.
+function buildingForStatus(gameState, unit) {
+  switch (unit.status) {
+    case UNIT_STATUS.EATING: return gameState.messHall;
+    case UNIT_STATUS.HYGIENE: return gameState.showers;
+    case UNIT_STATUS.RECREATION: return gameState.recRoom;
+    case UNIT_STATUS.SLEEPING: return gameState.barracks;
+    case UNIT_STATUS.TRAINING: return gameState.buildingById(unit.assignedBuildingId);
+    default: return null;
+  }
+}
+
+// Only once a unit has actually finished walking there, not just been
+// routed/assigned — same "arrived, not just close" gate isSeatedCivilian()
+// already uses.
+function activityIconForUnit(gameState, unit) {
+  if (unit.isCivilian || !unit.isAtTarget()) return null;
+  if (unit.status === UNIT_STATUS.TRAINING) return trainingActivityIcon(gameState, unit.assignedBuildingId);
+  return ACTIVITY_ICONS[unit.status] || null;
+}
+
+function buildingIsActive(gameState, building) {
+  return gameState.units.some(u => !u.isCivilian && u.isAtTarget() && buildingForStatus(gameState, u) === building);
+}
+
+function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spriteKey, active) {
   const x = gridX * CELL_SIZE;
   const y = gridY * CELL_SIZE;
   const w = CELL_SIZE * BUILDING_FOOTPRINT_CELLS.w;
@@ -428,6 +483,23 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
     return;
   }
 
+  // Soft ground shadow, drawn before the sprite — the cheapest fix for
+  // buildings reading as flat stickers instead of objects sitting on the
+  // ground (user feedback: "boxy and rough").
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+  ctx.beginPath();
+  ctx.ellipse(x + w / 2, y + h - 3, w * 0.42, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Soft pulsing glow while occupied — the building-side half of the
+  // "units don't interact with buildings" fix (activityIconForUnit() above
+  // is the unit-side half). Drawn behind the sprite as a halo.
+  if (active) {
+    const pulse = 0.14 + 0.1 * Math.sin(performance.now() / 450);
+    ctx.fillStyle = `rgba(242, 233, 168, ${pulse})`;
+    ctx.fillRect(x - 4, y - 4, w + 8, h + 8);
+  }
+
   const img = BUILDING_SPRITES[spriteKey];
   if (spriteReady(img)) {
     ctx.drawImage(img, x, y, w, h);
@@ -452,39 +524,41 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
   ctx.restore();
 }
 
-function drawBarracks(ctx, barracks) {
+function drawBarracks(ctx, barracks, active) {
   drawBuildingBox(ctx, barracks.gridX, barracks.gridY, barracks.isBuilt,
-    `Barracks Lv.${barracks.level}`, `+${barracks.capContribution()} cap`, '#5a6450', 'barracks');
+    `Barracks Lv.${barracks.level}`, `+${barracks.capContribution()} cap`, '#5a6450', 'barracks', active);
 }
 
 // Shared drawer for the 4 TrainingBuilding instances (building.js) — they're
 // all boxes with a level + occupancy label, just different labels/colors/art.
-function drawTrainingBuilding(ctx, building, occupancy, label, color, spriteKey) {
+function drawTrainingBuilding(ctx, building, occupancy, label, color, spriteKey, active) {
   drawBuildingBox(ctx, building.gridX, building.gridY, building.isBuilt,
-    `${label} Lv.${building.level}`, `${occupancy}/${building.capacity} slots`, color, spriteKey);
+    `${label} Lv.${building.level}`, `${occupancy}/${building.capacity} slots`, color, spriteKey, active);
 }
 
-function drawMessHall(ctx, hall, food) {
+function drawMessHall(ctx, hall, food, active) {
   drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
-    'Mess Hall', `Food: ${Math.floor(food)}`, '#40605a', 'mess_hall');
+    'Mess Hall', `Food: ${Math.floor(food)}`, '#40605a', 'mess_hall', active);
 }
 
-function drawShowers(ctx, showers) {
+function drawShowers(ctx, showers, active) {
   drawBuildingBox(ctx, showers.gridX, showers.gridY, showers.isBuilt,
-    'Showers', 'Hygiene', '#4a7a8a', 'showers');
+    'Showers', 'Hygiene', '#4a7a8a', 'showers', active);
 }
 
-function drawRecRoom(ctx, recRoom) {
+function drawRecRoom(ctx, recRoom, active) {
   drawBuildingBox(ctx, recRoom.gridX, recRoom.gridY, recRoom.isBuilt,
-    'Rec Room', 'Morale', '#8a6a4a', 'rec_room');
+    'Rec Room', 'Morale', '#8a6a4a', 'rec_room', active);
 }
 
 // Always isBuilt (see EntranceHall's class comment) — the "not built" branch
 // of drawBuildingBox never actually triggers for this one, kept anyway for
-// consistency with every other building's draw call.
+// consistency with every other building's draw call. No occupancy concept
+// here — civilians waiting for a chair isn't "a unit doing a job" — so it
+// never gets the active glow.
 function drawEntranceHall(ctx, hall) {
   drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
-    'Entrance Hall', 'Waiting area', '#6a5a4a', 'entrance_hall');
+    'Entrance Hall', 'Waiting area', '#6a5a4a', 'entrance_hall', false);
 }
 
 function drawClock(ctx, hourOfDay, isDaytime) {
@@ -508,7 +582,7 @@ function outfitMarker(outfit) {
   }
 }
 
-function drawUnit(ctx, unit, isSelected) {
+function drawUnit(ctx, gameState, unit, isSelected) {
   const hue = unit.colorSeed;
   const inHospital = unit.status === UNIT_STATUS.HOSPITAL;
   const img = unitSprite(unit);
@@ -516,8 +590,25 @@ function drawUnit(ctx, unit, isSelected) {
   const top = unit.y - UNIT_H / 2;      // sprite top edge
   const bottom = unit.y + UNIT_H / 2;   // sprite bottom edge (feet)
 
+  // Small vertical bob while actually walking, layered on top of the
+  // existing 2-frame walk-cycle sprite swap — a unit gliding in a perfectly
+  // flat line with zero vertical motion is what reads as robotic/stiff
+  // ("characters don't walk properly" feedback). Purely cosmetic: derived
+  // from performance.now(), never touches unit.x/y or anything persisted,
+  // so it can't interact with movement/pathing or an offline-catchup dt jump.
+  const walking = !unit.isAtTarget() && !isSeatedCivilian(unit);
+  const bob = walking ? Math.sin(performance.now() / 110 + hue) * 2 : 0;
+
   ctx.save();
   ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.5 : 1;
+
+  // Ground-contact shadow, fixed at the feet regardless of bob — the sprite
+  // visibly lifts off it as it bobs, same "grounds the sprite instead of a
+  // flat sticker" fix as the building shadow in drawBuildingBox().
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+  ctx.beginPath();
+  ctx.ellipse(unit.x, bottom - 2, halfW * 0.75, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   // selection highlight — soft ellipse under the feet
   if (isSelected) {
@@ -542,18 +633,18 @@ function drawUnit(ctx, unit, isSelected) {
     if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
       // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
       // sprite around the unit's own draw position instead.
-      ctx.translate(unit.x + halfW, top);
+      ctx.translate(unit.x + halfW, top - bob);
       ctx.scale(-1, 1);
       ctx.drawImage(img, 0, 0, UNIT_W, UNIT_H);
     } else {
-      ctx.drawImage(img, unit.x - halfW, top, UNIT_W, UNIT_H);
+      ctx.drawImage(img, unit.x - halfW, top - bob, UNIT_W, UNIT_H);
     }
     ctx.restore();
   } else {
     // fallback: original colored dot until the sprite loads
     const radius = unit.isCivilian ? 6 : 8;
     ctx.beginPath();
-    ctx.arc(unit.x, unit.y, radius, 0, Math.PI * 2);
+    ctx.arc(unit.x, unit.y - bob, radius, 0, Math.PI * 2);
     ctx.fillStyle = unit.isCivilian
       ? `hsl(${hue}, 25%, 55%)`
       : `hsl(${hue}, 55%, 50%)`;
@@ -570,6 +661,23 @@ function drawUnit(ctx, unit, isSelected) {
     ctx.ellipse(unit.x, unit.y, halfW + 3, UNIT_H / 2 + 2, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
+  }
+
+  // activity icon — the unit-side half of the "units don't interact with
+  // buildings" fix (buildingIsActive() above is the building-side glow).
+  // Only shows once truly arrived (activityIconForUnit() gates on
+  // isAtTarget()); drawn higher than the level-up star so both can show at
+  // once without overlapping.
+  const activityIcon = activityIconForUnit(gameState, unit);
+  if (activityIcon) {
+    const iconBob = Math.sin(performance.now() / 300 + hue) * 2;
+    ctx.save();
+    ctx.font = '13px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,0.8)';
+    ctx.shadowBlur = 3;
+    ctx.fillText(activityIcon, unit.x, top - 24 + iconBob);
+    ctx.restore();
   }
 
   // level-up star — a soldier with unspentStatPoints > 0 has a stat point
@@ -636,14 +744,14 @@ function renderFrame(ctx, gameState, selectedUnitId) {
   drawGrid(ctx, gameState);
   drawPerimeterWall(ctx);
   drawRoads(ctx, gameState);
-  drawBarracks(ctx, gameState.barracks);
-  drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240', 'shooting_range');
-  drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a', 'weight_room');
-  drawTrainingBuilding(ctx, gameState.obstacleCourse, gameState.occupancyOf(gameState.obstacleCourse), 'Obstacle Course', '#6a5a30', 'obstacle_course');
-  drawTrainingBuilding(ctx, gameState.drillYard, gameState.occupancyOf(gameState.drillYard), 'Combat Drill Yard', '#4a5a6a', 'drill_yard');
-  drawMessHall(ctx, gameState.messHall, gameState.food);
-  drawShowers(ctx, gameState.showers);
-  drawRecRoom(ctx, gameState.recRoom);
+  drawBarracks(ctx, gameState.barracks, buildingIsActive(gameState, gameState.barracks));
+  drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240', 'shooting_range', buildingIsActive(gameState, gameState.shootingRange));
+  drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a', 'weight_room', buildingIsActive(gameState, gameState.weightRoom));
+  drawTrainingBuilding(ctx, gameState.obstacleCourse, gameState.occupancyOf(gameState.obstacleCourse), 'Obstacle Course', '#6a5a30', 'obstacle_course', buildingIsActive(gameState, gameState.obstacleCourse));
+  drawTrainingBuilding(ctx, gameState.drillYard, gameState.occupancyOf(gameState.drillYard), 'Combat Drill Yard', '#4a5a6a', 'drill_yard', buildingIsActive(gameState, gameState.drillYard));
+  drawMessHall(ctx, gameState.messHall, gameState.food, buildingIsActive(gameState, gameState.messHall));
+  drawShowers(ctx, gameState.showers, buildingIsActive(gameState, gameState.showers));
+  drawRecRoom(ctx, gameState.recRoom, buildingIsActive(gameState, gameState.recRoom));
   drawEntranceHall(ctx, gameState.entranceHall);
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 
@@ -651,6 +759,6 @@ function renderFrame(ctx, gameState, selectedUnitId) {
     // Away on a mission — async/black-box by design (see mission.js), so
     // there's nothing to draw until they return.
     if (unit.status === UNIT_STATUS.ON_MISSION) continue;
-    drawUnit(ctx, unit, unit.id === selectedUnitId);
+    drawUnit(ctx, gameState, unit, unit.id === selectedUnitId);
   }
 }

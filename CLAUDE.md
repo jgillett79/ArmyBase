@@ -428,6 +428,39 @@ built — see open questions). Save format bumped to `armybase_save_v2`.
 `missionLog` is now actually persisted (previously explicitly
 transient) — switching bases is a real session boundary now, losing
 recent history on every switch would've been a regression.
+**Phase 3 — increment 3 (done): rendering polish pass, no new art.** Direct
+response to user feedback that the game "feels boxy and rough" and units
+"don't interact with buildings" — before spending weeks regenerating art,
+tried fixing it in code first, on the theory that a chunk of "boxy" is
+composition (flat sprites, no depth cues, zero interaction feedback), not
+raw art quality. Three additions to `render.js`, all pure rendering, nothing
+touches `Unit`/`GameState` state or the road network: (1) a ground-contact
+shadow ellipse under every building and unit, so they read as sitting on the
+ground instead of pasted-on stickers; (2) a small sine-wave vertical bob on
+a unit's sprite while it's actually walking (`!isAtTarget()`), layered on
+top of the existing 2-frame walk-cycle swap — gliding in a dead-flat line
+with zero vertical motion was a big part of what read as robotic; (3) a
+per-status activity icon (emoji, reusing existing text-rendering, no new
+art) above a unit once it's truly arrived at a job — 🎯/🏋/🏃/⚔️ per
+training building, 🍖 eating, 🚿 hygiene, 🎮 recreation, 💤 sleeping — plus a
+soft pulsing glow on the building itself while occupied
+(`buildingIsActive()`), so there's now a direct visible link between a unit
+and what it's doing at the building next to it. `activityIconForUnit()`/
+`buildingForStatus()` mirror `GameState.routeForStatus()`'s own
+status-to-building mapping exactly, so they can't drift out of sync with
+it. `drawUnit()`'s signature gained a `gameState` param (needed to resolve
+`unit.assignedBuildingId` to a specific training building's icon); every
+building draw wrapper (`drawBarracks`/`drawTrainingBuilding`/etc.) gained an
+`active` bool computed once per building per frame in `renderFrame()`.
+Tested via Playwright with the page's own `requestAnimationFrame` loop
+stubbed out (`page.addInitScript`) so manually-forced test statuses
+couldn't be stomped by the real game loop's own background ticking, plus a
+separate unstubbed 6-second real-play stress test (civilians spawning,
+units on their real daily schedule) confirming zero page errors/404s under
+actual dynamic conditions. This is explicitly a first pass, not a claim
+that "boxy" is fully solved — see README's Phase 3 increment 3 writeup for
+the reasoning on why a code-first pass was tried before touching art at
+all.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

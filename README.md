@@ -672,6 +672,51 @@ switchable Base 2.
   regression suite (every prior increment's tests) re-run clean
   afterward to confirm nothing broke.
 
+## Phase 3 — increment 3 (done): rendering polish pass (shadows, walk bob, building-interaction cues)
+
+User feedback: the game "feels boxy and rough" and needs to be smoother
+before the gameplay can stand on its own, plus a specific complaint that
+units don't visibly interact with the buildings they're standing next to.
+Before spending weeks slowly regenerating art through an image generator
+(the option actually on the table), this pass tried fixing it in code
+first — cheap, same-session, no art risk — on the bet that a real chunk of
+"boxy" is a composition problem (flat sprites, no depth cues, zero
+feedback when a unit reaches a building) rather than a raw-art-quality
+problem. Three additions to `render.js`, no new art files, nothing here
+touches `Unit`/`GameState` state or the road network:
+
+- **Ground-contact shadows.** Every building and every unit now casts a
+  soft dark ellipse at its base. Previously nothing grounded them to the
+  terrain — they read as flat images pasted onto the grid. This alone does
+  a lot of the "boxy" fix.
+- **Walking bob.** A unit's sprite now bobs slightly (a small sine wave)
+  while it's actually mid-walk, on top of the existing 2-frame walk-cycle
+  swap from the last increment. Gliding in a perfectly flat line with zero
+  vertical motion was a big part of what read as robotic rather than
+  "walking."
+- **Building-interaction cues.** A unit standing at a building now shows a
+  small activity icon above its head once it's *actually arrived* (not
+  just walking there) — 🎯 Shooting Range, 🏋 Weight Room, 🏃 Obstacle
+  Course, ⚔️ Drill Yard, 🍖 eating, 🚿 showering, 🎮 recreation, 💤
+  sleeping — and the building itself gets a soft pulsing glow while
+  occupied. This directly answers "units don't interact with buildings":
+  before this, a unit just stood at the door with no visible sign it was
+  doing anything there.
+
+Tested via Playwright two ways: with the page's own real-time game loop
+stubbed out, so manually-staged test units (one per status) could be
+checked without the live schedule engine immediately overriding them —
+confirmed the right icon/glow shows for each status, and confirmed a
+walking unit's position actually advances frame to frame; and separately,
+a 6-second run of the real, unstubbed game loop (civilians spawning, units
+running their actual daily schedule) to confirm zero page errors or
+missing-asset 404s under real dynamic play, not just staged conditions.
+
+This is a first pass, not a claim that "boxy" is fully solved — see the
+open questions below for the actual next call on art. It exists to answer
+one question before committing to weeks of art regeneration: is some of
+the roughness fixable for free in code? Some of it clearly was.
+
 ## Open questions still remaining for Phase 2/3
 
 1. **Shipping resources/weapons between bases** — the locked design
@@ -686,9 +731,20 @@ switchable Base 2.
 3. **Weapons Factory / freemium weapon-crafting** — parked, not scoped.
 4. **Final veteran class roster** — proposed set above, not yet confirmed
    as final.
-5. **27 walk-cycle "frame 2" art files** — fully spec'd in `ASSETS.md`,
-   code is 100% ready to consume them the moment they land, zero further
-   engineering work needed on this side.
+5. ~~27 walk-cycle "frame 2" art files~~ — done, generated and merged in;
+   units now genuinely animate mid-stride.
+6. **Whether/how to do a further art uplift.** The Phase 3 increment 3
+   polish pass (shadows/bob/interaction cues) was a deliberate first step
+   to test how much of "boxy and rough" was fixable in code before
+   committing to new art. If it's judged not enough on its own, the
+   explicit recommendation going in was: don't freelance new art one image
+   at a time through a general chat image tool with no consistency
+   controls (this project already burned one asset, `vacant_lot.png`, to
+   exactly that failure mode) — lock a strict style spec (one reference
+   image, one fixed prompt template, one camera/lighting angle) and
+   generate in batches against it, ideally through the existing
+   `generate_assets.py` pipeline that was purpose-built to solve this
+   consistency problem, rather than switching tools mid-project.
 
 ## File layout
 
