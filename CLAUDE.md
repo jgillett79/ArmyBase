@@ -460,7 +460,17 @@ units on their real daily schedule) confirming zero page errors/404s under
 actual dynamic conditions. This is explicitly a first pass, not a claim
 that "boxy" is fully solved — see README's Phase 3 increment 3 writeup for
 the reasoning on why a code-first pass was tried before touching art at
-all.
+all. **Same-session correction:** the building drop-shadow was reverted
+almost immediately — user feedback ("balanced on their corner and
+floating") plus a pixel-level look at the actual sprites confirmed the
+building art already bakes in its own isometric ground platform/shadow
+(e.g. `mess_hall.png`'s paved pad), so the generic shadow ellipse was a
+second, disconnected ground cue fighting the art instead of complementing
+it. Buildings no longer get a code-drawn shadow at all; units keep theirs
+(unit art has no baked-in base, so it's correct there). **Lesson for any
+future generic "add polish" pass: check what the art already does before
+adding a generic effect on top of it** — this asset pack turned out to be
+better than the shadow code assumed.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

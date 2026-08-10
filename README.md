@@ -717,6 +717,19 @@ open questions below for the actual next call on art. It exists to answer
 one question before committing to weeks of art regeneration: is some of
 the roughness fixable for free in code? Some of it clearly was.
 
+**Same-session correction:** the building drop-shadow above got reverted
+almost immediately after shipping. User feedback that buildings now looked
+"balanced on their corner and floating," followed by a pixel-level check
+of the actual sprite files, showed the building art already has its own
+isometric ground platform baked in (paved pads, fences, etc. — the
+generated art is genuinely good here). The added shadow was a second,
+disconnected dark ellipse sitting below that platform rather than under
+it, which is exactly what produced the floating look. Buildings no longer
+get a code-drawn shadow; units still do, since unit art has no baked-in
+base and the unit shadow was confirmed to look correct. Worth remembering
+for next time: check what the art is already doing before layering a
+generic effect on top of it.
+
 ## Open questions still remaining for Phase 2/3
 
 1. **Shipping resources/weapons between bases** — the locked design

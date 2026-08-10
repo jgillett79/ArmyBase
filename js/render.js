@@ -483,13 +483,14 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
     return;
   }
 
-  // Soft ground shadow, drawn before the sprite — the cheapest fix for
-  // buildings reading as flat stickers instead of objects sitting on the
-  // ground (user feedback: "boxy and rough").
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
-  ctx.beginPath();
-  ctx.ellipse(x + w / 2, y + h - 3, w * 0.42, 8, 0, 0, Math.PI * 2);
-  ctx.fill();
+  // NOTE: a generic drop-shadow ellipse was tried here and reverted — the
+  // building art already bakes in its own isometric ground platform/shadow
+  // (see e.g. mess_hall.png's paved pad), so drawing a second, disconnected
+  // shadow underneath it fought the art instead of complementing it: two
+  // competing ground cues that don't line up, which read as the building
+  // "balanced on a corner, floating" (user feedback) rather than grounded.
+  // Units DON'T have a baked-in base, so their own shadow (drawUnit()) is
+  // correct and stays — this is specifically a buildings-only revert.
 
   // Soft pulsing glow while occupied — the building-side half of the
   // "units don't interact with buildings" fix (activityIconForUnit() above
