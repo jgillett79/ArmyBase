@@ -903,6 +903,84 @@ If these aren't generated, units keep walking exactly as they do today
 (smooth glide, single static pose) — same graceful-fallback pattern as
 every other not-yet-generated asset in this doc.
 
+## 3D action-frame pipeline (tooling built, not yet run — read before using)
+
+Everything above this section is 2D text-to-image generation (Cloudflare
+Workers AI / FLUX, via `tools/generate_assets.py`) — one static image per
+file, no real motion. The training-action animation currently in the game
+(`render.js`'s `trainingActionOffset()` — recoil kick, squat/rise, running
+hop, sparring shuffle) is a code trick layered on top of ONE static pose per
+soldier, not real drawn/animated frames — it has a real ceiling on how
+convincing it can look, precisely because there's only ever one actual
+drawing.
+
+This section specs a genuinely different pipeline for getting real,
+multi-frame action animation (a real firing sequence, a real running
+sequence) instead of a code-tweened single pose — the same fundamental
+technique big mobile base-builder games use: build a 3D character once,
+animate it properly, then render out the individual frames as ordinary 2D
+sprites. The runtime stays exactly what it already is — plain PNGs swapped
+in `render.js`, same as every other sprite in this game. All the 3D work
+happens once, offline, outside the game entirely.
+
+**Status: the two offline processing scripts exist and the post-processing
+half (`finish_3d_sprites.py`) has been verified working end-to-end against
+synthetic test frames. The Blender rendering half
+(`render_action_sprites.py`) has NOT been run by anyone yet** — there was
+no Blender install available to test it when it was written, so treat it
+as a first draft: run its `--preview` flag first and expect to debug small
+issues once real output exists to look at.
+
+### The full workflow
+
+1. **Generate a 3D character model.** Use an AI text-to-3D or image-to-3D
+   tool — as of when this was written, [Meshy](https://www.meshy.ai) and
+   [Tripo AI](https://www.tripo3d.ai) both have a free tier and export to
+   FBX/GLB. Tip: if the tool supports image-to-3D, feed it one of this
+   project's existing sprites (e.g. `assets/units/soldiers/soldier_01.png`)
+   as a reference to keep the new model's proportions/look in the same
+   family as art already in the game. Export in roughly a T-pose or A-pose.
+2. **Rig and animate it via [Mixamo](https://www.mixamo.com)** (free, needs
+   an Adobe account). Upload the model — Mixamo auto-rigs any reasonable
+   humanoid mesh — then search its animation library for what each
+   training building needs (e.g. "rifle aim"/"firing rifle" for the
+   Shooting Range, "running" for the Obstacle Course, "weight lifting" for
+   the Weight Room, "boxing"/"sparring" for the Drill Yard) and apply it.
+   Download **"with Skin"** as FBX — one FBX file per animation.
+3. **Render frames with Blender** (free): `tools/render_action_sprites.py`
+   takes one of those FBX files and renders every frame of its animation to
+   a transparent PNG, using a camera angle and flat/outlined shading setup
+   matched to this doc's existing style (30-40° isometric, bold dark
+   outline, no gradient shading — see the script's own header comment for
+   exactly how). Run its `--preview` flag first to sanity-check framing
+   before committing to a full batch. Output lands in
+   `assets/_raw_3d/<name>/` — a staging area, not final game assets.
+4. **Post-process with `tools/finish_3d_sprites.py`** (plain Python, no
+   Blender) — crops, resizes, and desaturates each raw render using the
+   exact same functions `generate_assets.py` already uses on every 2D
+   sprite, so the output matches this project's canonical 128×192px
+   desaturated-palette convention (required for the runtime per-unit
+   hue-rotate tinting to work). Output lands in `assets/_3d_processed/`.
+
+### What's deliberately NOT done yet: wiring finished frames into the game
+
+Once real frames exist from a real run of this pipeline, `render.js` needs
+extending from today's binary walk-cycle-style frame swap (`frame1`/`frame2`)
+to a proper N-frame cycle for training actions specifically — looping
+through, say, 8 real running frames instead of applying
+`trainingActionOffset()`'s code-tweened hop to one static pose. That change
+is intentionally not made yet: the exact frame count and file-naming
+convention depend on choices only visible once this pipeline has actually
+been run once for real (how many frames read as smooth without being
+excessive, whether all 4 training buildings + civilians need the full
+9-identity treatment or just soldiers, etc.) — guessing that shape now would
+risk the same "designed before the requirement was known" rearchitect-later
+problem this project has avoided elsewhere (see `CLAUDE.md`'s road-network
+section for the same principle applied previously). Once frames exist and
+look right, this is a small, contained `render.js` change — the
+graceful-fallback pattern already used everywhere in this file (missing art
+= fall back to what already works) applies here too.
+
 ## Not included in this pass (intentionally)
 
 - **"Not built" building ghost state** — stays the existing dashed-outline
@@ -1060,3 +1138,21 @@ for the spec/prompt template that produced them). The old front-facing sprites
 `soldier_01.png`...`soldier_06.png`) are superseded by the directional
 set but kept on disk as a fallback chain in `render.js` — safe to delete
 later once confirmed unused.
+
+The 3D action-frame pipeline (see that section above) writes to two more
+folders, not yet populated by anyone since the Blender half hasn't been
+run:
+
+```
+assets/
+  _raw_3d/
+    <name>/                     — tools/render_action_sprites.py's raw
+                                   output, one subfolder per action (e.g.
+                                   shootingRange/, obstacleCourse/)
+  _3d_processed/
+    <name>/                     — tools/finish_3d_sprites.py's cropped/
+                                   resized/desaturated output, ready to be
+                                   wired into render.js once that step is
+                                   designed (see that section for why it
+                                   isn't yet)
+```

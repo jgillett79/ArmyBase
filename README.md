@@ -755,6 +755,50 @@ per building type and confirming real variation frame to frame (not a
 frozen pose) plus confirming the muzzle flash genuinely pulses on and off
 rather than staying lit or never firing.
 
+**Same-session follow-up: 3D action-frame pipeline tooling (built, not run
+yet).** The training-action animation above is a code trick on one static
+pose and has a real ceiling — asked whether "real" games (Clash of Clans
+and similar) do this differently, and whether switching to Unity/Unreal
+would help. Short answer on the engine question: no — the actual technique
+those games use is building a 3D character once, animating it properly
+(often via free tools: an AI 3D model generator plus Mixamo's free
+auto-rigging and huge motion-capture animation library), and rendering the
+individual frames out as ordinary 2D sprites. The game itself still just
+swaps PNGs at runtime, same as today — no engine change needed.
+
+Two new offline tools implement this, living in `tools/` alongside the
+existing `generate_assets.py`:
+
+- **`tools/render_action_sprites.py`** (needs Blender, free) — takes a
+  rigged, animated FBX (from Mixamo) and renders every frame of its
+  animation to a transparent PNG, using a camera angle and flat-shaded,
+  outlined look matched to match this project's existing flat-vector
+  isometric art style, so 3D-rendered frames don't look jarringly
+  different from the hand-generated 2D sprites already in the game.
+- **`tools/finish_3d_sprites.py`** (plain Python) — crops, resizes, and
+  desaturates the raw renders using this repo's existing sprite
+  post-processing functions (imported directly from `generate_assets.py`,
+  not reimplemented), so output matches the canonical 128×192px
+  desaturated-palette convention every other character sprite already uses.
+
+**Honesty about test coverage: these two tools are NOT equally verified.**
+`finish_3d_sprites.py` was actually run against synthetic test frames and
+confirmed working correctly (right output size, ghost-fragment removal
+verified to actually change the result). `render_action_sprites.py` could
+not be tested at all — there's no Blender available in the environment
+that wrote it — so it's a careful first draft based on Blender's
+documented API, not a verified tool. It has a `--preview` flag specifically
+so the first real test (once a rigged model exists) is a single cheap
+frame, not a full batch.
+
+Full step-by-step workflow (getting a model via an AI 3D generator,
+rigging/animating via Mixamo, running both scripts) is documented in
+`ASSETS.md`'s new "3D action-frame pipeline" section, along with an
+explicit explanation of why the actual `render.js` wiring (extending the
+existing 2-frame walk-cycle swap to a real N-frame training-action
+animation) isn't built yet — that shape depends on choices only visible
+once this pipeline has actually produced real output once.
+
 ## Open questions still remaining for Phase 2/3
 
 1. **Shipping resources/weapons between bases** — the locked design

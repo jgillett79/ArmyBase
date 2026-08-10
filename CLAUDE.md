@@ -490,6 +490,40 @@ small spark + tracer line timed to the recoil kick, the most literal
 answer to "firing guns." All of this is gated the same way the activity
 icon already was (`isAtTarget()`, i.e. actually arrived, not just
 assigned), so it can't fire while a unit is still walking to the building.
+**Same-session follow-up: 3D action-frame pipeline tooling (built, not yet
+run).** User asked how "real" games get smooth character animation and
+specifically whether to build 3D models and render sprites from them like
+Clash-of-Clans-style games do — confirmed this is the actual professional
+technique (rig+animate a model once, render frames out as plain 2D sprites)
+and explicitly NOT a reason to switch engines (Unity/Unreal would rebuild
+this entire project from scratch for zero guaranteed animation-quality gain
+on their own — the missing ingredient is real animation frames, not a
+different renderer). Two new offline tools, `tools/render_action_sprites.py`
+(Blender, renders animation frames from a rigged/animated FBX to transparent
+PNGs, camera+shading matched to this repo's existing flat-vector isometric
+convention) and `tools/finish_3d_sprites.py` (plain Python, crops/resizes/
+desaturates raw renders using the SAME `_fit_canvas`/`_desaturate`/
+`_keep_largest_component` functions `generate_assets.py` already uses on
+2D sprites, imported directly rather than reimplemented, so both pipelines
+can't drift into producing differently-shaped output). **Important
+asymmetry: `finish_3d_sprites.py` was actually run and verified against
+synthetic test frames (confirmed correct 128×192 output, confirmed ghost-
+fragment removal via `_keep_largest_component` actually changes the
+result); `render_action_sprites.py` has NOT been run by anyone — there is
+no Blender install in the environment that wrote it.** Treat it as a first
+draft only verified by careful reading against Blender's documented API,
+not by execution — its own `--preview` single-frame flag exists
+specifically so the first real test is cheap. `tools/requirements.txt`
+gained explicit `numpy`/`scipy` entries — these were already an
+undeclared transitive dependency of the pre-existing `_keep_largest_component`
+(used by the 2D character pipeline too), only surfaced now because
+`finish_3d_sprites.py` imports it directly and needed a real local install
+to test against. Full workflow + why the actual `render.js` wiring step
+(extending the 2-frame walk-cycle swap to N frames) is deliberately NOT
+done yet documented in `ASSETS.md`'s new "3D action-frame pipeline"
+section — don't guess at that wiring's frame-count/naming shape before a
+real pipeline run exists to design it against, same "don't rearchitect
+before the requirement is known" principle as the road network.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

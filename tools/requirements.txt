@@ -2,3 +2,7 @@
 # Cloudflare API calls use Python's stdlib urllib, so no HTTP lib is needed.
 rembg[cpu]>=2.0.50   # background removal (pulls onnxruntime; ~180MB model on first run)
 pillow>=10.0.0       # image resize / PNG save
+numpy>=1.24.0        # used by _keep_largest_component / _make_seamless
+scipy>=1.10.0        # used by _keep_largest_component (connected-component labeling) —
+                     # was previously an undeclared transitive dependency; made explicit
+                     # here because tools/finish_3d_sprites.py imports it directly too
