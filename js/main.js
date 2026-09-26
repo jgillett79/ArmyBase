@@ -87,15 +87,77 @@ let selectedTierId = null;
 let selectedSquadIds = new Set();
 let lastFrameTime = performance.now();
 let lastSaveTime = Date.now();
+let lastRosterTime = 0;
 
 const RECRUIT_COST = 50;
 const SAVE_INTERVAL_MS = 10000;
+const rosterListEl = document.getElementById('rosterList');
+
+document.getElementById('exportSaveBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(gameState.serialize(), null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `command-base-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+});
+
+document.getElementById('importSaveInput').addEventListener('change', async event => {
+  const file = event.target.files[0];
+  if (!file) return;
+  try {
+    if (file.size > 1024 * 1024) throw new Error('Backup is too large.');
+    const data = JSON.parse(await file.text());
+    if (!validBackup(data)) throw new Error('This is not a valid Command Base backup.');
+    if (!window.confirm('Restore this backup? Your current progress on this device will be replaced.')) return;
+    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    location.reload();
+  } catch (error) {
+    window.alert(error.message || 'The backup could not be restored.');
+  } finally {
+    event.target.value = '';
+  }
+});
+
+function validBackup(data) {
+  if (!data || !Number.isFinite(data.cash) || !Number.isFinite(data.food)
+      || !Array.isArray(data.units) || data.units.length > 20) return false;
+  const ids = new Set();
+  for (const unit of data.units) {
+    if (!unit || typeof unit.id !== 'string' || !/^unit_[a-zA-Z0-9_-]+$/.test(unit.id) || ids.has(unit.id)
+        || typeof unit.name !== 'string' || unit.name.length > 18
+        || typeof unit.status !== 'string' || !Object.values(UNIT_STATUS).includes(unit.status)
+        || !['x', 'y', 'level', 'xp', 'strength', 'accuracy', 'endurance', 'energy'].every(key => Number.isFinite(unit[key]))) return false;
+    ids.add(unit.id);
+  }
+  return true;
+}
+
+function renderRoster() {
+  rosterListEl.replaceChildren();
+  const people = gameState.units.filter(u => u.status !== UNIT_STATUS.ON_MISSION || !u.isCivilian);
+  for (const unit of people) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = `roster-card${unit.isCivilian ? ' visitor' : ''}`;
+    const name = document.createElement('strong');
+    name.textContent = unit.name;
+    const detail = document.createElement('small');
+    detail.textContent = unit.isCivilian ? 'Visitor · Tap to recruit' : `Level ${unit.level} · ${unit.status.replaceAll('_', ' ')}`;
+    card.append(name, detail);
+    card.addEventListener('click', () => unit.isCivilian ? openRecruitPopup(unit) : openProfile(unit));
+    rosterListEl.append(card);
+  }
+  if (!people.length) rosterListEl.textContent = 'Visitors will arrive at the gate. Tap one to recruit your first soldier.';
+}
 
 // ---------- Selection / profile panel ----------
 
 function openProfile(unit) {
+  const opening = selectedUnitId !== unit.id || profilePanel.classList.contains('hidden');
   selectedUnitId = unit.id;
-  profileName.value = unit.name;
+  if (opening || document.activeElement !== profileName) profileName.value = unit.name;
   profileLevel.textContent = unit.level;
   profileXpBar.style.width = `${Math.round((unit.xp / unit.xpToNext) * 100)}%`;
   profileStatus.textContent = unit.status;
@@ -233,13 +295,25 @@ function renderSquadSelect() {
   missionSquadMaxEl.textContent = tier.maxSquadSize;
 
   const eligible = gameState.eligibleUnitsForTier(tier);
-  missionUnitListEl.innerHTML = eligible.length
-    ? eligible.map(u => `
-        <label class="mission-unit-row">
-          <input type="checkbox" data-unit-id="${u.id}" ${selectedSquadIds.has(u.id) ? 'checked' : ''}>
-          ${u.name} (Lv${u.level})
-        </label>`).join('')
-    : '<div class="mission-unit-empty">No eligible units — recruit or train more soldiers.</div>';
+  missionUnitListEl.replaceChildren();
+  if (!eligible.length) {
+    const empty = document.createElement('div');
+    empty.className = 'mission-unit-empty';
+    empty.textContent = 'No eligible units — recruit or train more soldiers.';
+    missionUnitListEl.append(empty);
+  }
+  for (const unit of eligible) {
+    const row = document.createElement('label');
+    row.className = 'mission-unit-row';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.dataset.unitId = unit.id;
+    checkbox.checked = selectedSquadIds.has(unit.id);
+    const label = document.createElement('span');
+    label.textContent = `${unit.name} (Lv${unit.level}, ${Math.round(missionSuccessChance(tier, [unit]) * 100)}% success)`;
+    row.append(checkbox, label);
+    missionUnitListEl.append(row);
+  }
 
   missionUnitListEl.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.addEventListener('change', () => {
@@ -264,7 +338,7 @@ function updateMissionPreview() {
   missionSquadCountEl.textContent = selectedSquadIds.size;
   const squad = [...selectedSquadIds].map(id => gameState.units.find(u => u.id === id)).filter(Boolean);
   missionChancePreviewEl.textContent = tier && squad.length
-    ? `${Math.round(missionSuccessChance(tier, squad) * 100)}%`
+    ? `${Math.round(squad.reduce((total, unit) => total + missionSuccessChance(tier, [unit]), 0) / squad.length * 100)}% average per soldier`
     : '--';
   dispatchMissionBtn.disabled = !(tier && squad.length > 0 && squad.length <= tier.maxSquadSize);
 }
@@ -282,13 +356,31 @@ function renderActiveMissions() {
   const active = gameState.units.filter(u => u.status === UNIT_STATUS.ON_MISSION);
   if (active.length === 0) {
     activeMissionsListEl.innerHTML = '<div class="mission-unit-empty">No squads out right now.</div>';
+    renderMissionResults();
     return;
   }
   const now = Date.now();
-  activeMissionsListEl.innerHTML = active.map(u => {
+  activeMissionsListEl.replaceChildren();
+  for (const u of active) {
+    const row = document.createElement('div');
+    row.className = 'mission-active-row';
     const tier = missionTierById(u.missionTierId);
-    return `<div class="mission-active-row">${u.name} — ${tier ? tier.name : 'Unknown'} — ${formatDuration(u.missionReturnAt - now)} left</div>`;
-  }).join('');
+    row.textContent = `${u.name} — ${tier ? tier.name : 'Unknown'} — ${formatDuration(u.missionReturnAt - now)} left`;
+    activeMissionsListEl.append(row);
+  }
+  renderMissionResults();
+}
+
+function renderMissionResults() {
+  const list = document.getElementById('missionResultsList');
+  list.replaceChildren();
+  for (const entry of gameState.missionLog.slice(0, 5)) {
+    const row = document.createElement('div');
+    row.className = 'mission-active-row';
+    row.textContent = `${entry.name} · ${entry.tier} · ${entry.succeeded ? 'Succeeded' : 'Recovering'} · +${entry.xp} XP`;
+    list.append(row);
+  }
+  if (!gameState.missionLog.length) list.textContent = 'Your squad’s stories will appear here.';
 }
 
 // ---------- Barracks build/upgrade ----------
@@ -318,9 +410,8 @@ function refreshBuildButtons() {
     buildBarracksBtn.disabled = true;
     buildBarracksBtn.textContent = 'Barracks Maxed';
   } else {
-    const cost = gameState.barracks.nextUpgradeCost();
-    barracksCostEl.textContent = Math.round(cost);
-    buildBarracksBtn.disabled = gameState.cash < cost;
+    barracksCostEl.textContent = upgradePriceText(gameState.barracks);
+    buildBarracksBtn.disabled = !gameState.canBuildOrUpgradeBarracks();
   }
 
   for (const { key, label, buildBtn, costEl } of trainingBuildingUi) {
@@ -329,9 +420,8 @@ function refreshBuildButtons() {
       buildBtn.disabled = true;
       buildBtn.textContent = `${label} Maxed`;
     } else {
-      const cost = building.nextUpgradeCost();
-      costEl.textContent = Math.round(cost);
-      buildBtn.disabled = gameState.cash < cost;
+      costEl.textContent = upgradePriceText(building);
+      buildBtn.disabled = !gameState.canUpgradeBuilding(building);
     }
   }
 
@@ -347,6 +437,11 @@ function refreshBuildButtons() {
 
   buyFoodBtn.disabled = gameState.cash < 30;
   foodValueEl.textContent = Math.floor(gameState.food);
+}
+
+function upgradePriceText(building) {
+  const price = gameState.upgradePrice(building);
+  return `${price.cash}${price.lumber ? ` + ${price.lumber} lumber` : ''}${price.steel ? ` + ${price.steel} steel` : ''}`;
 }
 
 // ---------- Canvas input ----------
@@ -391,11 +486,13 @@ function updateHud() {
   lumberValueEl.textContent = Math.floor(gameState.lumber);
   steelValueEl.textContent = Math.floor(gameState.steel);
   gemsValueEl.textContent = Math.floor(gameState.gems);
+  document.getElementById('baseProgress').textContent = `Facilities ${gameState.completedFacilities}/8 · Soldiers ${gameState.soldierCount}/20`;
+  document.getElementById('baseMilestone').classList.toggle('hidden', !gameState.baseComplete);
   refreshBuildButtons();
 }
 
 function frame(now) {
-  const dt = clamp((now - lastFrameTime) / 1000, 0, 0.25);
+  const dt = clamp((now - lastFrameTime) / 1000, 0, OFFLINE_CATCHUP_CAP_MS / 1000);
   lastFrameTime = now;
   const nowMs = Date.now();
 
@@ -405,7 +502,8 @@ function frame(now) {
     gameState.lastCivilianSpawn = nowMs;
   }
 
-  gameState.tick(dt, nowMs);
+  if (dt > 1) gameState.catchUp(dt, nowMs);
+  else gameState.tick(dt, nowMs);
 
   // keep profile panel numbers live if the selected unit is still around
   if (selectedUnitId) {
@@ -415,11 +513,15 @@ function frame(now) {
   }
 
   updateHud();
+  if (nowMs - lastRosterTime > 1000) {
+    renderRoster();
+    lastRosterTime = nowMs;
+  }
   renderActiveMissions();
   renderFrame(ctx, gameState, selectedUnitId);
 
   if (Date.now() - lastSaveTime > SAVE_INTERVAL_MS) {
-    gameState.save();
+    document.getElementById('saveNotice').classList.toggle('hidden', gameState.save());
     lastSaveTime = Date.now();
   }
 

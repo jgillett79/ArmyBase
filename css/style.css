@@ -329,3 +329,91 @@ button:disabled {
   color: var(--text-dim);
   padding: 2px 0;
 }
+
+/* Public-facing presentation: the base map remains a fixed-coordinate canvas,
+   while controls and roster reflow around it on narrow screens. */
+:root {
+  --bg: #101c1b;
+  --panel: #1a2926;
+  --panel-border: #3a5550;
+  --text: #f0eedf;
+  --text-dim: #aab9ae;
+  --accent: #d5bb79;
+  --highlight: #f4d798;
+}
+body { background: radial-gradient(circle at 50% 10%, #29413a, #101c1b 58%); }
+button { border-radius: 9px; padding: 9px 12px; transition: background .18s, border-color .18s, transform .18s; }
+button:hover:not(:disabled) { background: #30443c; transform: translateY(-1px); }
+button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid #f6d78e; outline-offset: 3px; }
+.hero { position: relative; width: min(100%, 1120px); min-height: 355px; overflow: hidden; background: #54716b url('../assets/illustrations/base-sunrise.webp') center 44% / cover no-repeat; border-radius: 0 0 22px 22px; box-shadow: 0 20px 60px #0006; }
+.hero::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, #102323e8 0%, #102323ad 34%, #10232319 75%), linear-gradient(0deg, #10232375, transparent 35%); }
+.hero-copy { position: relative; z-index: 1; max-width: 540px; padding: 62px 44px; }
+.eyebrow { margin: 0 0 8px; color: #e8c987; letter-spacing: .19em; font-size: .7rem; font-weight: 800; }
+h1, h2 { font-family: Georgia, 'Times New Roman', serif; letter-spacing: -.035em; }
+h1 { font-size: clamp(2.9rem, 7vw, 5rem); line-height: .98; margin: 0 0 19px; color: #fff9df; text-shadow: 0 3px 16px #0008; }
+.hero-copy > p:not(.eyebrow) { font-size: 1.05rem; line-height: 1.55; max-width: 390px; color: #e9f0e5; }
+.hero-action { display: inline-flex; gap: 20px; align-items: center; padding: 12px 19px; margin-top: 12px; background: #dbbb79; color: #16241f; border-radius: 9px; font-weight: 800; text-decoration: none; box-shadow: 0 6px 20px #0005; }
+.hero-action:hover { background: #f3d699; }
+.section-heading { width: min(100%, 960px); display: flex; align-items: end; justify-content: space-between; gap: 18px; padding: 28px 4px 12px; }
+.section-heading h2 { font-size: 1.8rem; margin: 0; color: #f7eed8; }
+.section-heading > p { margin: 0 0 4px; color: var(--text-dim); font-size: .86rem; max-width: 340px; text-align: right; line-height: 1.4; }
+#hud { width: min(100%, 960px); max-width: 960px; background: #20332edc; border: 1px solid var(--panel-border); border-radius: 15px; gap: 10px 20px; padding: 15px; box-shadow: 0 8px 28px #0004; }
+.hud-block { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 65px; font-variant-numeric: tabular-nums; font-weight: 700; }
+.hud-block:has(button) { flex-direction: row; align-items: center; }
+.hud-label { color: #afc5ad; font-weight: 700; }
+#buyFoodBtn { font-size: .72rem; padding: 3px 7px; }
+.mission-action { margin-left: auto; }
+.base-progress { width: min(100%, 960px); display: flex; gap: 15px; justify-content: space-between; padding: 9px 15px 0; color: #b7caba; font-size: .8rem; }
+.base-progress strong { color: #f2d58f; }
+#openMissionsBtn, #dispatchMissionBtn { background: #d5bb79; color: #1d2923; font-weight: 800; border-color: #e3cd9a; }
+.construction { width: min(100%, 960px); margin: 12px 0; border: 1px solid var(--panel-border); border-radius: 12px; background: #1b2a27; }
+.construction summary { cursor: pointer; padding: 15px 18px; font-weight: 800; list-style-position: inside; }
+.construction summary span { color: var(--text-dim); font-size: .8rem; font-weight: 400; margin-left: 12px; }
+.construction-grid { padding: 0 14px 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.construction-grid .hud-block { min-width: 0; }
+.construction-grid button { width: 100%; min-height: 42px; text-align: left; }
+#gameArea { width: min(100%, 960px); overflow-x: auto; border: 1px solid #476158; border-radius: 12px; box-shadow: 0 18px 48px #0007; }
+#gameCanvas { width: 960px; max-width: none; height: 576px; }
+.roster-section { width: min(100%, 960px); margin-bottom: 70px; }
+.roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 10px; }
+.roster-card { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-height: 94px; text-align: left; padding: 14px; background: #20332e; border: 1px solid #426157; border-radius: 12px; }
+.roster-card strong { font-size: .95rem; }
+.roster-card small { color: #b3c8b8; font-size: .76rem; }
+.roster-card.visitor { border-color: #c8a968; }
+.save-tools { margin: 18px 0 0; padding: 16px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; border: 1px solid #426157; border-radius: 12px; background: #1b2c28; }
+.save-tools > div { flex: 1 1 220px; }
+.save-tools strong, .save-tools span { display: block; }
+.save-tools span { margin-top: 4px; color: #b5c8bd; font-size: .8rem; line-height: 1.4; }
+.import-save { border: 1px solid var(--panel-border); border-radius: 9px; padding: 9px 12px; font-size: .85rem; cursor: pointer; }
+.import-save:hover { border-color: var(--accent); }
+.import-save input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.save-notice { width: min(100%, 960px); padding: 12px 16px; margin: 6px 0; background: #653b32; color: #fff1df; border-radius: 8px; }
+.guide { width: min(100%, 960px); margin: 0 0 12px; background: #1e302c; border: 1px solid #426157; border-radius: 12px; }
+.guide summary { padding: 13px 17px; cursor: pointer; font-weight: 800; }
+.guide summary span { color: #b2c8b8; font-weight: 400; font-size: .8rem; margin-left: 12px; }
+.guide ol { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding: 0 16px 16px 34px; margin: 0; }
+.guide li { padding-right: 8px; font-size: .82rem; }
+.guide li::marker { color: #e2c784; font-weight: bold; }
+.guide li strong, .guide li span { display: block; }
+.guide li span { margin-top: 5px; color: #b5c8bd; line-height: 1.4; }
+#profilePanel, #missionsPanel, #recruitPopup { z-index: 10; box-shadow: 0 20px 80px #000b; border-color: #759081; }
+#missionsPanel { width: min(92vw, 470px); }
+#profilePanel { top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+@media (max-width: 700px) {
+  .hero { min-height: 320px; border-radius: 0 0 16px 16px; background-position: 60% center; }
+  .hero::before { background: linear-gradient(90deg, #102323e8, #10232388 70%, #10232350); }
+  .hero-copy { padding: 48px 22px; }
+  .section-heading { padding: 22px 14px 10px; align-items: start; flex-direction: column; gap: 5px; }
+  .section-heading > p { text-align: left; }
+  #hud { border-radius: 0; gap: 10px 17px; }
+  .mission-action { margin-left: 0; }
+  .construction { border-radius: 0; margin: 8px 0; }
+  .construction-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .guide { border-radius: 0; }
+  .guide ol { grid-template-columns: repeat(2, 1fr); }
+  .guide summary span { display: block; margin-left: 19px; }
+  .construction summary span { display: block; margin: 4px 0 0 19px; }
+  #gameArea { border-radius: 0; }
+  .roster-list { padding: 0 10px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #profilePanel { width: min(94vw, 360px); top: auto; bottom: 0; right: 3vw; max-height: 65vh; }
+}

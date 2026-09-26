@@ -1,5 +1,7 @@
 # Art asset spec — Phase 2 art pass
 
+> Historical art brief. The listed character/building/terrain assets have since been generated and wired in. The current visual direction and new artwork are described in [DESIGN.md](DESIGN.md).
+
 This is the manifest for replacing the placeholder canvas shapes
 (`js/render.js`) with real images. Buildings/gatehouse/vacant-lot each
 have their own complete, self-contained prompt — copy one entry's

@@ -1,5 +1,7 @@
 # Command Base / ArmyBase
 
+> Current playable design and release scope: [DESIGN.md](DESIGN.md). The phase notes below are a historical development log; earlier "not built" statements may have been superseded.
+
 Vanilla JS + HTML5 Canvas. No build step, no dependencies. Open `index.html`
 in a browser, or serve the folder with any static server.
 

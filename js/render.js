@@ -36,8 +36,8 @@ const BUILDING_SPRITES = {
 // terrainZoneGrid() below for which cells use which texture.
 const TERRAIN_SPRITES = {
   ground: loadSprite('assets/terrain/ground.png'),
-  ground_apron: loadSprite('assets/terrain/ground_apron.png'),
-  ground_grass: loadSprite('assets/terrain/ground_grass.png'),
+  ground_apron: loadSprite('assets/terrain/ground_apron-v2.webp'),
+  ground_grass: loadSprite('assets/terrain/ground_grass-v2.webp'),
   wall: loadSprite('assets/terrain/wall.png'),
   road: loadSprite('assets/terrain/road.png'),
 };
@@ -55,7 +55,8 @@ function getTerrainPattern(ctx, key) {
   if (!spriteReady(img)) return null;
   const pattern = ctx.createPattern(img, 'repeat');
   if (pattern && pattern.setTransform) {
-    pattern.setTransform(new DOMMatrix([TERRAIN_SCALE, 0, 0, TERRAIN_SCALE, 0, 0]));
+    const scale = key === 'ground_apron' || key === 'ground_grass' ? 0.48 : TERRAIN_SCALE;
+    pattern.setTransform(new DOMMatrix([scale, 0, 0, scale, 0, 0]));
   }
   terrainPatternCache[key] = pattern;
   return pattern;
@@ -222,6 +223,7 @@ function terrainZoneGrid(gameState) {
     }
     grid.push(row);
   }
+
   terrainZoneCache = grid;
   return grid;
 }
@@ -251,7 +253,12 @@ function drawGrid(ctx, gameState) {
     }
   }
 
-  ctx.strokeStyle = 'rgba(216, 216, 200, 0.08)';
+  // A gentle common tint makes the new meadow and packed earth feel like
+  // one landscape under the same light, while keeping unit silhouettes clear.
+  ctx.fillStyle = 'rgba(14, 31, 24, 0.13)';
+  ctx.fillRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
+
+  ctx.strokeStyle = 'rgba(216, 216, 200, 0.025)';
   ctx.lineWidth = 1;
   for (let c = 0; c <= GRID_COLS; c++) {
     ctx.beginPath();
@@ -330,6 +337,14 @@ const ROAD_LINE = 'rgba(216, 216, 200, 0.25)';
 // buildings, not hardcoded numbers, so this can't drift out of sync with
 // the routing logic.
 function drawRoads(ctx, gameState) {
+  // A dark worn edge helps the paths sit into the painted earth.
+  ctx.strokeStyle = 'rgba(45, 44, 31, 0.43)';
+  ctx.lineWidth = 20;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(gameState.bounds.minX, ROAD_Y_SPINE);
+  ctx.lineTo(gameState.bounds.maxX, ROAD_Y_SPINE);
+  ctx.stroke();
   ctx.strokeStyle = getTerrainPattern(ctx, 'road') || ROAD_FILL;
   ctx.lineWidth = 14;
   ctx.lineCap = 'round';
@@ -357,7 +372,7 @@ function drawRoads(ctx, gameState) {
     ctx.stroke();
   }
 
-  // dashed centerline on top, purely decorative (road-marking look)
+  // Subtle footprints/markers on top of the compacted path.
   ctx.strokeStyle = ROAD_LINE;
   ctx.lineWidth = 2;
   ctx.setLineDash([8, 8]);
@@ -490,9 +505,16 @@ function drawUnit(ctx, unit, isSelected) {
   const halfW = UNIT_W / 2;
   const top = unit.y - UNIT_H / 2;      // sprite top edge
   const bottom = unit.y + UNIT_H / 2;   // sprite bottom edge (feet)
+  const moving = !inHospital && !isSeatedCivilian(unit) &&
+    (unit.path.length > 0 || Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y) > 1);
+  const stride = moving ? Math.sin(performance.now() * 0.014 + unit.colorSeed) : 0;
 
   ctx.save();
   ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.5 : 1;
+  ctx.fillStyle = moving ? 'rgba(8, 20, 17, 0.22)' : 'rgba(8, 20, 17, 0.32)';
+  ctx.beginPath();
+  ctx.ellipse(unit.x, bottom - 1, moving ? 11 : 9, 3, 0, 0, Math.PI * 2);
+  ctx.fill();
 
   // selection highlight — soft ellipse under the feet
   if (isSelected) {
@@ -517,11 +539,12 @@ function drawUnit(ctx, unit, isSelected) {
     if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
       // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
       // sprite around the unit's own draw position instead.
-      ctx.translate(unit.x + halfW, top);
+      ctx.translate(unit.x + halfW, top + (moving ? -Math.abs(stride) * 1.5 : 0));
       ctx.scale(-1, 1);
-      ctx.drawImage(img, 0, 0, UNIT_W, UNIT_H);
+      drawWalkingSprite(ctx, img, moving, stride);
     } else {
-      ctx.drawImage(img, unit.x - halfW, top, UNIT_W, UNIT_H);
+      ctx.translate(unit.x - halfW, top + (moving ? -Math.abs(stride) * 1.5 : 0));
+      drawWalkingSprite(ctx, img, moving, stride);
     }
     ctx.restore();
   } else {
@@ -576,6 +599,21 @@ function drawUnit(ctx, unit, isSelected) {
   ctx.textAlign = 'left';
 
   ctx.restore();
+}
+
+// A small two-leg cutout rig gives the existing directional character art a
+// readable alternating stride without needing dozens of inconsistent new
+// sprite frames. Standing and seated figures retain the original artwork.
+function drawWalkingSprite(ctx, img, moving, stride) {
+  if (!moving) { ctx.drawImage(img, 0, 0, UNIT_W, UNIT_H); return; }
+  const split = Math.floor(img.naturalHeight * 0.64);
+  const half = Math.floor(img.naturalWidth / 2);
+  ctx.drawImage(img, 0, 0, img.naturalWidth, split,
+    0, 0, UNIT_W, UNIT_H * 0.64);
+  ctx.drawImage(img, 0, split, half, img.naturalHeight - split,
+    -stride * 2.4, UNIT_H * 0.64 - 1, UNIT_W / 2, UNIT_H * 0.36 + 1);
+  ctx.drawImage(img, half, split, img.naturalWidth - half, img.naturalHeight - split,
+    UNIT_W / 2 + stride * 2.4, UNIT_H * 0.64 - 1, UNIT_W / 2, UNIT_H * 0.36 + 1);
 }
 
 function statusLabel(unit) {

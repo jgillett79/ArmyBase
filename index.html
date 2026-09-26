@@ -3,10 +3,35 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Command Base — Phase 0</title>
+<meta name="theme-color" content="#17231f">
+<meta name="description" content="Build a base, train a small squad, and lead your soldiers through missions in Command Base.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="assets/illustrations/icon-192.png">
+<title>Command Base — Your squad. Your story.</title>
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+  <section class="hero" aria-labelledby="gameTitle">
+    <div class="hero-copy">
+      <p class="eyebrow">A SMALL SQUAD. A BIG STORY.</p>
+      <h1 id="gameTitle">Command Base</h1>
+      <p>Recruit your people. Build their home. Train together and send your squad into the field.</p>
+      <a class="hero-action" href="#gameArea">Enter the base <span aria-hidden="true">↓</span></a>
+    </div>
+  </section>
+
+  <div class="section-heading"><div><p class="eyebrow">YOUR OUTPOST</p><h2>Base operations</h2></div><p>Tap a visitor to recruit them, or select a soldier to see their story.</p></div>
+  <p id="saveNotice" class="save-notice hidden" role="alert">This browser cannot save progress right now. Check that storage is enabled before you close the game.</p>
+  <details class="guide" open>
+    <summary>How to play <span>Four steps to build your squad</span></summary>
+    <ol>
+      <li><strong>Welcome a visitor</strong><span>Tap someone at the gate or in the roster below. Each recruit costs $50.</span></li>
+      <li><strong>Build a training space</strong><span>Open Build & upgrade, then assign a soldier from their profile.</span></li>
+      <li><strong>Send a patrol</strong><span>Missions earn cash and XP. Each soldier rolls separately; a failed mission means hospital recovery.</span></li>
+      <li><strong>Grow the outpost</strong><span>Train, recruit, and tackle harder missions for materials.</span></li>
+    </ol>
+  </details>
 
   <header id="hud">
     <div class="hud-block">
@@ -34,9 +59,15 @@
       <span class="hud-label">Gems</span>
       <span id="gemsValue">0</span>
     </div>
-    <div class="hud-block">
+    <div class="hud-block mission-action">
       <button id="openMissionsBtn">Missions</button>
     </div>
+  </header>
+  <div class="base-progress"><span id="baseProgress">Facilities 0/8 · Soldiers 0/20</span><strong id="baseMilestone" class="hidden">Outpost complete — your squad built this together.</strong></div>
+
+  <details id="construction" class="construction">
+    <summary>Build & upgrade <span>Shape your base with new facilities</span></summary>
+    <div class="construction-grid">
     <div class="hud-block">
       <button id="buildBarracksBtn">Barracks (<span id="barracksCost">100</span>)</button>
     </div>
@@ -61,11 +92,22 @@
     <div class="hud-block">
       <button id="buildRecRoomBtn">Rec Room (100)</button>
     </div>
-  </header>
+    </div>
+  </details>
 
   <main id="gameArea">
-    <canvas id="gameCanvas" width="960" height="576"></canvas>
+    <canvas id="gameCanvas" width="960" height="576" aria-label="Base map. Use the roster below to select soldiers and visitors."></canvas>
   </main>
+
+  <section class="roster-section" aria-labelledby="rosterHeading">
+    <div class="section-heading"><div><p class="eyebrow">THE PEOPLE</p><h2 id="rosterHeading">Your roster</h2></div><p>Select a soldier to see their profile, or welcome a visitor.</p></div>
+    <div id="rosterList" class="roster-list"></div>
+    <div class="save-tools">
+      <div><strong>Keep your squad safe</strong><span>Progress is stored on this device. Download a backup before clearing browser data or changing devices.</span></div>
+      <button id="exportSaveBtn">Download backup</button>
+      <label class="import-save">Restore backup<input id="importSaveInput" type="file" accept="application/json,.json"></label>
+    </div>
+  </section>
 
   <!-- Unit profile panel -->
   <div id="profilePanel" class="hidden">
@@ -139,7 +181,7 @@
       <span class="hud-label">Squad (<span id="missionSquadCount">0</span>/<span id="missionSquadMax">4</span>)</span>
       <div id="missionUnitList" class="mission-unit-list"></div>
       <div class="mission-preview">
-        <span>Success chance</span>
+        <span>Average chance per soldier</span>
         <span id="missionChancePreview">--</span>
       </div>
       <button id="dispatchMissionBtn" disabled>Dispatch</button>
@@ -148,6 +190,10 @@
     <div class="mission-active-section">
       <span class="hud-label">Active missions</span>
       <div id="activeMissionsList" class="active-missions-list"></div>
+    </div>
+    <div class="mission-active-section">
+      <span class="hud-label">Recent returns</span>
+      <div id="missionResultsList" class="active-missions-list"></div>
     </div>
   </div>
 
@@ -158,5 +204,11 @@
   <script src="js/state.js"></script>
   <script src="js/render.js"></script>
   <script src="js/main.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol !== 'file:') {
+      window.addEventListener('load', () => navigator.serviceWorker.register('./service-worker.js')
+        .catch(error => console.warn('Offline install unavailable', error)));
+    }
+  </script>
 </body>
 </html>

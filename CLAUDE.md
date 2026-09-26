@@ -1,5 +1,7 @@
 # ArmyBase / Command Base — Project Context
 
+> Read [DESIGN.md](DESIGN.md) for the current playable state. This file preserves decisions and development history; some early status statements are superseded by later increments.
+
 This file is read automatically by Claude Code at the start of every session
 in this repo. It exists so you don't have to re-explain the design history —
 read it before making changes, especially before "simplifying" anything that

@@ -5,7 +5,7 @@ const GRID_COLS = 20;
 const GRID_ROWS = 12;
 const CELL_SIZE = 48; // px, matches canvas 960x576
 
-const CASH_PER_SECOND_IDLE = 0.5; // passive trickle, proves offline catch-up works
+const CASH_PER_SECOND_IDLE = 0.03; // ~$108/hour; missions now matter more than waiting
 const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
 const CIVILIAN_WALK_TIMEOUT_MS = 12000; // how long they linger before leaving
 
@@ -97,6 +97,7 @@ class GameState {
     this.lumber = 0;
     this.steel = 0;
     this.gems = 0;
+    this.missionLog = [];
     this.units = [];
     this.barracks = new Barracks(2, 2);
     this.shootingRange = new ShootingRange(8, 2);
@@ -268,6 +269,7 @@ class GameState {
     if (!building || !building.isBuilt) return false;
     if (this.occupancyOf(building) >= building.capacity) return false;
     unit.assignedBuildingId = building.id;
+    if (unit.status === UNIT_STATUS.TRAINING) this.routeForStatus(unit);
     return true;
   }
 
@@ -275,6 +277,7 @@ class GameState {
     const unit = this.units.find(u => u.id === unitId);
     if (!unit) return false;
     unit.assignedBuildingId = null;
+    if (unit.status === UNIT_STATUS.TRAINING) this.transitionUnit(unit, UNIT_STATUS.IDLE);
     return true;
   }
 
@@ -290,14 +293,31 @@ class GameState {
   }
 
   canUpgradeBuilding(building) {
-    return !building.isMaxLevel && this.cash >= building.nextUpgradeCost();
+    return !building.isMaxLevel && this.canAffordUpgrade(building);
+  }
+
+  upgradePrice(building) {
+    return { cash: building.nextUpgradeCost(), lumber: building.level === 1 ? 10 : 0,
+      steel: building.level === 2 ? 6 : 0 };
+  }
+
+  canAffordUpgrade(building) {
+    const price = this.upgradePrice(building);
+    return this.cash >= price.cash && this.lumber >= price.lumber && this.steel >= price.steel;
+  }
+
+  payUpgrade(building) {
+    const price = this.upgradePrice(building);
+    this.cash -= price.cash;
+    this.lumber -= price.lumber;
+    this.steel -= price.steel;
+    building.upgrade();
   }
 
   upgradeBuilding(key) {
     const building = this[key];
     if (!building || !this.canUpgradeBuilding(building)) return false;
-    this.cash -= building.nextUpgradeCost();
-    building.upgrade();
+    this.payUpgrade(building);
     return true;
   }
 
@@ -309,14 +329,22 @@ class GameState {
     return this.units.filter(u => !u.isCivilian).length;
   }
 
+  get completedFacilities() {
+    return [this.barracks, ...this.trainingBuildings].filter(b => b.isMaxLevel).length
+      + [this.messHall, this.showers, this.recRoom].filter(b => b.isBuilt).length;
+  }
+
+  get baseComplete() {
+    return this.soldierCount >= 20 && this.completedFacilities === 8;
+  }
+
   canBuildOrUpgradeBarracks() {
-    return !this.barracks.isMaxLevel && this.cash >= this.barracks.nextUpgradeCost();
+    return !this.barracks.isMaxLevel && this.canAffordUpgrade(this.barracks);
   }
 
   upgradeBarracks() {
     if (!this.canBuildOrUpgradeBarracks()) return false;
-    this.cash -= this.barracks.nextUpgradeCost();
-    this.barracks.upgrade();
+    this.payUpgrade(this.barracks);
     return true;
   }
 
@@ -367,6 +395,7 @@ class GameState {
     const tier = missionTierById(tierId);
     if (!tier) return false;
     if (unitIds.length === 0 || unitIds.length > tier.maxSquadSize) return false;
+    if (new Set(unitIds).size !== unitIds.length) return false;
 
     const squad = unitIds.map(id => this.units.find(u => u.id === id)).filter(Boolean);
     if (squad.length !== unitIds.length) return false; // some id didn't resolve to a real unit
@@ -387,7 +416,15 @@ class GameState {
   // than all-or-nothing.
   resolveMissionForUnit(unit, nowMs) {
     const tier = missionTierById(unit.missionTierId);
+    const returnedAt = unit.missionReturnAt || nowMs;
     const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit]);
+    // Every deployment teaches something; successful missions teach more.
+    if (tier) unit.addXp(succeeded ? tier.xpReward : Math.max(10, Math.round(tier.xpReward * 0.25)));
+    if (tier) {
+      this.missionLog.unshift({ name: unit.name, tier: tier.name, succeeded: !!succeeded,
+        xp: succeeded ? tier.xpReward : Math.max(10, Math.round(tier.xpReward * 0.25)), at: returnedAt });
+      this.missionLog.length = Math.min(this.missionLog.length, 30);
+    }
 
     if (succeeded) {
       this.cash += rollInRange(tier.cashReward);
@@ -410,7 +447,7 @@ class GameState {
       // Same 23h real-time hospital stay as any other failure in this game
       // — no permadeath, mission failure isn't treated as worse than
       // neglect death. See CLAUDE.md.
-      unit.sendToHospital(nowMs);
+      unit.sendToHospital(returnedAt);
     }
   }
 
@@ -475,10 +512,12 @@ class GameState {
 
       unit.step(dtSeconds);
 
-      unit.applyEnergyDelta(gameHours, foodAvailable);
-      unit.applyHygieneDelta(gameHours, this.showers.isBuilt);
-      unit.applyMoraleDelta(gameHours, this.recRoom.isBuilt);
-      if (unit.status === UNIT_STATUS.EATING && foodAvailable && unit.isAtTarget()) {
+      const arrived = unit.isAtTarget();
+      const eating = unit.status === UNIT_STATUS.EATING && arrived && this.messHall.isBuilt;
+      unit.applyEnergyDelta(gameHours, eating && foodAvailable);
+      unit.applyHygieneDelta(gameHours, this.showers.isBuilt && arrived);
+      unit.applyMoraleDelta(gameHours, this.recRoom.isBuilt && arrived);
+      if (eating && foodAvailable) {
         foodConsumedThisTick += FOOD_CONSUMED_PER_GAME_HOUR * gameHours;
       }
       if (unit.status === UNIT_STATUS.TRAINING && unit.isAtTarget()) {
@@ -558,6 +597,7 @@ class GameState {
       lumber: this.lumber,
       steel: this.steel,
       gems: this.gems,
+      missionLog: this.missionLog,
       barracksLevel: this.barracks.level,
       shootingRangeLevel: this.shootingRange.level,
       messHallLevel: this.messHall.level,
@@ -571,6 +611,7 @@ class GameState {
         .filter(u => !u.isCivilian) // don't persist transient civilians
         .map(u => ({
           id: u.id, name: u.name, x: u.x, y: u.y, colorSeed: u.colorSeed,
+          soldierVariant: u.soldierVariant, civilianVariant: u.civilianVariant, outfit: u.outfit,
           level: u.level, xp: u.xp, xpToNext: u.xpToNext,
           maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
           maxEnergy: u.maxEnergy, energy: u.energy, hygiene: u.hygiene, morale: u.morale, assignedBuildingId: u.assignedBuildingId,
@@ -581,8 +622,10 @@ class GameState {
   }
 
   static load() {
-    const raw = localStorage.getItem(SAVE_KEY);
     const state = new GameState();
+    let raw;
+    try { raw = localStorage.getItem(SAVE_KEY); }
+    catch (error) { console.warn('Could not read saved game', error); return state; }
     if (!raw) return state;
 
     try {
@@ -592,6 +635,7 @@ class GameState {
       state.lumber = data.lumber ?? 0;
       state.steel = data.steel ?? 0;
       state.gems = data.gems ?? 0;
+      state.missionLog = Array.isArray(data.missionLog) ? data.missionLog.slice(0, 30) : [];
       state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
       state.barracks.level = data.barracksLevel ?? 0;
       state.shootingRange.level = data.shootingRangeLevel ?? 0;
@@ -624,9 +668,7 @@ class GameState {
       // sub-step this in e.g. 1-game-hour chunks instead.
       const elapsedMs = Date.now() - (data.lastTick || Date.now());
       const elapsedSec = clamp(elapsedMs / 1000, 0, OFFLINE_CATCHUP_CAP_MS / 1000);
-      if (elapsedSec > 1) {
-        state.tick(elapsedSec, Date.now());
-      }
+      if (elapsedSec > 1) state.catchUp(elapsedSec, Date.now());
     } catch (e) {
       console.warn('Save corrupt, starting fresh', e);
     }
@@ -634,6 +676,23 @@ class GameState {
   }
 
   save() {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(this.serialize()));
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(this.serialize()));
+      return true;
+    } catch (error) {
+      console.warn('Could not save game', error);
+      return false;
+    }
+  }
+
+  // The same bounded steps serve reload and suspended-tab catch-up. Each
+  // step reevaluates the schedule and needs, unlike a single 24-hour tick.
+  catchUp(elapsedSec, nowMs) {
+    const start = nowMs - elapsedSec * 1000;
+    for (let elapsed = 0; elapsed < elapsedSec;) {
+      const step = Math.min(10, elapsedSec - elapsed);
+      elapsed += step;
+      this.tick(step, start + elapsed * 1000);
+    }
   }
 }
