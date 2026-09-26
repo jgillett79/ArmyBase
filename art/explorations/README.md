@@ -9,3 +9,5 @@ These images test an alpine-outpost art direction. They are not yet gameplay spr
 Generated with the built-in image generation tool. Production assets should be approved as a composite at 960 × 576 first, then delivered as consistent directions and activity loops with verified alpha, frame dimensions and naming.
 
 27 September follow-up: `river-cliff-edge-study.webp` is an isolated cliff and riverbank composition for the authored terrain edge, not a seamless tile or a drop-in background. `soldier-down-walk-rejected.webp` is a transparent three-quarter attempt in the newer range/firing style, but it repeats the same gait phase six times. It is kept so the failure is visible. See `art/ART_HANDOFF_2026-09-27.md` before using either image.
+
+`bridge-crossing-study.webp` depicts an alpine timber footbridge over a stream as a composition reference. The water and banks are painted into this image, so this study must not be placed over the game's separately drawn water. The bridge-only source in `art/concepts/bridge-only-study.webp` is the isolated overlay candidate. A walkable bridge also requires endpoints and a crossing edge in the authored route graph.

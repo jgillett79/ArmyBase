@@ -25,6 +25,8 @@ Character follow-up prompts: one consistent ochre-jacket civilian in six right-f
 
 Additional follow-ups: gate open pose edits the closed image to raise only the boom, though the model still changed its static plinth; range foreground uses two separate low stone-and-timber berms with a gap. Check both for compositing defects before applying them in the game. No foreground masking or collision is delivered by the picture itself; those still use Brief 2 slot IDs and the Brief 4 render manifest.
 
+27 September facility and scenery batch: `weight-room-study.webp`, `obstacle-course-study.webp`, `drill-yard-study.webp`, `showers-study.webp`, `rec-room-study.webp`, `gate-kiosk-separate-study.webp`, `gate-boom-separate-study.webp`, `bridge-only-study.webp`, `props-structures-study.webp` and `props-landscape-study.webp`. All were generated against the established range art as style reference with a south-facing three-quarter view and transparent background. They are source studies; the roofs, fronts and slots still need exact production separation and manifest registration. The bridge-only study is visually separate from its water but needs geometry and an actual crossing route before use. Nine small static props were safely extracted; see `art/ART_PRODUCTION_QUEUE.md` and `art/production/scene-props.json`.
+
 ## Integration result (brief 04, 27 September 2026)
 
 Processed through `tools/prepare-art.cjs` (sources here are never modified); review sheets in `art/review/`, statuses in `js/asset-manifest.js`, and what to redraw in `art/CHATGPT_FEEDBACK.md`.

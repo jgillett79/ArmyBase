@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "status": "static production cutouts, placement pending",
+  "assets": [
+    {
+      "id": "fence",
+      "path": "assets/props/scene_fence.png",
+      "size": [
+        80,
+        71
+      ],
+      "pivot": [
+        40,
+        67
+      ],
+      "source": "art/concepts/props-structures-study.webp"
+    },
+    {
+      "id": "fence_post",
+      "path": "assets/props/scene_fence_post.png",
+      "size": [
+        28,
+        77
+      ],
+      "pivot": [
+        14,
+        73
+      ],
+      "source": "art/concepts/props-structures-study.webp"
+    },
+    {
+      "id": "lamp",
+      "path": "assets/props/scene_lamp.png",
+      "size": [
+        44,
+        63
+      ],
+      "pivot": [
+        22,
+        59
+      ],
+      "source": "art/concepts/props-structures-study.webp"
+    },
+    {
+      "id": "noticeboard",
+      "path": "assets/props/scene_noticeboard.png",
+      "size": [
+        60,
+        54
+      ],
+      "pivot": [
+        30,
+        50
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    },
+    {
+      "id": "signpost",
+      "path": "assets/props/scene_signpost.png",
+      "size": [
+        50,
+        63
+      ],
+      "pivot": [
+        25,
+        59
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    },
+    {
+      "id": "grass_flower",
+      "path": "assets/props/scene_grass_flower.png",
+      "size": [
+        52,
+        35
+      ],
+      "pivot": [
+        26,
+        31
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    },
+    {
+      "id": "rocks_granite",
+      "path": "assets/props/scene_rocks_granite.png",
+      "size": [
+        74,
+        58
+      ],
+      "pivot": [
+        37,
+        54
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    },
+    {
+      "id": "rock_moss",
+      "path": "assets/props/scene_rock_moss.png",
+      "size": [
+        62,
+        46
+      ],
+      "pivot": [
+        31,
+        42
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    },
+    {
+      "id": "utility_vehicle",
+      "path": "assets/props/scene_utility_vehicle.png",
+      "size": [
+        104,
+        106
+      ],
+      "pivot": [
+        52,
+        102
+      ],
+      "source": "art/concepts/props-landscape-study.webp"
+    }
+  ]
+}
