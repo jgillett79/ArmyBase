@@ -399,6 +399,17 @@ test, not by playing — worth keeping smoke tests for this reason.
   suite too, unaffected by the building-position swap since it always
   reads chair position via `buildingDoor()`, never a hardcoded coordinate.
 
+## Brief 01 (done): terrain-shaped world + save v2
+
+The grid and single road spine are replaced by an authored map
+(`js/world.js`): cliffs, river, pond and rocks shape ten irregular build
+zones, and people walk a path graph with shortest-path routing. Saves move
+to a versioned v2 schema with a one-time, non-destructive migration from
+`armybase_save_v1` (`js/save.js`). Check the layout with
+`tools/world-diagnostic.html`; run `node tests/world.cjs` and
+`node tests/save-migration.cjs` alongside the smoke tests. Details for the
+next brief: `CLAUDE_IMPLEMENTATION/01_WORLD_AND_SAVE_MANIFEST.md`.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual
@@ -422,9 +433,11 @@ index.html
 css/style.css
 js/
   utils.js      - id generation, random helpers, clamp
+  world.js      - authored terrain map, build zones, path graph, routing, validation
   unit.js       - Unit class: stats, leveling, wander AI
   building.js   - Building class: Barracks logic
   state.js      - GameState: units, buildings, cash, cap, tick, save/load
-  render.js     - canvas drawing (grid, buildings, units)
+  save.js       - save schema v2, v1 migration, backup validation, recovery copy
+  render.js     - canvas drawing (world terrain, zones, paths, buildings, units)
   main.js       - game loop, input handling, profile panel wiring
 ```

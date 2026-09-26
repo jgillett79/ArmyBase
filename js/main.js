@@ -107,11 +107,11 @@ document.getElementById('importSaveInput').addEventListener('change', async even
   const file = event.target.files[0];
   if (!file) return;
   try {
-    if (file.size > 1024 * 1024) throw new Error('Backup is too large.');
-    const data = JSON.parse(await file.text());
-    if (!validBackup(data)) throw new Error('This is not a valid Command Base backup.');
+    if (file.size > MAX_BACKUP_BYTES) throw new Error('Backup is too large.');
+    // Accepts current and v1 backups; v1 is migrated to the world map first.
+    const { data } = parseSaveText(await file.text());
     if (!window.confirm('Restore this backup? Your current progress on this device will be replaced.')) return;
-    localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+    if (!writeRestoredSave(data)) throw new Error('This browser could not store the backup.');
     location.reload();
   } catch (error) {
     window.alert(error.message || 'The backup could not be restored.');
@@ -119,20 +119,6 @@ document.getElementById('importSaveInput').addEventListener('change', async even
     event.target.value = '';
   }
 });
-
-function validBackup(data) {
-  if (!data || !Number.isFinite(data.cash) || !Number.isFinite(data.food)
-      || !Array.isArray(data.units) || data.units.length > 20) return false;
-  const ids = new Set();
-  for (const unit of data.units) {
-    if (!unit || typeof unit.id !== 'string' || !/^unit_[a-zA-Z0-9_-]+$/.test(unit.id) || ids.has(unit.id)
-        || typeof unit.name !== 'string' || unit.name.length > 18
-        || typeof unit.status !== 'string' || !Object.values(UNIT_STATUS).includes(unit.status)
-        || !['x', 'y', 'level', 'xp', 'strength', 'accuracy', 'endurance', 'energy'].every(key => Number.isFinite(unit[key]))) return false;
-    ids.add(unit.id);
-  }
-  return true;
-}
 
 function renderRoster() {
   rosterListEl.replaceChildren();
@@ -450,11 +436,10 @@ canvas.addEventListener('click', (e) => {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  const clickX = (e.clientX - rect.left) * scaleX;
-  const clickY = (e.clientY - rect.top) * scaleY;
+  const { x: clickX, y: clickY } = screenToWorld((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
 
   // find the unit whose sprite box contains the click (nearest center wins
-  // when sprites overlap). Box matches the 32x48 sprite drawn in render.js.
+  // when sprites overlap). Box matches the UNIT_W x UNIT_H world-px sprite drawn in render.js.
   let closest = null;
   let closestDist = Infinity;
   for (const unit of gameState.units) {

@@ -86,7 +86,9 @@ class Unit {
     this.targetX = x;
     this.targetY = y;
     this.path = [];
-    this.speed = randRange(18, 28); // px/sec
+    // World px/sec. The authored world is ~1.67x the old 960px canvas in each
+    // axis, so this is the old 18-28 scaled to keep walk times comparable.
+    this.speed = randRange(30, 46);
     // Which directional sprite to draw ('up'/'down'/'left'/'right') — see
     // render.js's unitSprite(). Only updated while actually moving (step()),
     // so a stationary unit keeps facing whichever way it last walked rather

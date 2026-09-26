@@ -23,7 +23,7 @@ const sandbox = vm.createContext({
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
   requestAnimationFrame: callback => { sandbox.lastFrame = callback; },
 });
-for (const file of ['utils', 'unit', 'building', 'mission', 'state', 'render', 'main']) {
+for (const file of ['utils', 'world', 'unit', 'building', 'mission', 'state', 'save', 'render', 'main']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 vm.runInContext('var sample = new Unit({x:150,y:150,isCivilian:false}); gameState.units.push(sample); openProfile(sample);', sandbox);

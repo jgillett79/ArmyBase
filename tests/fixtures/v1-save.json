@@ -1,0 +1,55 @@
+{
+  "cash": 431.72,
+  "food": 12.5,
+  "gameClockMs": 37800000,
+  "lumber": 5,
+  "steel": 2,
+  "gems": 1,
+  "missionLog": [
+    { "name": "Grace Okafor", "tier": "Local Patrol", "succeeded": true, "xp": 60, "at": 1790000000000 },
+    { "name": "Kenji Rossi", "tier": "Local Patrol", "succeeded": false, "xp": 15, "at": 1789990000000 }
+  ],
+  "barracksLevel": 2,
+  "shootingRangeLevel": 1,
+  "messHallLevel": 1,
+  "weightRoomLevel": 0,
+  "obstacleCourseLevel": 0,
+  "drillYardLevel": 0,
+  "showersLevel": 1,
+  "recRoomLevel": 0,
+  "lastTick": 1790000000000,
+  "units": [
+    {
+      "id": "unit_m1abc_1", "name": "Grace Okafor", "x": 507.4, "y": 151.2, "colorSeed": 212,
+      "soldierVariant": 3, "outfit": "uniform", "level": 3, "xp": 40, "xpToNext": 182,
+      "maxHp": 27, "hp": 27, "strength": 8, "accuracy": 71.3, "endurance": 55,
+      "maxEnergy": 100, "energy": 64.2, "hygiene": 81, "morale": 74, "assignedBuildingId": "shooting_range",
+      "equipment": ["Field radio"], "status": "training", "hospitalUntil": null,
+      "missionReturnAt": null, "missionTierId": null
+    },
+    {
+      "id": "unit_m1abc_2", "name": "Kenji Rossi", "x": 300, "y": 360, "colorSeed": 40,
+      "soldierVariant": 5, "outfit": "uniform", "level": 2, "xp": 15, "xpToNext": 135,
+      "maxHp": 22, "hp": 22, "strength": 6, "accuracy": 52, "endurance": 49.5,
+      "maxEnergy": 100, "energy": 100, "hygiene": 60, "morale": 58, "assignedBuildingId": null,
+      "equipment": [], "status": "hospital", "hospitalUntil": 1790050000000,
+      "missionReturnAt": null, "missionTierId": null
+    },
+    {
+      "id": "unit_m1abc_3", "name": "Elizabeth Andersson", "x": 120, "y": 250, "colorSeed": 301,
+      "soldierVariant": 1, "outfit": "uniform", "level": 4, "xp": 5, "xpToNext": 246,
+      "maxHp": 30, "hp": 30, "strength": 11, "accuracy": 60, "endurance": 66,
+      "maxEnergy": 100, "energy": 88, "hygiene": 90, "morale": 92, "assignedBuildingId": null,
+      "equipment": [], "status": "on_mission", "hospitalUntil": null,
+      "missionReturnAt": 1790001200000, "missionTierId": "supply_run"
+    },
+    {
+      "id": "unit_m1abc_4", "name": "Omar Chen", "x": 640.5, "y": 361.8, "colorSeed": 95,
+      "soldierVariant": 2, "outfit": "uniform", "level": 1, "xp": 0, "xpToNext": 100,
+      "maxHp": 19, "hp": 19, "strength": 4, "accuracy": 47, "endurance": 41,
+      "maxEnergy": 100, "energy": 51, "hygiene": 44, "morale": 63, "assignedBuildingId": null,
+      "equipment": [], "status": "idle", "hospitalUntil": null,
+      "missionReturnAt": null, "missionTierId": null
+    }
+  ]
+}

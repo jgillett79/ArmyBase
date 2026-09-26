@@ -57,27 +57,26 @@ with a stat-weighted success chance → return, or don't.
   rearchitect-later risk this project has been trying to avoid. (Obstacle
   Course, along with Weight Room and Combat Drill Yard, WAS built in Phase 2
   increment 1 — see below — once its stat/mechanic was confirmed.)
-- **The base is walled, single gate, left side.** Perimeter wall on all 4
-  sides (`WALL_THICKNESS`/`GATE_*` in `state.js`), one gate — a 2-cell gap
-  in the left wall — as the only way in/out. Civilians spawn outside it and
+- **The base has a single gate on the west side.** Cliffs, river, pond
+  and fences (`WORLD.terrain`/`WORLD.fences` in `world.js`) enclose it;
+  the `gate` node in the west fence is the only way in/out. Civilians spawn outside it and
   route through it; recruited soldiers never leave. Built in Phase 2
   increment 2.
-- **Road network is a fixed comb, not a general graph — don't add
-  pathfinding.** `state.js`'s `ROAD_Y_SPINE`/`buildingDoor()` plus
-  `routeTo()`/`routeForStatus()` route every recruited unit via a fixed
-  3-leg shape (drop to the spine at the unit's current x, slide to the
-  target's x, travel to the target). This works precisely because the
-  layout is one spine + straight spokes with no obstacles between them —
-  it is NOT a general pathfinding system, and doesn't need to be unless
-  the base layout itself stops being a comb (e.g. buildings placeable
-  anywhere, or obstacles mid-road). If that ever happens, revisit the
-  approach then — don't preemptively generalize to A*/Dijkstra now. Built
-  in Phase 2 increment 3, along with real multi-leg path support on `Unit`
-  (`path`/`setPath`/`advancePath`) — `step()` fully consumes a route
-  within one call so offline catch-up's huge single `dt` lands units at
-  their actual destination instead of stranding them mid-road, and
-  `isAtTarget()` requires the full path to be consumed so a unit passing
-  an intermediate waypoint doesn't briefly look "arrived."
+- **Path network is an authored graph with shortest-path routing
+  (superseded the old fixed comb in brief 01).** The earlier rule here was
+  "fixed comb, don't add pathfinding until the layout stops being a comb."
+  DESIGN.md's terrain-shaped base is exactly that case, so `js/world.js`
+  now holds hand-placed nodes/edges (with `via` bends), per-zone spurs to
+  entrances, and a small Dijkstra (`findWorldRoute()`). It is still NOT
+  free-form pathfinding around arbitrary obstacles: routes only follow the
+  authored graph plus a short local approach at the end, and
+  `validateWorld()` proves every edge clears water/cliffs/footprints. If
+  free building placement is ever added, that is the point to revisit.
+  Multi-leg path support on `Unit` (`path`/`setPath`/`advancePath`) is
+  unchanged — `step()` fully consumes a route within one call so large
+  catch-up steps land units at their destination, and `isAtTarget()`
+  requires the full path to be consumed so a unit passing an intermediate
+  waypoint doesn't briefly look "arrived."
 - **Phase 2 resource economy: tiered, not just cash.** Cash covers basic
   costs. Higher-tier building levels/equipment cost Lumber (mid),
   Steel/Coal (top), or Gems (rare — also gates Promotion). Not implemented
@@ -139,6 +138,12 @@ js/
                        ('barracks', 'shooting_range', 'mess_hall'), NOT
                        randomly generated — see "bugs already found" below
                        for why this matters.
+  world.js           - authored terrain map: exclusion polygons, build
+                       zones (footprint, entrance, slots, allowed types),
+                       path graph, routing and validateWorld(). Shared by
+                       simulation, rendering and tests.
+  save.js            - save schema v2, v1 -> v2 migration, validation,
+                       recovery copy. See its header before touching saves.
   state.js           - GameState: single source of truth. Tick loop, the
                        three-clock system (see below), save/load, resource
                        management (cash, food). Everything else reads this,
@@ -284,6 +289,13 @@ from the far column (gridX=14) to the column closest to the gate
 full width of the base to reach a waiting chair; **don't move Entrance
 Hall away from the gate-adjacent column again without a reason**, that
 was a direct fix for "civilians shouldn't walk so far through the base."
+
+**Brief 01 done (terrain-shaped world + save v2)**: see
+`CLAUDE_IMPLEMENTATION/01_WORLD_AND_SAVE_MANIFEST.md` for the exact data
+structures and migration rules. Buildings no longer have `gridX`/`gridY`;
+each has a `zoneId` into `WORLD.zones`. The save key is now
+`armybase_save_v2`; the v1 key is read once and never modified. Tests:
+`tests/world.cjs`, `tests/save-migration.cjs`, plus the two smoke tests.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

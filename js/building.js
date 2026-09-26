@@ -15,11 +15,10 @@ const BASE_UNIT_CAP = 5; // cap with zero barracks built
 // orphaning any unit.assignedBuildingId reference saved from a prior session
 // (found via smoke testing — occupancy counts went stale after reload).
 class Barracks {
-  constructor(gridX, gridY) {
+  constructor() {
     this.id = 'barracks';
     this.type = 'barracks';
-    this.gridX = gridX;
-    this.gridY = gridY;
+    this.zoneId = null; // which authored world zone it stands in (world.js)
     this.level = 0; // 0 = not built yet
   }
 
@@ -45,11 +44,6 @@ class Barracks {
   }
 }
 
-// Footprint shared by every building — 3x2 grid cells. Fine while buildings
-// are all roughly the same visual size; revisit if/when building variety
-// grows beyond simple boxes (see README).
-const BUILDING_FOOTPRINT_CELLS = { w: 3, h: 2 };
-
 // Shared shape for every "assign an idle unit here, a stat climbs while
 // they're physically at the building during daytime" building. Generalized
 // out of the original one-off ShootingRange class now that Phase 2 adds
@@ -61,11 +55,10 @@ const BUILDING_FOOTPRINT_CELLS = { w: 3, h: 2 };
 // Yard) trains more than one stat at once, at a reduced rate each — a
 // deliberate trade-off, not strictly better than a dedicated building.
 class TrainingBuilding {
-  constructor({ id, type, gridX, gridY, maxLevel, slotsPerLevel, baseCost, trains }) {
+  constructor({ id, type, maxLevel, slotsPerLevel, baseCost, trains }) {
     this.id = id; // fixed string — see Barracks comment above on why
     this.type = type;
-    this.gridX = gridX;
-    this.gridY = gridY;
+    this.zoneId = null; // placement lives in world.js zones, not on the building
     this.level = 0;
     this.maxLevel = maxLevel;
     this.slotsPerLevel = slotsPerLevel;
@@ -93,9 +86,9 @@ const SINGLE_STAT_GAIN_PER_GAME_HOUR = 0.5;
 const DRILL_YARD_GAIN_PER_GAME_HOUR = 0.25;
 
 class ShootingRange extends TrainingBuilding {
-  constructor(gridX, gridY) {
+  constructor() {
     super({
-      id: 'shooting_range', type: 'shooting_range', gridX, gridY,
+      id: 'shooting_range', type: 'shooting_range',
       maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
       trains: { accuracy: SINGLE_STAT_GAIN_PER_GAME_HOUR },
     });
@@ -103,9 +96,9 @@ class ShootingRange extends TrainingBuilding {
 }
 
 class WeightRoom extends TrainingBuilding {
-  constructor(gridX, gridY) {
+  constructor() {
     super({
-      id: 'weight_room', type: 'weight_room', gridX, gridY,
+      id: 'weight_room', type: 'weight_room',
       maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
       trains: { strength: SINGLE_STAT_GAIN_PER_GAME_HOUR },
     });
@@ -113,9 +106,9 @@ class WeightRoom extends TrainingBuilding {
 }
 
 class ObstacleCourse extends TrainingBuilding {
-  constructor(gridX, gridY) {
+  constructor() {
     super({
-      id: 'obstacle_course', type: 'obstacle_course', gridX, gridY,
+      id: 'obstacle_course', type: 'obstacle_course',
       maxLevel: 3, slotsPerLevel: 2, baseCost: 80,
       trains: { endurance: SINGLE_STAT_GAIN_PER_GAME_HOUR },
     });
@@ -123,9 +116,9 @@ class ObstacleCourse extends TrainingBuilding {
 }
 
 class CombatDrillYard extends TrainingBuilding {
-  constructor(gridX, gridY) {
+  constructor() {
     super({
-      id: 'drill_yard', type: 'drill_yard', gridX, gridY,
+      id: 'drill_yard', type: 'drill_yard',
       maxLevel: 3, slotsPerLevel: 2, baseCost: 100,
       trains: { strength: DRILL_YARD_GAIN_PER_GAME_HOUR, endurance: DRILL_YARD_GAIN_PER_GAME_HOUR },
     });
@@ -140,11 +133,10 @@ class CombatDrillYard extends TrainingBuilding {
 // original one-off MessHall class now that the pattern repeats 3 times —
 // same "no longer premature" reasoning as TrainingBuilding above.
 class NeedsBuilding {
-  constructor({ id, type, gridX, gridY, cost }) {
+  constructor({ id, type, cost }) {
     this.id = id; // fixed string — see Barracks comment above on why
     this.type = type;
-    this.gridX = gridX;
-    this.gridY = gridY;
+    this.zoneId = null; // placement lives in world.js zones, not on the building
     this.level = 0;
     this.cost = cost;
   }
@@ -159,20 +151,20 @@ class NeedsBuilding {
 }
 
 class MessHall extends NeedsBuilding {
-  constructor(gridX, gridY) {
-    super({ id: 'mess_hall', type: 'mess_hall', gridX, gridY, cost: 120 });
+  constructor() {
+    super({ id: 'mess_hall', type: 'mess_hall', cost: 120 });
   }
 }
 
 class Showers extends NeedsBuilding {
-  constructor(gridX, gridY) {
-    super({ id: 'showers', type: 'showers', gridX, gridY, cost: 100 });
+  constructor() {
+    super({ id: 'showers', type: 'showers', cost: 100 });
   }
 }
 
 class RecRoom extends NeedsBuilding {
-  constructor(gridX, gridY) {
-    super({ id: 'rec_room', type: 'rec_room', gridX, gridY, cost: 100 });
+  constructor() {
+    super({ id: 'rec_room', type: 'rec_room', cost: 100 });
   }
 }
 
@@ -180,10 +172,10 @@ class RecRoom extends NeedsBuilding {
 // always present from the start (level forced to 1 in the constructor, cost
 // 0), same "fixed part of the base" idea as the perimeter wall/gatehouse.
 // It exists purely so waiting civilians have a real building + door to route
-// to (see state.js's ENTRANCE_HALL_CHAIRS) instead of wandering randomly.
+// to (see the waiting slots on its world.js zone) instead of wandering randomly.
 class EntranceHall extends NeedsBuilding {
-  constructor(gridX, gridY) {
-    super({ id: 'entrance_hall', type: 'entrance_hall', gridX, gridY, cost: 0 });
+  constructor() {
+    super({ id: 'entrance_hall', type: 'entrance_hall', cost: 0 });
     this.level = 1;
   }
 }

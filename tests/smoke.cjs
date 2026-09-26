@@ -8,22 +8,23 @@ const sandbox = vm.createContext({
   console, Math, Date,
   localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
 });
-for (const file of ['utils', 'unit', 'building', 'mission', 'state']) {
+for (const file of ['utils', 'world', 'unit', 'building', 'mission', 'state', 'save']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);
 
-// Building approaches follow the rendered path and finish at the entrance,
-// including southern buildings whose entrance faces the main road.
-run(`var map = new GameState(); var walker = new Unit({x:120,y:205,isCivilian:false});
+// Building approaches follow the world path graph and finish at the zone
+// entrance, whichever side of the trail the zone lies on.
+run(`var map = new GameState(); var start = worldNodePosition('gate_inside');
+  var walker = new Unit({x:start.x,y:start.y,isCivilian:false});
   map.routeToBuilding(walker, map.shootingRange); var legCount = walker.path.length;
   walker.step(120);`);
-assert.ok(run('legCount') > 3, 'the winding road needs intermediate waypoints');
+assert.ok(run('legCount') > 3, 'the winding path needs intermediate waypoints');
 assert.equal(run('walker.isAtTarget()'), true);
 assert.ok(run('Math.hypot(walker.x-buildingDoor(map.shootingRange).x,walker.y-buildingDoor(map.shootingRange).y)') < 25);
-assert.equal(run('buildingDoor(map.entranceHall).y'), run('map.entranceHall.gridY * CELL_SIZE'),
-  'southern entrances must face the road instead of pointing off the map');
-assert.ok(run('map.chairPosition(0).y') > run('buildingDoor(map.entranceHall).y'),
+assert.equal(run('map.entranceHall.zoneId'), 'zone_reception',
+  'the Entrance Hall stays in the clearing beside the gate');
+assert.ok(run('map.waitingSlots.every((_, i) => pointInPolygon(map.chairPosition(i).x, map.chairPosition(i).y, buildingZone(map.entranceHall).footprint))'),
   'waiting chairs must be inside the entrance hall');
 
 // XP is part of the normal mission loop; a successful mission changes level.

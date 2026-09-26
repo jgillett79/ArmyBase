@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>World Diagnostic</title>
+<!-- Developer view of js/world.js: terrain exclusions, build zones, entrances,
+     slots, path graph and the gate route to every zone. Open directly from
+     disk; it is not part of the published game (tools/ is not deployed). -->
+<style>
+  :root { --bg: #151b17; --ink: #e8e4d4; --muted: #9aa392; --ok: #8fcf7a; --bad: #f08a7a; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, sans-serif; }
+  header { padding: 10px 16px; display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+  h1 { font-size: 16px; margin: 0; }
+  #status { font-weight: 600; }
+  #status.ok { color: var(--ok); } #status.bad { color: var(--bad); }
+  canvas { display: block; width: 100%; max-width: 1600px; height: auto; }
+  pre { margin: 0 16px 16px; color: var(--bad); white-space: pre-wrap; }
+  .legend { color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>World diagnostic — <span id="worldId"></span></h1>
+  <span id="status"></span>
+  <span class="legend">blue water · grey cliff/rock · green zones (dashed = spare) · orange trail · yellow spurs · red dots entrances · white slots · cyan gate routes</span>
+</header>
+<canvas id="map" width="1600" height="960"></canvas>
+<pre id="errors"></pre>
+<script src="../js/world.js"></script>
+<script>
+  const canvas = document.getElementById('map');
+  const ctx = canvas.getContext('2d');
+  const errors = validateWorld();
+  document.getElementById('worldId').textContent = WORLD.id;
+  const status = document.getElementById('status');
+  status.textContent = errors.length ? `${errors.length} problem(s)` : 'valid: no overlaps, all zones reachable';
+  status.className = errors.length ? 'bad' : 'ok';
+  document.getElementById('errors').textContent = errors.join('\n');
+
+  const poly = (points) => { ctx.beginPath(); points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.closePath(); };
+  const line = (points) => { ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); };
+
+  ctx.fillStyle = '#6f7c4b'; ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+  for (const area of WORLD.terrain) {
+    poly(area.polygon);
+    ctx.fillStyle = area.kind === 'water' ? '#3f7f96' : area.kind === 'cliff' ? '#6c6a62' : '#8b877b';
+    ctx.fill(); ctx.strokeStyle = 'rgba(0,0,0,0.5)'; ctx.lineWidth = 2; ctx.stroke();
+    const c = polygonCentroid(area.polygon);
+    ctx.fillStyle = '#f4f1e6'; ctx.font = '12px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(area.id, c.x, c.y);
+  }
+  ctx.strokeStyle = '#c9b48a'; ctx.lineWidth = 3;
+  for (const fence of WORLD.fences) { ctx.beginPath(); fence.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)); ctx.stroke(); }
+
+  const occupant = Object.fromEntries(Object.entries(WORLD.defaultPlacements).map(([type, zone]) => [zone, type]));
+  for (const zone of WORLD.zones) {
+    poly(zone.footprint);
+    ctx.fillStyle = 'rgba(160, 205, 120, 0.35)'; ctx.fill();
+    ctx.setLineDash(occupant[zone.id] ? [] : [8, 6]);
+    ctx.strokeStyle = zone.surveyed ? '#e9f5c8' : '#a7d387'; ctx.lineWidth = 2; ctx.stroke(); ctx.setLineDash([]);
+    const c = polygonCentroid(zone.footprint);
+    ctx.fillStyle = '#10150f'; ctx.font = 'bold 13px sans-serif'; ctx.textAlign = 'center';
+    ctx.fillText(zone.id, c.x, c.y - 18);
+    ctx.font = '11px sans-serif';
+    ctx.fillText(occupant[zone.id] ? `default: ${occupant[zone.id]}` : 'spare site', c.x, c.y - 4);
+    ctx.fillText(`door ${zone.doorSide} · ${zone.types.length} types${zone.surveyed ? ' · surveyed' : ''}`, c.x, c.y + 10);
+    for (const slot of zone.slots) {
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.arc(slot.x, slot.y, 4, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  for (const edge of worldEdgeList()) {
+    line(edge.points);
+    ctx.strokeStyle = edge.kind === 'trail' ? '#e08a3c' : '#f2d95c';
+    ctx.lineWidth = edge.kind === 'trail' ? 5 : 3; ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(90, 220, 235, 0.55)'; ctx.lineWidth = 2;
+  for (const zone of WORLD.zones) {
+    const route = findWorldRoute(WORLD.nodes.gate_outside.x, WORLD.nodes.gate_outside.y, doorNodeId(zone.id));
+    if (route) { line(route); ctx.stroke(); }
+  }
+  for (const [id, node] of Object.entries(WORLD.nodes)) {
+    const safe = Object.values(WORLD.safeNodes).includes(id);
+    ctx.fillStyle = safe ? '#5ae0f0' : '#20231c';
+    ctx.beginPath(); ctx.arc(node.x, node.y, safe ? 7 : 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#f4f1e6'; ctx.font = '11px monospace'; ctx.textAlign = 'left';
+    ctx.fillText(id, node.x + 8, node.y - 6);
+  }
+  for (const zone of WORLD.zones) {
+    ctx.fillStyle = '#e0413a'; ctx.beginPath(); ctx.arc(zone.entrance.x, zone.entrance.y, 5, 0, Math.PI * 2); ctx.fill();
+  }
+</script>
+</body>
+</html>

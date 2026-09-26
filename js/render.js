@@ -54,7 +54,8 @@ function getTerrainPattern(ctx, key) {
   if (!spriteReady(img)) return null;
   const pattern = ctx.createPattern(img, 'repeat');
   if (pattern && pattern.setTransform) {
-    const scale = key === 'ground_apron' || key === 'ground_grass' ? 0.48 : TERRAIN_SCALE;
+    // Divided by the world-view scale so textures keep their on-screen size.
+    const scale = (key === 'ground_apron' || key === 'ground_grass' ? 0.48 : TERRAIN_SCALE) / VIEW_SCALE;
     pattern.setTransform(new DOMMatrix([scale, 0, 0, scale, 0, 0]));
   }
   terrainPatternCache[key] = pattern;
@@ -103,9 +104,10 @@ const UNIT_SPRITES = {
   soldier_6: soldierSpriteSet(6),
 };
 
-// On-screen unit sprite size (matches the 32x48 spec in ASSETS.md).
-const UNIT_W = 32;
-const UNIT_H = 48;
+// Unit sprite size in world px. The 32x48 art (ASSETS.md) is drawn at 1.25x so
+// people stay legible while the whole world is fitted to the canvas.
+const UNIT_W = 40;
+const UNIT_H = 60;
 
 // Dispatches on outfit, not isCivilian — a RECRUITING unit (walking to the
 // Barracks after being recruited) has isCivilian=false already but still
@@ -142,163 +144,189 @@ function unitSprite(unit) {
   return spriteReady(img) ? img : set.fallback;
 }
 
-// --- drawers --------------------------------------------------------------
+// --- world view ------------------------------------------------------------
 
-// Continuous meadow and organic clearings replace the old square terrain zones.
-function drawGrid(ctx, gameState) {
-  const width = GRID_COLS * CELL_SIZE, height = GRID_ROWS * CELL_SIZE;
-  ctx.fillStyle = getTerrainPattern(ctx, 'ground_grass') || '#78804e';
-  ctx.fillRect(0, 0, width, height);
-  // Uneven clearings belong to each plot. They exist before construction,
-  // making a new building feel placed in a lived-in landscape rather than
-  // revealing a square tile when it is purchased.
-  const buildings = [gameState.barracks, gameState.shootingRange, gameState.messHall,
-    gameState.weightRoom, gameState.obstacleCourse, gameState.drillYard,
-    gameState.entranceHall, gameState.recRoom, gameState.showers];
-  buildings.forEach((building, index) => {
-    if (!building.isBuilt && !['barracks', 'shooting_range', 'mess_hall', 'entrance_hall'].includes(building.id)) return;
-    const x = building.gridX * CELL_SIZE + 72;
-    const y = building.gridY * CELL_SIZE + 48;
-    ctx.save();
-    ctx.beginPath();
-    for (let i = 0; i <= 32; i++) {
-      const angle = i * Math.PI / 16;
-      const irregularity = 1 + 0.06 * Math.sin(i * 2.4 + index * 4);
-      const px = x + Math.cos(angle) * 93 * irregularity;
-      const py = y + Math.sin(angle) * 65 * irregularity;
-      if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
-    }
-    ctx.closePath();
-    ctx.clip();
-    ctx.fillStyle = getTerrainPattern(ctx, 'ground_apron') || '#9b906c';
-    ctx.fillRect(x - 100, y - 72, 200, 144);
-    ctx.restore();
-  });
-  ctx.fillStyle = 'rgba(20, 30, 19, 0.08)';
-  ctx.fillRect(0, 0, width, height);
+// The canvas stays 960 x 576; the authored world (world.js) is larger. For
+// now the whole world is fitted into the canvas. A pannable, zoomable camera
+// replaces this in the render/build pass (brief 03) — keep every coordinate
+// conversion going through worldToScreen/screenToWorld so that swap is local.
+const VIEW_W = 960;
+const VIEW_H = 576;
+const VIEW_SCALE = Math.min(VIEW_W / WORLD_W, VIEW_H / WORLD_H);
+
+function screenToWorld(x, y) {
+  return { x: x / VIEW_SCALE, y: y / VIEW_SCALE };
 }
 
-// The 1-cell perimeter wall around the whole grid, with a gap on the left
-// side for the gate — see the WALL_THICKNESS/GATE_* constants in state.js,
-// which this draws from directly so the two can't drift out of sync.
-function drawPerimeterWall(ctx) {
-  const w = GRID_COLS * CELL_SIZE;
-  const h = GRID_ROWS * CELL_SIZE;
-  // An irregular fence line encloses the base without outlining the canvas
-  // as a rectangle. The walk bounds remain inset from every fence segment.
-  const fence = [
-    [[28, GATE_Y_TOP], [31, 172], [24, 72], [58, 34], [254, 27], [475, 30], [720, 21], [w - 31, 43]],
-    [[w - 31, 43], [w - 26, 210], [w - 36, 409], [w - 34, h - 39], [710, h - 29], [450, h - 34], [219, h - 30], [32, h - 39], [28, GATE_Y_BOTTOM]],
-  ];
-  for (const points of fence) {
+function worldToScreen(x, y) {
+  return { x: x * VIEW_SCALE, y: y * VIEW_SCALE };
+}
+
+// Closed polygon with corners rounded through edge midpoints, so authored
+// terrain and clearings read as natural shapes rather than straight cuts.
+function traceSmoothPolygon(ctx, polygon) {
+  const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+  const start = mid(polygon[polygon.length - 1], polygon[0]);
+  ctx.beginPath();
+  ctx.moveTo(start[0], start[1]);
+  for (let i = 0; i < polygon.length; i++) {
+    const next = mid(polygon[i], polygon[(i + 1) % polygon.length]);
+    ctx.quadraticCurveTo(polygon[i][0], polygon[i][1], next[0], next[1]);
+  }
+  ctx.closePath();
+}
+
+// Open polyline rounded through midpoints; endpoints stay exact so paths
+// still meet their nodes and entrances.
+function traceSmoothLine(ctx, points) {
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length - 1; i++) {
+    const last = i === points.length - 2;
+    const toX = last ? points[i + 1].x : (points[i].x + points[i + 1].x) / 2;
+    const toY = last ? points[i + 1].y : (points[i].y + points[i + 1].y) / 2;
+    ctx.quadraticCurveTo(points[i].x, points[i].y, toX, toY);
+  }
+  if (points.length === 2) ctx.lineTo(points[1].x, points[1].y);
+}
+
+const TERRAIN_STYLE = {
+  water: { fill: '#4f8c95', edge: '#9cc7c0', edgeWidth: 5 },
+  cliff: { fill: '#6f6c60', edge: '#3f3d35', edgeWidth: 4 },
+  rock: { fill: '#8a8676', edge: '#4a4739', edgeWidth: 3 },
+};
+
+// Meadow, then water/cliff/rock exclusions from the authored map.
+function drawTerrain(ctx) {
+  ctx.fillStyle = getTerrainPattern(ctx, 'ground_grass') || '#78804e';
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  for (const area of WORLD.terrain) {
+    const style = TERRAIN_STYLE[area.kind];
+    traceSmoothPolygon(ctx, area.polygon);
+    ctx.fillStyle = style.fill;
+    ctx.fill();
+    ctx.strokeStyle = style.edge;
+    ctx.lineWidth = style.edgeWidth;
+    ctx.stroke();
+  }
+}
+
+// A zone shows a clearing once its facility exists; surveyed starter sites
+// show a faint one so the first choices are visible without drawing every
+// future plot.
+function zoneIsVisible(building) {
+  return building.isBuilt || buildingZone(building).surveyed;
+}
+
+function drawZoneClearings(ctx, gameState) {
+  for (const building of gameState.allBuildings) {
+    if (!zoneIsVisible(building)) continue;
+    ctx.save();
+    ctx.globalAlpha = building.isBuilt ? 1 : 0.55;
+    traceSmoothPolygon(ctx, buildingZone(building).footprint);
+    ctx.fillStyle = getTerrainPattern(ctx, 'ground_apron') || '#9b906c';
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+// Trunk trail always; a facility's spur only once it is built or surveyed.
+// The aid-station stub is a fallback node, not a visible destination.
+function drawPaths(ctx, gameState) {
+  const visibleZones = new Set(gameState.allBuildings.filter(zoneIsVisible).map(b => b.zoneId));
+  const edges = worldEdgeList(visibleZones).filter(edge => edge.to !== 'aid_station');
+  const trace = () => {
     ctx.beginPath();
-    points.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.strokeStyle = 'rgba(42, 48, 31, 0.6)'; ctx.lineWidth = 7; ctx.stroke();
-    ctx.strokeStyle = '#a89469'; ctx.lineWidth = 3; ctx.stroke();
+    for (const edge of edges) traceSmoothLine(ctx, edge.points);
+  };
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  trace(); ctx.strokeStyle = 'rgba(77, 66, 45, 0.48)'; ctx.lineWidth = 46; ctx.stroke();
+  trace(); ctx.strokeStyle = 'rgba(154, 119, 75, 0.92)'; ctx.lineWidth = 36; ctx.stroke();
+  trace(); ctx.strokeStyle = 'rgba(194, 159, 103, 0.30)'; ctx.lineWidth = 16; ctx.stroke();
+  ctx.restore();
+}
+
+function drawFences(ctx) {
+  ctx.save();
+  for (const fence of WORLD.fences) {
+    ctx.beginPath();
+    fence.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.strokeStyle = 'rgba(42, 48, 31, 0.6)'; ctx.lineWidth = 10; ctx.stroke();
+    ctx.strokeStyle = '#a89469'; ctx.lineWidth = 5; ctx.stroke();
     ctx.fillStyle = '#c3af80';
-    for (let i = 1; i < points.length; i++) {
-      const [x0, y0] = points[i - 1], [x1, y1] = points[i];
-      const count = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 52));
+    for (let i = 1; i < fence.length; i++) {
+      const [x0, y0] = fence[i - 1], [x1, y1] = fence[i];
+      const count = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 80));
       for (let j = 0; j <= count; j++) {
-        const x = x0 + (x1 - x0) * j / count, y = y0 + (y1 - y0) * j / count;
-        ctx.fillRect(x - 3, y - 5, 6, 10);
+        ctx.fillRect(x0 + (x1 - x0) * j / count - 5, y0 + (y1 - y0) * j / count - 8, 10, 16);
       }
     }
   }
-
-  drawGatehouse(ctx);
+  ctx.restore();
 }
 
+// The single gate sits in the gap of the west fence at the `gate` node.
 function drawGatehouse(ctx) {
-  const x = 0, y = GATE_Y_TOP, w = WALL_THICKNESS, h = GATE_Y_BOTTOM - GATE_Y_TOP;
+  const gate = worldNodePosition('gate');
+  const w = 64, h = 110, x = gate.x - w / 2, y = gate.y - h / 2;
   const img = BUILDING_SPRITES.gatehouse;
   if (spriteReady(img)) {
     ctx.drawImage(img, x, y, w, h);
     return;
   }
-  // fallback: a plain marked archway until real art exists
   ctx.fillStyle = '#8a7a5a';
   ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = '#d8d8c8';
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 3;
   ctx.strokeRect(x, y, w, h);
-  ctx.save();
-  ctx.translate(x + w / 2, y + h / 2);
-  ctx.rotate(-Math.PI / 2);
-  ctx.fillStyle = '#1a1d14';
-  ctx.font = 'bold 11px monospace';
-  ctx.textAlign = 'center';
-  ctx.fillText('GATE', 0, 4);
-  ctx.restore();
 }
 
-const ROAD_FILL = '#5a5548';
+const BUILDING_LABELS = {
+  entrance_hall: 'Entrance Hall', barracks: 'Barracks', shooting_range: 'Shooting Range',
+  mess_hall: 'Mess Hall', weight_room: 'Weight Room', obstacle_course: 'Obstacle Course',
+  drill_yard: 'Combat Drill Yard', showers: 'Showers', rec_room: 'Rec Room',
+};
+const BUILDING_FALLBACK_COLORS = {
+  entrance_hall: '#6a5a4a', barracks: '#5a6450', shooting_range: '#6a5240', mess_hall: '#40605a',
+  weight_room: '#5a4a6a', obstacle_course: '#6a5a30', drill_yard: '#4a5a6a', showers: '#4a7a8a', rec_room: '#8a6a4a',
+};
 
-// Draws the road network units actually walk on — see the ROADS comment in
-// state.js. Spoke endpoints come straight from buildingDoor() on the row-1
-// buildings, not hardcoded numbers, so this can't drift out of sync with
-// the routing logic.
-function drawRoads(ctx, gameState) {
-  // The painted path follows the same spine and entrances as unit routing;
-  // draw a dusty earth edge and center instead of a bright narrow pipe.
-  const spokeBuildings = [gameState.barracks, gameState.shootingRange, gameState.messHall,
-    gameState.weightRoom, gameState.obstacleCourse, gameState.drillYard,
-    gameState.showers, gameState.recRoom, gameState.entranceHall]
-    .filter(b => b.isBuilt || ['barracks', 'shooting_range', 'mess_hall'].includes(b.id));
-  const trace = () => {
-    ctx.beginPath();
-    ctx.moveTo(gameState.bounds.minX, roadYAt(gameState.bounds.minX));
-    for (let x = gameState.bounds.minX + 12; x < gameState.bounds.maxX; x += 12) {
-      ctx.lineTo(x, roadYAt(x));
-    }
-    ctx.lineTo(gameState.bounds.maxX, roadYAt(gameState.bounds.maxX));
-    ctx.moveTo(GATE_INSIDE_X, GATE_Y_CENTER);
-    ctx.lineTo(GATE_INSIDE_X, roadYAt(GATE_INSIDE_X));
-    for (const b of spokeBuildings) {
-      const door = buildingDoor(b);
-      const pathY = roadYAt(door.x);
-      ctx.moveTo(door.x, pathY);
-      ctx.quadraticCurveTo(door.x + 4, (door.y + pathY) / 2, door.x, door.y);
-    }
-  };
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  trace(); ctx.strokeStyle = 'rgba(77, 66, 45, 0.48)'; ctx.lineWidth = 29; ctx.stroke();
-  trace(); ctx.strokeStyle = 'rgba(154, 119, 75, 0.92)'; ctx.lineWidth = 22; ctx.stroke();
-  trace(); ctx.strokeStyle = 'rgba(194, 159, 103, 0.30)'; ctx.lineWidth = 10; ctx.stroke();
-}
+// Interim: the existing 3:2 sprites are fitted to the zone's width and
+// grounded on its lower edge. Layered, per-zone art replaces this later.
+function drawBuilding(ctx, building) {
+  const zone = buildingZone(building);
+  const bounds = polygonBounds(zone.footprint);
+  const centre = polygonCentroid(zone.footprint);
 
-function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spriteKey) {
-  const x = gridX * CELL_SIZE;
-  const y = gridY * CELL_SIZE;
-  const w = CELL_SIZE * BUILDING_FOOTPRINT_CELLS.w;
-  const h = CELL_SIZE * BUILDING_FOOTPRINT_CELLS.h;
-
-  if (!isBuilt) {
-    if (!['barracks', 'shooting_range', 'mess_hall'].includes(spriteKey)) return;
-    // An empty plot is a clearing with a survey stake, not a repeated
-    // rectangular slab. The build menu still carries the full name/cost.
+  if (!building.isBuilt) {
+    if (!zone.surveyed) return;
+    // An empty site is a survey stake, not a rectangular slab. The build
+    // menu still carries the full name/cost.
     ctx.save();
     ctx.fillStyle = 'rgba(42, 44, 31, 0.28)';
-    ctx.beginPath(); ctx.ellipse(x + w / 2, y + h * 0.72, 34, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(centre.x, centre.y + 30, 54, 14, 0, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = '#927c53';
-    ctx.fillRect(x + w / 2 - 2, y + h * 0.47, 4, 30);
+    ctx.fillRect(centre.x - 3, centre.y - 10, 6, 44);
     ctx.fillStyle = '#d5c69e';
-    ctx.fillRect(x + w / 2 - 21, y + h * 0.43, 42, 18);
+    ctx.fillRect(centre.x - 32, centre.y - 16, 64, 26);
     ctx.fillStyle = '#3a3b2d';
-    ctx.font = 'bold 10px sans-serif';
+    ctx.font = 'bold 18px sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('+', x + w / 2, y + h * 0.57);
+    ctx.fillText('+', centre.x, centre.y + 4);
     ctx.restore();
     return;
   }
 
-  const img = BUILDING_SPRITES[spriteKey];
+  const w = (bounds.maxX - bounds.minX) * 0.92;
+  const h = w / 1.5;
+  const x = centre.x - w / 2;
+  const y = bounds.maxY - h - 6;
+  const img = BUILDING_SPRITES[building.type];
   if (spriteReady(img)) {
     ctx.drawImage(img, x, y, w, h);
   } else {
-    // fallback: original colored box until the sprite is available
-    ctx.fillStyle = color;
+    ctx.fillStyle = BUILDING_FALLBACK_COLORS[building.type];
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = '#8a9478';
     ctx.strokeRect(x, y, w, h);
@@ -308,47 +336,12 @@ function drawBuildingBox(ctx, gridX, gridY, isBuilt, label, subLabel, color, spr
   // visible at game zoom. Upgrade/occupancy details live in the build panel.
   ctx.save();
   ctx.fillStyle = 'rgba(33, 43, 34, 0.83)';
-  ctx.fillRect(x + 15, y + h - 16, w - 30, 16);
+  ctx.fillRect(x + 24, y + h - 24, w - 48, 24);
   ctx.fillStyle = '#f1e9d4';
-  ctx.font = 'bold 10px sans-serif';
+  ctx.font = 'bold 16px sans-serif';
   ctx.textAlign = 'center';
-  ctx.fillText(label.replace(/ Lv\.\d+$/, ''), x + w / 2, y + h - 4);
+  ctx.fillText(BUILDING_LABELS[building.type], x + w / 2, y + h - 6);
   ctx.restore();
-}
-
-function drawBarracks(ctx, barracks) {
-  drawBuildingBox(ctx, barracks.gridX, barracks.gridY, barracks.isBuilt,
-    `Barracks Lv.${barracks.level}`, `+${barracks.capContribution()} cap`, '#5a6450', 'barracks');
-}
-
-// Shared drawer for the 4 TrainingBuilding instances (building.js) — they're
-// all boxes with a level + occupancy label, just different labels/colors/art.
-function drawTrainingBuilding(ctx, building, occupancy, label, color, spriteKey) {
-  drawBuildingBox(ctx, building.gridX, building.gridY, building.isBuilt,
-    `${label} Lv.${building.level}`, `${occupancy}/${building.capacity} slots`, color, spriteKey);
-}
-
-function drawMessHall(ctx, hall, food) {
-  drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
-    'Mess Hall', `Food: ${Math.floor(food)}`, '#40605a', 'mess_hall');
-}
-
-function drawShowers(ctx, showers) {
-  drawBuildingBox(ctx, showers.gridX, showers.gridY, showers.isBuilt,
-    'Showers', 'Hygiene', '#4a7a8a', 'showers');
-}
-
-function drawRecRoom(ctx, recRoom) {
-  drawBuildingBox(ctx, recRoom.gridX, recRoom.gridY, recRoom.isBuilt,
-    'Rec Room', 'Morale', '#8a6a4a', 'rec_room');
-}
-
-// Always isBuilt (see EntranceHall's class comment) — the "not built" branch
-// of drawBuildingBox never actually triggers for this one, kept anyway for
-// consistency with every other building's draw call.
-function drawEntranceHall(ctx, hall) {
-  drawBuildingBox(ctx, hall.gridX, hall.gridY, hall.isBuilt,
-    'Entrance Hall', 'Waiting area', '#6a5a4a', 'entrance_hall');
 }
 
 function drawClock(ctx, hourOfDay, isDaytime) {
@@ -358,7 +351,7 @@ function drawClock(ctx, hourOfDay, isDaytime) {
   ctx.fillStyle = '#d8d8c8';
   ctx.font = 'bold 13px monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(label, GRID_COLS * CELL_SIZE - 10, 18);
+  ctx.fillText(label, VIEW_W - 10, 18);
   ctx.textAlign = 'left';
 }
 
@@ -387,14 +380,14 @@ function drawUnit(ctx, unit, isSelected) {
   ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.5 : 1;
   ctx.fillStyle = moving ? 'rgba(8, 20, 17, 0.22)' : 'rgba(8, 20, 17, 0.32)';
   ctx.beginPath();
-  ctx.ellipse(unit.x, bottom - 1, moving ? 11 : 9, 3, 0, 0, Math.PI * 2);
+  ctx.ellipse(unit.x, bottom - 1, moving ? 16 : 13, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
   // selection highlight — soft ellipse under the feet
   if (isSelected) {
     ctx.fillStyle = 'rgba(242, 233, 168, 0.55)';
     ctx.beginPath();
-    ctx.ellipse(unit.x, bottom - 2, halfW, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(unit.x, bottom - 2, halfW, 9, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -446,21 +439,21 @@ function drawUnit(ctx, unit, isSelected) {
 
   // label — soldiers always show name (that's the point); civilians show
   // their outfit marker so you can tell "bus rider" from "taxi" from "walk-in"
-  ctx.font = '10px monospace';
+  ctx.font = '16px monospace'; // ~10px on screen at the fitted view
   ctx.textAlign = 'center';
   if (!unit.isCivilian) {
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)';
     ctx.shadowBlur = 3;
     ctx.fillStyle = '#d8d8c8';
-    ctx.fillText(unit.name.split(' ')[0], unit.x, top - 4);
-    ctx.fillText(statusLabel(unit), unit.x, bottom + 12);
+    ctx.fillText(unit.name.split(' ')[0], unit.x, top - 6);
+    ctx.fillText(statusLabel(unit), unit.x, bottom + 18);
     ctx.restore();
 
     // tiny energy bar under the unit — low energy should be visible without
     // opening the profile panel, since that's what sends them to hospital.
-    const barW = 20, barH = 3;
-    const bx = unit.x - barW / 2, by = bottom + 15;
+    const barW = 32, barH = 5;
+    const bx = unit.x - barW / 2, by = bottom + 23;
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
     ctx.fillRect(bx, by, barW, barH);
     const pct = unit.energy / unit.maxEnergy;
@@ -578,20 +571,18 @@ function drawFacilityActivity(ctx, unit, gameState, now) {
 }
 
 function renderFrame(ctx, gameState, selectedUnitId) {
-  ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
-  drawGrid(ctx, gameState);
-  drawPerimeterWall(ctx);
-  drawRoads(ctx, gameState);
-  drawBarracks(ctx, gameState.barracks);
-  drawTrainingBuilding(ctx, gameState.shootingRange, gameState.occupancyOf(gameState.shootingRange), 'Shooting Range', '#6a5240', 'shooting_range');
-  drawTrainingBuilding(ctx, gameState.weightRoom, gameState.occupancyOf(gameState.weightRoom), 'Weight Room', '#5a4a6a', 'weight_room');
-  drawTrainingBuilding(ctx, gameState.obstacleCourse, gameState.occupancyOf(gameState.obstacleCourse), 'Obstacle Course', '#6a5a30', 'obstacle_course');
-  drawTrainingBuilding(ctx, gameState.drillYard, gameState.occupancyOf(gameState.drillYard), 'Combat Drill Yard', '#4a5a6a', 'drill_yard');
-  drawMessHall(ctx, gameState.messHall, gameState.food);
-  drawShowers(ctx, gameState.showers);
-  drawRecRoom(ctx, gameState.recRoom);
-  drawEntranceHall(ctx, gameState.entranceHall);
-  drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, VIEW_W, VIEW_H);
+  ctx.setTransform(VIEW_SCALE, 0, 0, VIEW_SCALE, 0, 0);
+  drawTerrain(ctx);
+  drawZoneClearings(ctx, gameState);
+  drawPaths(ctx, gameState);
+  drawFences(ctx);
+  drawGatehouse(ctx);
+  // Northern buildings first so nearer ones overlap them.
+  const buildings = gameState.allBuildings.slice()
+    .sort((a, b) => polygonBounds(buildingZone(a).footprint).maxY - polygonBounds(buildingZone(b).footprint).maxY);
+  for (const building of buildings) drawBuilding(ctx, building);
 
   for (const unit of gameState.units) {
     // Away on a mission — async/black-box by design (see mission.js), so
@@ -600,4 +591,7 @@ function renderFrame(ctx, gameState, selectedUnitId) {
     drawUnit(ctx, unit, unit.id === selectedUnitId);
     drawFacilityActivity(ctx, unit, gameState, performance.now());
   }
+
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
 }

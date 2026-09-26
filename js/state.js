@@ -1,10 +1,5 @@
 // state.js — single source of truth. render.js reads it, main.js drives it.
 
-const SAVE_KEY = 'armybase_save_v1'; // bumped — v0 saves don't have energy/food/schedule fields
-const GRID_COLS = 20;
-const GRID_ROWS = 12;
-const CELL_SIZE = 48; // px, matches canvas 960x576
-
 const CASH_PER_SECOND_IDLE = 0.03; // ~$108/hour; missions now matter more than waiting
 const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
 const CIVILIAN_WALK_TIMEOUT_MS = 30000; // let arrivals reach the hall and be noticed
@@ -30,58 +25,27 @@ const FOOD_COST_PER_UNIT = 1.5; // cash per food, placeholder pricing
 const FOOD_CONSUMED_PER_GAME_HOUR = 5; // per unit actively eating with food available
 
 // ---------------------------------------------------------------------------
-// PERIMETER WALL + GATE — the base is enclosed by a 1-cell-thick wall on all
-// four sides; the only way in or out is the gate, a 2-cell-tall gap in the
-// LEFT wall (col 0). All existing buildings sit at gridX 2-17/gridY 2-7, well
-// clear of this border, so they didn't need to move. render.js draws the
-// wall itself; the constants below are shared with the civilian spawn/leave
-// logic below so both stay in sync with where the gap actually is.
+// LAYOUT — the base is the authored terrain map in world.js: irregular build
+// zones, one gate on the west edge (the only way in or out), and a path
+// graph people walk with a shortest-path search. This replaced the old
+// 20 x 12 grid and the single-spine road "comb" once the design moved to a
+// terrain-shaped base (DESIGN.md). Save migration lives in save.js.
 // ---------------------------------------------------------------------------
-const WALL_THICKNESS = CELL_SIZE; // 1 cell
-const GATE_ROW_START = 5;
-const GATE_ROWS = 2;
-const GATE_Y_TOP = GATE_ROW_START * CELL_SIZE;
-const GATE_Y_BOTTOM = (GATE_ROW_START + GATE_ROWS) * CELL_SIZE;
-const GATE_Y_CENTER = (GATE_Y_TOP + GATE_Y_BOTTOM) / 2;
-const GATE_OUTSIDE_X = -20; // off-canvas, just past the wall's outer face
-const GATE_INSIDE_X = WALL_THICKNESS + 8; // just inside the wall, matches bounds.minX
+const BUILDING_KEYS = ['entranceHall', 'barracks', 'shootingRange', 'messHall', 'weightRoom',
+  'obstacleCourse', 'drillYard', 'showers', 'recRoom'];
 
-// ---------------------------------------------------------------------------
-// ENTRANCE HALL — civilians used to pick one random point anywhere inside
-// the walls and wander there, which read as "aimless" (user feedback).
-// Now they walk to a fixed waiting chair in the Entrance Hall instead, same
-// idea as any other job/need routing to a fixed building spot. Chair
-// positions are offsets from the building's door (buildingDoor() below) so
-// they move if the building ever does. Placeholder spacing, like every
-// other pixel-tuned number in this file — not a balance-critical value.
-// ---------------------------------------------------------------------------
-const ENTRANCE_HALL_CHAIRS = [
-  { dx: -48, dy: -30 },
-  { dx: -16, dy: -30 },
-  { dx: 16, dy: -30 },
-  { dx: 48, dy: -30 },
-];
-
-// ---------------------------------------------------------------------------
-// ROADS — a winding path links the gate and staggered building entrances.
-// People first join that path, follow its sampled curve in short segments,
-// then turn off at the destination. Both routing and rendering use roadYAt;
-// keep them together when changing the map. A future freely placed base
-// would need a real path graph instead of this fixed first-base route.
-// ---------------------------------------------------------------------------
-const ROAD_Y_SPINE = 360; // px — below every building's footprint (max bottom edge is y=336)
-function roadYAt(x) {
-  return ROAD_Y_SPINE + Math.sin((x - 80) / 110) * 13 + Math.sin(x / 48) * 3;
+function buildingZone(building) {
+  return zoneById(building.zoneId);
 }
 
-// Entrance on the edge facing the shared path. Southern buildings face north;
-// sending people to their old bottom edge made them walk through the artwork.
+// The walkable entrance of a building's zone, on the side facing its path spur.
 function buildingDoor(building) {
-  const top = building.gridY * CELL_SIZE;
-  return {
-    x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
-    y: top > ROAD_Y_SPINE ? top : top + BUILDING_FOOTPRINT_CELLS.h * CELL_SIZE,
-  };
+  const { entrance } = buildingZone(building);
+  return { x: entrance.x, y: entrance.y };
+}
+
+function gatePosition(nodeId = 'gate') {
+  return worldNodePosition(nodeId);
 }
 
 class GameState {
@@ -95,41 +59,25 @@ class GameState {
     this.gems = 0;
     this.missionLog = [];
     this.units = [];
-    this.barracks = new Barracks(2, 2);
-    this.shootingRange = new ShootingRange(9, 1);
-    this.messHall = new MessHall(15, 2);
-    // Staggered facility plots sit among the meadow, clear of one another.
-    this.weightRoom = new WeightRoom(3, 5);
-    this.obstacleCourse = new ObstacleCourse(8, 5);
-    this.drillYard = new CombatDrillYard(15, 5);
-    // Southern plots face the main track with a north-side entrance.
-    //
-    // Entrance Hall sits in the gridX=2 slot — the column closest to the
-    // gate — rather than gridX=14, on purpose: civilians walk here straight
-    // off the road network with no special-casing, and putting the newest
-    // arrivals' waiting room at the far end of the base made for an
-    // needlessly long walk across the whole map (user feedback). Showers
-    // took the vacated gridX=14 slot; it's used by already-recruited
-    // soldiers on their daily schedule, who already commute similar
-    // distances to whichever training building they're assigned to, so this
-    // didn't create a new "too far to walk" case the way Entrance Hall did.
-    this.entranceHall = new EntranceHall(2, 8);
-    this.recRoom = new RecRoom(9, 8);
-    this.showers = new Showers(14, 8);
-    // Which unit (by id) occupies each ENTRANCE_HALL_CHAIRS slot, or null.
-    this.chairOccupants = new Array(ENTRANCE_HALL_CHAIRS.length).fill(null);
+    this.barracks = new Barracks();
+    this.shootingRange = new ShootingRange();
+    this.messHall = new MessHall();
+    this.weightRoom = new WeightRoom();
+    this.obstacleCourse = new ObstacleCourse();
+    this.drillYard = new CombatDrillYard();
+    this.entranceHall = new EntranceHall();
+    this.recRoom = new RecRoom();
+    this.showers = new Showers();
+    // Where each building stands is data (world.js defaultPlacements), kept
+    // separate from its type and level. Entrance Hall's zone is the clearing
+    // beside the gate on purpose: newcomers should not cross the whole base
+    // to find a seat (user feedback, see CLAUDE.md).
+    for (const building of this.allBuildings) building.zoneId = WORLD.defaultPlacements[building.id];
+    // Which unit (by id) occupies each Entrance Hall waiting slot, or null.
+    this.chairOccupants = new Array(this.waitingSlots.length).fill(null);
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
-
-    // Walkable bounds in pixels — the interior of the perimeter wall, with a
-    // small margin so units don't visually touch it.
-    this.bounds = {
-      minX: WALL_THICKNESS + 8,
-      maxX: GRID_COLS * CELL_SIZE - WALL_THICKNESS - 8,
-      minY: WALL_THICKNESS + 8,
-      maxY: GRID_ROWS * CELL_SIZE - WALL_THICKNESS - 8,
-    };
   }
 
   get hourOfDay() {
@@ -140,25 +88,46 @@ class GameState {
     return this.hourOfDay >= DAY_START_HOUR && this.hourOfDay < DAY_END_HOUR;
   }
 
-  buildingCenter(building) {
-    return {
-      x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
-      y: building.gridY * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.h * CELL_SIZE) / 2,
-    };
+  get allBuildings() {
+    return BUILDING_KEYS.map(key => this[key]);
   }
 
-  // Absolute pixel position of a specific Entrance Hall waiting chair.
+  buildingByAnyId(id) {
+    return this.allBuildings.find(b => b.id === id) || null;
+  }
+
+  // Zones with a building assigned. Their spurs are routable even before the
+  // building is finished (recruits still walk to the Barracks site), but
+  // render.js only draws a spur once its facility exists or is surveyed.
+  get placedZoneIds() {
+    return new Set(this.allBuildings.map(b => b.zoneId).filter(Boolean));
+  }
+
+  // Moves an unbuilt building to another legal, free zone. Built buildings
+  // stay put — relocation would need a demolish/rebuild design first.
+  placeBuilding(building, zoneId) {
+    const zone = zoneById(zoneId);
+    if (!zone || !zoneAllowsType(zone, building.type) || building.isBuilt) return false;
+    if (this.allBuildings.some(b => b !== building && b.zoneId === zoneId)) return false;
+    building.zoneId = zoneId;
+    return true;
+  }
+
+  get waitingSlots() {
+    return buildingZone(this.entranceHall).slots;
+  }
+
+  // World position of a specific Entrance Hall waiting chair.
   chairPosition(index) {
-    const door = buildingDoor(this.entranceHall);
-    const offset = ENTRANCE_HALL_CHAIRS[index];
-    return { x: door.x + offset.dx, y: door.y - offset.dy };
+    const slot = this.waitingSlots[index];
+    return { x: slot.x, y: slot.y };
   }
 
   // Claims the first free chair for a waiting civilian. Returns the chair
   // index, or null if every chair is already taken (spawnCivilianIfRoom
-  // caps concurrent civilians at ENTRANCE_HALL_CHAIRS.length so this should
-  // be rare, but two civilians can still both be mid-walk toward the gate
-  // when the last chair fills — see tickCivilian's fallback for that case).
+  // caps concurrent civilians at the chair count so this should be rare,
+  // but two civilians can still both be mid-walk toward the gate when the
+  // last chair fills — see tickCivilian's fallback for that case).
   assignChair(unit) {
     const index = this.chairOccupants.indexOf(null);
     if (index === -1) return null;
@@ -173,43 +142,43 @@ class GameState {
     unit.chairIndex = null;
   }
 
-  // The 3 x-positions the road spokes run along — derived from the row-1
-  // buildings' actual gridX rather than hardcoded, so this can't drift out
-  // of sync if a building ever moves.
-  get roadSpokeXs() {
-    return [this.barracks, this.shootingRange, this.messHall].map(b => buildingDoor(b).x);
-  }
-
-  // Follow the winding main track in short segments, then turn toward the
-  // chosen building. Rendering samples the same roadYAt function.
-  routeTo(unit, targetX, targetY) {
-    const points = [{ x: unit.x, y: roadYAt(unit.x) }];
-    const distance = targetX - unit.x;
-    const steps = Math.ceil(Math.abs(distance) / 36);
-    for (let i = 1; i <= steps; i++) {
-      const x = unit.x + distance * i / steps;
-      points.push({ x, y: roadYAt(x) });
+  // Walk the path graph from wherever the unit stands to nodeId, then step
+  // to `finish` (a short local approach off the path) if given. A route that
+  // can't be found sends the unit to the safe gate node instead of leaving
+  // it stranded; that only happens if the map data itself is broken.
+  routeToNode(unit, nodeId, finish = null) {
+    const route = findWorldRoute(unit.x, unit.y, nodeId, this.placedZoneIds);
+    if (!route) {
+      console.warn(`No route to ${nodeId}; sending ${unit.name} to the gate`);
+      unit.setPath([gatePosition(WORLD.safeNodes.gate)]);
+      return false;
     }
-    points.push({ x: targetX, y: targetY });
-    unit.setPath(points);
+    if (finish) route.push({ x: finish.x, y: finish.y });
+    unit.setPath(route);
+    return true;
   }
 
+  // Door, then a step inside the clearing with a little spread so a group
+  // doesn't stack on one pixel. Slot-level placement comes in brief 02.
   routeToBuilding(unit, building) {
-    const door = buildingDoor(building);
-    this.routeTo(unit, door.x + randRange(-10, 10), door.y + (door.y < ROAD_Y_SPINE ? 8 : -8));
+    const zone = buildingZone(building);
+    const centre = polygonCentroid(zone.footprint);
+    const dx = centre.x - zone.entrance.x, dy = centre.y - zone.entrance.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const spread = randRange(-10, 10);
+    this.routeToNode(unit, doorNodeId(zone.id), {
+      x: zone.entrance.x + (dx / length) * 8 - (dy / length) * spread,
+      y: zone.entrance.y + (dy / length) * 8 + (dx / length) * spread,
+    });
   }
 
-  // Idle wander now picks a random point along the road network instead of
-  // anywhere in the bounds, so units stay on the roads even when they don't
-  // have anywhere in particular to be.
+  // Idle wander: a random point along the trunk trail inside the fence, so
+  // units stay on paths even when they have nowhere in particular to be.
   routeToRandomRoadPoint(unit) {
-    if (Math.random() < 0.5) {
-      const x = randRange(this.bounds.minX, this.bounds.maxX);
-      this.routeTo(unit, x, roadYAt(x));
-    } else {
-      const x = pick(this.roadSpokeXs);
-      this.routeTo(unit, x, randRange(this.bounds.minY, ROAD_Y_SPINE));
-    }
+    const edges = worldEdgeList(new Set()).filter(e => e.from !== 'gate_outside' && e.from !== 'gate');
+    const edge = pick(edges);
+    const walk = edgePrefix(edge, randRange(0.1, 0.9));
+    if (this.routeToNode(unit, edge.from)) unit.path.push(...walk);
   }
 
   // Single place that maps "what is this unit's status" to "where should it
@@ -353,17 +322,18 @@ class GameState {
     const approaching = this.units.filter(u => u.status === UNIT_STATUS.CIVILIAN_APPROACHING);
     // Capped at the Entrance Hall's chair count, not an arbitrary number —
     // no point letting more civilians in than there's a seat for.
-    if (approaching.length >= ENTRANCE_HALL_CHAIRS.length) return;
+    if (approaching.length >= this.waitingSlots.length) return;
 
-    // The wall means there's only one way in: the gate. Spawn just outside
-    // it and head for the inside-gate waypoint first — tickCivilian() sends
+    // The fence means there's only one way in: the gate. Spawn just outside
+    // it and head for the gate checkpoint first — tickCivilian() sends
     // them to a waiting chair in the Entrance Hall once they've actually
     // passed through.
-    const civ = new Unit({ x: GATE_OUTSIDE_X, y: GATE_Y_CENTER + randRange(-20, 20), isCivilian: true });
+    const outside = gatePosition('gate_outside'), gate = gatePosition('gate');
+    const civ = new Unit({ x: outside.x, y: outside.y + randRange(-12, 12), isCivilian: true });
     civ.spawnedAt = Date.now();
     civ.enteredGate = false;
-    civ.targetX = GATE_INSIDE_X;
-    civ.targetY = GATE_Y_CENTER;
+    civ.targetX = gate.x;
+    civ.targetY = gate.y;
     this.units.push(civ);
   }
 
@@ -439,8 +409,9 @@ class GameState {
     if (succeeded) {
       // Reappear at the gate, same "the wall/gate is the only way in or
       // out" convention as a fresh recruit walking in — see RECRUITING.
-      unit.x = GATE_INSIDE_X;
-      unit.y = GATE_Y_CENTER;
+      const gate = gatePosition(WORLD.safeNodes.gate);
+      unit.x = gate.x;
+      unit.y = gate.y;
       unit.status = UNIT_STATUS.IDLE;
       this.routeForStatus(unit);
     } else {
@@ -545,9 +516,9 @@ class GameState {
     this.routeForStatus(unit);
   }
 
-  // Every civilian's walk has up to 4 legs, all funneled through the single
-  // gate (there's no other opening in the wall): outside gate -> inside gate
-  // -> Entrance Hall waiting chair -> inside gate -> outside gate -> despawn.
+  // Every civilian's walk is funneled through the single gate (there's no
+  // other opening in the fence): outside gate -> checkpoint -> path to an
+  // Entrance Hall waiting chair -> back along the path -> outside -> despawn.
   tickCivilian(unit, dtSeconds, nowMs, toRemove) {
     const reached = unit.step(dtSeconds);
     if (unit.status === UNIT_STATUS.CIVILIAN_APPROACHING) {
@@ -556,15 +527,13 @@ class GameState {
           unit.enteredGate = true;
           const chairIndex = this.assignChair(unit);
           if (chairIndex !== null) {
-            const seat = this.chairPosition(chairIndex);
-            this.routeTo(unit, seat.x, seat.y);
+            this.routeToNode(unit, WORLD.safeNodes.waiting, this.chairPosition(chairIndex));
           } else {
             // Every chair taken by another civilian still mid-walk — wait
-            // just inside the gate rather than crossing the whole base with
+            // just inside the gate rather than crossing the base with
             // nowhere to actually sit (spawnCivilianIfRoom keeps this rare,
             // not impossible).
-            unit.targetX = GATE_INSIDE_X + 20;
-            unit.targetY = GATE_Y_CENTER;
+            this.routeToNode(unit, WORLD.safeNodes.gate);
           }
         }
         return;
@@ -573,22 +542,23 @@ class GameState {
       if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
         this.releaseChair(unit);
         unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
-        this.routeTo(unit, GATE_INSIDE_X, GATE_Y_CENTER);
+        this.routeToNode(unit, 'gate_outside');
       }
     } else if (unit.status === UNIT_STATUS.CIVILIAN_LEAVING) {
-      if (!reached) return;
-      if (unit.x > 0) {
-        // just reached the inside-gate waypoint — step through to outside
-        unit.targetX = GATE_OUTSIDE_X;
-        unit.targetY = GATE_Y_CENTER;
-      } else {
-        toRemove.add(unit.id); // now outside the wall, gone
-      }
+      if (reached) toRemove.add(unit.id); // outside the fence, gone
     }
   }
 
+  // Current save schema (v2, see save.js). Building placement is saved
+  // beside the level so a future build menu can choose zones.
   serialize() {
+    const buildings = {};
+    for (const building of this.allBuildings) {
+      buildings[building.id] = { level: building.level, zoneId: building.zoneId };
+    }
     return {
+      schema: SAVE_SCHEMA_VERSION,
+      worldId: WORLD_ID,
       cash: this.cash,
       food: this.food,
       gameClockMs: this.gameClockMs,
@@ -596,14 +566,7 @@ class GameState {
       steel: this.steel,
       gems: this.gems,
       missionLog: this.missionLog,
-      barracksLevel: this.barracks.level,
-      shootingRangeLevel: this.shootingRange.level,
-      messHallLevel: this.messHall.level,
-      weightRoomLevel: this.weightRoom.level,
-      obstacleCourseLevel: this.obstacleCourse.level,
-      drillYardLevel: this.drillYard.level,
-      showersLevel: this.showers.level,
-      recRoomLevel: this.recRoom.level,
+      buildings,
       lastTick: Date.now(),
       units: this.units
         .filter(u => !u.isCivilian) // don't persist transient civilians
@@ -619,58 +582,61 @@ class GameState {
     };
   }
 
-  static load() {
+  // Builds a state from already-normalized v2 data (save.js's
+  // normalizeSaveData), then runs bounded offline catch-up.
+  static fromSaveData(data, nowMs = Date.now()) {
     const state = new GameState();
-    let raw;
-    try { raw = localStorage.getItem(SAVE_KEY); }
-    catch (error) { console.warn('Could not read saved game', error); return state; }
-    if (!raw) return state;
-
-    try {
-      const data = JSON.parse(raw);
-      state.cash = data.cash ?? 200;
-      state.food = data.food ?? 30;
-      state.lumber = data.lumber ?? 0;
-      state.steel = data.steel ?? 0;
-      state.gems = data.gems ?? 0;
-      state.missionLog = Array.isArray(data.missionLog) ? data.missionLog.slice(0, 30) : [];
-      state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
-      state.barracks.level = data.barracksLevel ?? 0;
-      state.shootingRange.level = data.shootingRangeLevel ?? 0;
-      state.messHall.level = data.messHallLevel ?? 0;
-      state.weightRoom.level = data.weightRoomLevel ?? 0;
-      state.obstacleCourse.level = data.obstacleCourseLevel ?? 0;
-      state.drillYard.level = data.drillYardLevel ?? 0;
-      state.showers.level = data.showersLevel ?? 0;
-      state.recRoom.level = data.recRoomLevel ?? 0;
-
-      state.units = (data.units || []).map(d => {
-        const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
-        Object.assign(u, d);
-        // A unit saved mid-transition (e.g. status EATING but no building
-        // built anymore — shouldn't happen, but defensive) falls back to idle.
-        if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {
-          u.status = UNIT_STATUS.IDLE;
-        }
-        state.routeForStatus(u); // fresh route on load rather than resuming a stale one
-        return u;
-      });
-
-      // Offline catch-up: 24h real-time cap, per spec — log off, come back
-      // within a day, everything (hospital stays included) has accrued normally.
-      // NOTE: this is one big tick, not elapsedSec sub-steps. That's a known
-      // approximation — a unit training the whole time offline will apply
-      // its full accuracy gain for the period BEFORE the energy-zero check
-      // sends them to hospital, rather than realistically stopping partway
-      // through. Fine for a prototype; if offline balance ever matters,
-      // sub-step this in e.g. 1-game-hour chunks instead.
-      const elapsedMs = Date.now() - (data.lastTick || Date.now());
-      const elapsedSec = clamp(elapsedMs / 1000, 0, OFFLINE_CATCHUP_CAP_MS / 1000);
-      if (elapsedSec > 1) state.catchUp(elapsedSec, Date.now());
-    } catch (e) {
-      console.warn('Save corrupt, starting fresh', e);
+    state.cash = data.cash ?? 200;
+    state.food = data.food ?? 30;
+    state.lumber = data.lumber ?? 0;
+    state.steel = data.steel ?? 0;
+    state.gems = data.gems ?? 0;
+    state.missionLog = Array.isArray(data.missionLog) ? data.missionLog.slice(0, 30) : [];
+    state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
+    for (const building of state.allBuildings) {
+      const saved = data.buildings[building.id];
+      if (!saved) continue; // older data without this building keeps its default site
+      building.zoneId = saved.zoneId;
+      if (building !== state.entranceHall) building.level = saved.level;
     }
+
+    state.units = (data.units || []).map(d => {
+      const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
+      Object.assign(u, d);
+      // A unit saved mid-transition (e.g. status EATING but no building
+      // built anymore — shouldn't happen, but defensive) falls back to idle.
+      if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {
+        u.status = UNIT_STATUS.IDLE;
+      }
+      state.routeForStatus(u); // fresh route on load rather than resuming a stale one
+      return u;
+    });
+
+    // Offline catch-up: 24h real-time cap, per spec — log off, come back
+    // within a day, everything (hospital stays included) has accrued
+    // normally, in bounded steps (see catchUp()).
+    const elapsedMs = nowMs - (data.lastTick || nowMs);
+    const elapsedSec = clamp(elapsedMs / 1000, 0, OFFLINE_CATCHUP_CAP_MS / 1000);
+    if (elapsedSec > 1) state.catchUp(elapsedSec, nowMs);
     return state;
+  }
+
+  // Loads the newest readable save (current, recovery copy, then v1 — see
+  // save.js). A migrated v1 save is written to the v2 key straight away so
+  // migration runs once; the v1 key itself is never touched.
+  static load() {
+    const stored = readStoredSave();
+    if (!stored) return new GameState();
+    try {
+      const state = GameState.fromSaveData(stored.data);
+      if (stored.migrated) state.save();
+      return state;
+    } catch (error) {
+      console.warn('Saved game could not be applied, starting fresh', error);
+      // Park it where the fresh game's autosave can't overwrite it.
+      try { localStorage.setItem(UNREADABLE_SAVE_KEY, JSON.stringify(stored.data)); } catch { /* nothing else to try */ }
+      return new GameState();
+    }
   }
 
   save() {
