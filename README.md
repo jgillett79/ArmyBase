@@ -431,6 +431,17 @@ affordability message and a short construction animation. Review captures
 and checks: `node tools/browser-capture.cjs http://localhost:8000 captures
 --clip`, `docs/screenshots/brief03-*`.
 
+## Brief 04 (done, art pending): asset pipeline and animation playback
+
+Art is described in `js/asset-manifest.js`, built from the studies in
+`art/` by `node tools/prepare-art.cjs`, and checked by
+`node tools/validate-assets.cjs`. The range, barracks and mess studies are
+in the game as provisional art with registered stations; the firing poses
+are a candidate (`?art=candidates`); the gate needs redrawing. Frame-based
+playback (distance-driven walk cycles, activity loops, separate effects) is
+ready for the walk/idle/activity sets requested in
+`art/CHATGPT_FEEDBACK.md`.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual

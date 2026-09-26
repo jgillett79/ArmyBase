@@ -1,10 +1,12 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v6';
+const CACHE_NAME = 'command-base-v7';
 const APP_FILES = [
   "./",
   "index.html",
   "manifest.webmanifest",
   "css/style.css",
+  "js/animation.js",
+  "js/asset-manifest.js",
   "js/building.js",
   "js/camera.js",
   "js/main.js",
@@ -19,13 +21,16 @@ const APP_FILES = [
   "assets/buildings/.gitkeep",
   "assets/buildings/barracks.png",
   "assets/buildings/barracks-organic.webp",
+  "assets/buildings/barracks-study-v1.webp",
   "assets/buildings/drill_yard.png",
   "assets/buildings/entrance_hall.png",
   "assets/buildings/entrance-hall-organic.webp",
   "assets/buildings/gatehouse.png",
   "assets/buildings/mess_hall.png",
   "assets/buildings/mess-hall-organic.webp",
+  "assets/buildings/mess-hall-study-v1.webp",
   "assets/buildings/obstacle_course.png",
+  "assets/buildings/range-study-v1.webp",
   "assets/buildings/rec_room.png",
   "assets/buildings/shooting_range.png",
   "assets/buildings/shooting-range-organic.webp",
@@ -43,6 +48,7 @@ const APP_FILES = [
   "assets/terrain/ground_grass.png",
   "assets/terrain/road.png",
   "assets/terrain/wall.png",
+  "assets/units/candidates/soldier-fire-candidate-v1.webp",
   "assets/units/civilians/.gitkeep",
   "assets/units/civilians/bus_rider.png",
   "assets/units/civilians/bus_rider_down.png",

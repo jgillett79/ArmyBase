@@ -586,7 +586,7 @@ function handleTap(screenX, screenY) {
   // Tapping an indoor facility lifts its roof to show who's inside.
   const zoneId = zoneAtWorld(point);
   const building = zoneId && gameState.allBuildings.find(b => b.zoneId === zoneId && b.isBuilt);
-  const indoor = building && FACILITY_ART[building.type].kind === 'indoor';
+  const indoor = building && facilityKind(building.type) === 'indoor';
   revealedBuildingId = indoor && revealedBuildingId !== building.id ? building.id : null;
 }
 

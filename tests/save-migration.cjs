@@ -16,7 +16,7 @@ const sandbox = vm.createContext({
     setItem: (key, value) => storage.set(key, String(value)),
   },
 });
-for (const file of ['utils', 'world', 'unit', 'building', 'mission', 'state', 'save']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'state', 'save']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);

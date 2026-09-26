@@ -15,18 +15,19 @@ function spriteReady(img) {
   return img && img.complete && img.naturalWidth > 0;
 }
 
+// Facility art comes from js/asset-manifest.js: processed art anchored by
+// its pivot (used on zones whose door side it supports), and the older
+// fitted sprite as the fallback everywhere else.
+const FACILITY_SPRITES = {};
+for (const [type, entry] of Object.entries(ASSET_MANIFEST.facilities)) {
+  FACILITY_SPRITES[type] = {
+    art: entry.crop ? loadSprite(entry.file) : null,
+    fallback: loadSprite(entry.crop ? ASSET_MANIFEST.fallbackFacilityFiles[type] : entry.file),
+  };
+}
+
 const BUILDING_SPRITES = {
-  barracks: loadSprite('assets/buildings/barracks-organic.webp'),
-  shooting_range: loadSprite('assets/buildings/shooting-range-organic.webp'),
-  weight_room: loadSprite('assets/buildings/weight_room.png'),
-  obstacle_course: loadSprite('assets/buildings/obstacle_course.png'),
-  drill_yard: loadSprite('assets/buildings/drill_yard.png'),
-  mess_hall: loadSprite('assets/buildings/mess-hall-organic.webp'),
-  showers: loadSprite('assets/buildings/showers.png'),
-  rec_room: loadSprite('assets/buildings/rec_room.png'),
-  entrance_hall: loadSprite('assets/buildings/entrance-hall-organic.webp'),
-  gatehouse: loadSprite('assets/buildings/gatehouse.png'),
-  vacant_lot: loadSprite('assets/buildings/vacant_lot.png'),
+  gatehouse: loadSprite(ASSET_MANIFEST.gate.file),
 };
 
 // Tileable ground/wall/road textures — see ASSETS.md's "Terrain" section.
@@ -157,26 +158,19 @@ function traceSmoothLine(ctx, points) {
 //   ground — its clearing, painted in the static layer (scenery.js)
 //   back   — structure behind anyone using it
 //   (people and trees, depth-sorted by ground-contact y)
-//   front  — pieces that must cover people standing at its slots
-// `kind` decides what happens to people inside the footprint:
+//   front  — pieces that must cover people standing at its slots: the
+//            manifest's `front` occluder polygons redrawn over them
+// `kind` (js/asset-manifest.js) decides what happens to people inside:
 //   open   — outdoor station or porch: occupants stay visible and sorted
 //   indoor — occupants are under the roof and hidden (a count badge shows
 //            who's inside); while revealed — selected, or holding the
 //            selected soldier — the roof lifts: floor, low walls, people,
 //            then a front rail. Never a person drawn on top of a roof.
-// The interim art is one bitmap per facility, so `back` is the whole
-// sprite; brief 04 supplies true split layers through this same contract.
-const FACILITY_ART = {
-  entrance_hall: { kind: 'open' },
-  barracks: { kind: 'indoor' },
-  mess_hall: { kind: 'indoor' },
-  showers: { kind: 'indoor' },
-  rec_room: { kind: 'indoor' },
-  weight_room: { kind: 'indoor' },
-  shooting_range: { kind: 'open' },
-  obstacle_course: { kind: 'open' },
-  drill_yard: { kind: 'open' },
-};
+// Art is still one bitmap per facility, so `back` is the whole image and
+// `front` re-draws parts of it; split roof/front files slot in here later.
+function facilityKind(type) {
+  return ASSET_MANIFEST.facilities[type].kind;
+}
 const CONSTRUCTION_MS = 1600;
 
 const BUILDING_LABELS = {
@@ -189,18 +183,29 @@ const BUILDING_FALLBACK_COLORS = {
   weight_room: '#5a4a6a', obstacle_course: '#6a5a30', drill_yard: '#4a5a6a', showers: '#4a7a8a', rec_room: '#8a6a4a',
 };
 
-// Interim placement: the 3:2 sprite fitted to the zone width and grounded
-// on its lower edge. Brief 04's manifest replaces this with real pivots.
-function facilitySpriteRect(building, zoneId = building.zoneId) {
+// Image and world rectangle for a facility on a zone: manifest-anchored art
+// where it fits the zone, otherwise the older 3:2 sprite fitted to the
+// zone width and grounded on its lower edge.
+function facilityDrawable(building, zoneId = building.zoneId) {
   const zone = zoneById(zoneId);
+  const sprites = FACILITY_SPRITES[building.type];
+  const art = facilityArtFor(building.type, zone);
+  if (art && spriteReady(sprites.art)) {
+    const transform = facilityArtTransform(art, zone);
+    return { img: sprites.art, rect: transform.rect, art, transform };
+  }
   const bounds = polygonBounds(zone.footprint);
   const centre = polygonCentroid(zone.footprint);
   const w = (bounds.maxX - bounds.minX) * 0.92, h = w / 1.5;
-  return { x: centre.x - w / 2, y: bounds.maxY - h - 6, w, h };
+  return { img: sprites.fallback, rect: { x: centre.x - w / 2, y: bounds.maxY - h - 6, w, h }, art: null, transform: null };
 }
 
-function drawFacilityImage(ctx, building, rect) {
-  const img = BUILDING_SPRITES[building.type];
+function facilitySpriteRect(building, zoneId = building.zoneId) {
+  return facilityDrawable(building, zoneId).rect;
+}
+
+function drawFacilityImage(ctx, building, rect, zoneId = building.zoneId) {
+  const { img } = facilityDrawable(building, zoneId);
   if (spriteReady(img)) ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
   else {
     ctx.fillStyle = BUILDING_FALLBACK_COLORS[building.type];
@@ -229,7 +234,7 @@ function drawFacilityBack(ctx, building, revealed, now) {
     drawConstruction(ctx, building, rect, sinceBuilt / CONSTRUCTION_MS, now);
     return;
   }
-  if (revealed && FACILITY_ART[building.type].kind === 'indoor') {
+  if (revealed && facilityKind(building.type) === 'indoor') {
     // Roof lifted: a floor, then only the lower band of the walls.
     traceSmoothPolygon(ctx, zone.footprint);
     ctx.fillStyle = '#b39a70';
@@ -254,11 +259,24 @@ function drawFacilityBack(ctx, building, revealed, now) {
   drawFacilityImage(ctx, building, rect);
 }
 
-function drawFacilityFront(ctx, building, revealed) {
-  if (!building.isBuilt || !revealed || FACILITY_ART[building.type].kind !== 'indoor') return;
+function drawFacilityFront(ctx, building, revealed, now) {
+  if (!building.isBuilt || now - (building.constructedAt || -Infinity) < CONSTRUCTION_MS) return;
+  const drawable = facilityDrawable(building);
+  // Manifest occluders: the same bitmap, clipped to each front polygon.
+  if (drawable.art && drawable.art.front && drawable.art.front.length && (!revealed || facilityKind(building.type) !== 'indoor')) {
+    for (const polygon of drawable.art.front) {
+      ctx.save();
+      ctx.beginPath();
+      polygon.forEach(([x, y], i) => { const p = drawable.transform.toWorld(x, y); i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y); });
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(drawable.img, drawable.rect.x, drawable.rect.y, drawable.rect.w, drawable.rect.h);
+      ctx.restore();
+    }
+  }
+  if (!revealed || facilityKind(building.type) !== 'indoor') return;
   // Low front rail of the cutaway, in front of the people inside.
-  const zone = buildingZone(building);
-  const b = polygonBounds(zone.footprint);
+  const b = polygonBounds(buildingZone(building).footprint);
   ctx.save();
   ctx.strokeStyle = '#5a4630';
   ctx.lineWidth = 6;
@@ -267,6 +285,13 @@ function drawFacilityFront(ctx, building, revealed) {
   ctx.lineWidth = 2;
   ctx.beginPath(); ctx.moveTo(b.minX + 18, b.maxY - 12); ctx.lineTo(b.maxX - 18, b.maxY - 12); ctx.stroke();
   ctx.restore();
+}
+
+// Targets downrange in world px, from the facility's art (empty if none).
+function facilityTargets(building) {
+  const drawable = facilityDrawable(building);
+  if (!drawable.art || !drawable.art.targets) return [];
+  return drawable.art.targets.map(([x, y]) => drawable.transform.toWorld(x, y));
 }
 
 // Short build animation: scaffold and dust while the structure rises from
@@ -303,7 +328,7 @@ function drawConstruction(ctx, building, rect, progress, now) {
 // Who is out of sight under a roof right now.
 function indoorFacilityAt(unit, gameState) {
   for (const building of gameState.allBuildings) {
-    if (!building.isBuilt || FACILITY_ART[building.type].kind !== 'indoor') continue;
+    if (!building.isBuilt || facilityKind(building.type) !== 'indoor') continue;
     if (pointInPolygon(unit.x, unit.y, buildingZone(building).footprint)) return building;
   }
   return null;
@@ -344,8 +369,8 @@ function drawGatehouse(ctx) {
 // Unit sprite size in world px. unit.x/unit.y is the ground-contact point
 // (feet): people stand on paths and slots, and depth sorting and hit testing
 // use that same point.
-const UNIT_W = 40;
-const UNIT_H = 60;
+const UNIT_H = ASSET_MANIFEST.unitWorldHeight;
+const UNIT_W = Math.round(UNIT_H * 2 / 3);
 
 function drawClock(ctx, hourOfDay, isDaytime, viewW) {
   const h = Math.floor(hourOfDay);
@@ -370,7 +395,7 @@ function outfitMarker(outfit) {
   }
 }
 
-function drawUnit(ctx, unit, isSelected) {
+function drawUnit(ctx, unit, isSelected, now = performance.now()) {
   const hue = unit.colorSeed;
   const inHospital = unit.status === UNIT_STATUS.HOSPITAL;
   const img = unitSprite(unit);
@@ -379,7 +404,8 @@ function drawUnit(ctx, unit, isSelected) {
   const top = unit.y - UNIT_H;         // sprite top edge
   const moving = !isSeatedCivilian(unit) &&
     (unit.path.length > 0 || Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y) > 1);
-  const stride = moving ? Math.sin(performance.now() * 0.014 + unit.colorSeed) : 0;
+  const stride = moving ? Math.sin(now * 0.014 + unit.colorSeed) : 0;
+  const pose = unitFramePose(unit, now); // activity/walk frames when the art exists (animation.js)
 
   ctx.save();
   ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.6 : 1;
@@ -396,7 +422,9 @@ function drawUnit(ctx, unit, isSelected) {
     ctx.stroke();
   }
 
-  if (spriteReady(img)) {
+  if (pose) {
+    drawFramePose(ctx, unit, pose);
+  } else if (spriteReady(img)) {
     // per-unit hue-shift is what makes each soldier distinguishable — the
     // sprites are intentionally desaturated so this rotates cleanly. In
     // uniform gets a saturation bump to "pop"; still-civilian-looking
@@ -524,13 +552,16 @@ function drawFacilityActivity(ctx, unit, gameState, now) {
   ctx.lineWidth = 2;
 
   if (unit.slot.activity === 'fire') {
-    // Muzzle flash in the slot's facing, and a hit marker at the targets.
+    // Muzzle flash in the slot's facing (unless firing frames draw their
+    // own), and a hit marker on the nearest target painted in the art.
     const [dx, dy] = { right: [1, 0], left: [-1, 0], up: [0, -1], down: [0, 1] }[unit.slot.facing] || [1, 0];
-    if (pulse > 0.8) {
+    if (pulse > 0.8 && !unitFramePose(unit, now)) {
       ctx.fillStyle = '#ffd47a';
-      ctx.beginPath(); ctx.arc(x + dx * 24, y + 22 + dy * 16, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x + dx * 16, y + 16 + dy * 12, 3, 0, Math.PI * 2); ctx.fill();
     }
-    const hitX = unit.x + dx * 100, hitY = unit.y - 24 + dy * 100;
+    const targets = facilityTargets(building);
+    const target = targets.reduce((best, t) => !best || Math.hypot(t.x - unit.x, t.y - unit.y) < Math.hypot(best.x - unit.x, best.y - unit.y) ? t : best, null);
+    const hitX = target ? target.x : unit.x + dx * 100, hitY = target ? target.y : unit.y - 24 + dy * 100;
     ctx.strokeStyle = 'rgba(233, 213, 170, 0.8)';
     ctx.beginPath(); ctx.arc(hitX, hitY, 6, 0, Math.PI * 2); ctx.stroke();
     ctx.strokeStyle = '#ad6050';
@@ -596,7 +627,7 @@ function drawBuildOverlay(ctx, gameState, buildMode, now) {
     ctx.save();
     ctx.globalAlpha = 0.62;
     if (!buildMode.affordable) ctx.filter = 'grayscale(1) sepia(1) saturate(4) hue-rotate(-40deg)';
-    drawFacilityImage(ctx, building, facilitySpriteRect(building, ghostZone));
+    drawFacilityImage(ctx, building, facilitySpriteRect(building, ghostZone), ghostZone);
     ctx.restore();
   }
 }
@@ -694,12 +725,12 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   for (const item of items) {
     if (item.tree) drawTree(ctx, item.tree);
     else {
-      drawUnit(ctx, item.unit, item.unit.id === selectedUnitId);
+      drawUnit(ctx, item.unit, item.unit.id === selectedUnitId, now);
       drawFacilityActivity(ctx, item.unit, gameState, now);
     }
   }
 
-  for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id));
+  for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id), now);
   for (const [buildingId, count] of hiddenCount) drawOccupancyBadge(ctx, gameState.buildingByAnyId(buildingId), count);
   if (view.buildMode) drawBuildOverlay(ctx, gameState, view.buildMode, now);
   if (view.debug) drawDebugOverlay(ctx, gameState);

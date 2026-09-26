@@ -216,7 +216,10 @@ class GameState {
     if (!building.isBuilt) return [];
     const zone = buildingZone(building);
     const activity = FACILITY_ACTIVITIES[building.type];
-    const anchors = zone.slots.map(s => ({ buildingId: building.id, slotId: s.id, x: s.x, y: s.y, facing: s.facing, activity }));
+    // Anchors registered on the facility's art (asset-manifest.js) win over
+    // the zone's generic ones, so people stand where the art has stations.
+    const source = facilityArtSlots(building.type, zone) || zone.slots;
+    const anchors = source.map(s => ({ buildingId: building.id, slotId: s.id, x: s.x, y: s.y, facing: s.facing, activity: s.activity || activity }));
     if (building.capacity !== undefined) return anchors.slice(0, Math.min(building.capacity, anchors.length));
     if (building === this.entranceHall) return anchors;
     const slots = anchors.slice();

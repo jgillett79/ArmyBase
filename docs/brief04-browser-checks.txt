@@ -1,0 +1,18 @@
+PASS desktop canvas is 960 x 576
+PASS two soldiers using distinct range slots
+PASS mouse click selects the soldier under the pointer
+PASS wheel zooms in around the cursor
+PASS zoom button changes the view
+PASS drag did not count as a tap
+PASS click after zoom and pan still selects the right soldier
+PASS build mode highlights sites
+PASS tapping a site selects it
+PASS facility built on the chosen site
+PASS displaced unbuilt facility moved to a legal site
+PASS unaffordable build explains what is missing
+PASS confirm is disabled while unaffordable
+INFO average frame 16.4 ms with 16 people (headless, software rendering)
+PASS touch tap selects the soldier on a phone
+PASS phone canvas is taller than 5:3
+PASS clip: visitor admitted to a reception chair
+PASS clip: both soldiers reached distinct range slots

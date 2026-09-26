@@ -125,7 +125,7 @@ const WORLD = {
     },
     {
       id: 'zone_north_terrace', label: 'North terrace', types: ENCLOSED_TYPES.filter(t => t !== 'entrance_hall').concat(OUTDOOR_TYPES),
-      doorSide: 'south', orientations: ['three_quarter_south'], surveyed: false, accessNode: 'n2',
+      doorSide: 'south', orientations: ['three_quarter_south'], surveyed: true, accessNode: 'n2',
       footprint: [[600, 150], [700, 128], [820, 132], [882, 166], [872, 236], [782, 258], [662, 252], [602, 214]],
       entrance: { x: 742, y: 272 },
       slots: [
@@ -143,6 +143,20 @@ const WORLD = {
         { id: 's1', x: 668, y: 486, facing: 'down' }, { id: 's2', x: 696, y: 492, facing: 'down' },
         { id: 's3', x: 724, y: 492, facing: 'down' }, { id: 's4', x: 752, y: 484, facing: 'down' },
         { id: 's5', x: 680, y: 446, facing: 'down' }, { id: 's6', x: 740, y: 446, facing: 'down' },
+      ],
+    },
+    {
+      // Added with the art pass: enclosed three-quarter art needs a south
+      // door, and moving the range onto the gate-side West rise (its art's
+      // open side faces south-west) needed one more south-door site.
+      id: 'zone_knoll_east', label: 'Knoll east', types: ENCLOSED_TYPES.filter(t => t !== 'entrance_hall').concat(OUTDOOR_TYPES),
+      doorSide: 'south', orientations: ['three_quarter_south'], surveyed: false, accessNode: 't6',
+      footprint: [[948, 392], [1008, 378], [1066, 392], [1080, 445], [1062, 500], [1004, 516], [950, 502], [932, 448]],
+      entrance: { x: 1006, y: 530 },
+      slots: [
+        { id: 's1', x: 970, y: 480, facing: 'down' }, { id: 's2', x: 1000, y: 488, facing: 'down' },
+        { id: 's3', x: 1030, y: 488, facing: 'down' }, { id: 's4', x: 1058, y: 476, facing: 'down' },
+        { id: 's5', x: 985, y: 440, facing: 'down' }, { id: 's6', x: 1035, y: 440, facing: 'down' },
       ],
     },
     {
@@ -169,7 +183,7 @@ const WORLD = {
     },
     {
       id: 'zone_south_green', label: 'South green', types: OUTDOOR_TYPES, doorSide: 'north',
-      orientations: ['three_quarter_south'], surveyed: true, accessNode: 't3',
+      orientations: ['three_quarter_south'], surveyed: false, accessNode: 't3',
       footprint: [[560, 640], [670, 624], [780, 636], [806, 700], [780, 770], [672, 786], [566, 774], [540, 706]],
       entrance: { x: 672, y: 610 },
       slots: [
@@ -224,10 +238,12 @@ const WORLD = {
   // CLAUDE.md: newcomers should not walk across the whole base).
   defaultPlacements: {
     entrance_hall: 'zone_reception',
-    barracks: 'zone_west_rise',
-    shooting_range: 'zone_south_green',
-    mess_hall: 'zone_centre_knoll',
-    weight_room: 'zone_north_terrace',
+    // The range sits beside the gate on a south-door site because its art's
+    // open side faces south-west (see js/asset-manifest.js doorSides).
+    shooting_range: 'zone_west_rise',
+    barracks: 'zone_centre_knoll',
+    mess_hall: 'zone_north_terrace',
+    weight_room: 'zone_knoll_east',
     obstacle_course: 'zone_southwest_flats',
     drill_yard: 'zone_riverside',
     showers: 'zone_river_bend',

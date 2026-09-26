@@ -1,6 +1,6 @@
 // Browser review captures for Command Base — no installed dependencies.
 //
-//   node tools/browser-capture.cjs <baseUrl> <outDir> [--clip]
+//   node tools/browser-capture.cjs <baseUrl> <outDir> [--clip] [--candidates]
 //   e.g. node tools/browser-capture.cjs http://localhost:8000 captures --clip
 //
 // Launches headless Edge/Chrome (set BROWSER to override the path) over the
@@ -21,6 +21,8 @@ const { spawn } = require('node:child_process');
 
 const [baseUrl = 'http://localhost:8000', outDir = 'captures'] = process.argv.slice(2).filter(a => !a.startsWith('--'));
 const recordClip = process.argv.includes('--clip');
+// --candidates previews art the manifest marks as candidate (e.g. firing frames).
+const pageQuery = process.argv.includes('--candidates') ? '?art=candidates' : '';
 const PORT = 9333;
 
 function findBrowser() {
@@ -93,7 +95,7 @@ async function main() {
     await send('Emulation.setTouchEmulationEnabled', { enabled: mobile, maxTouchPoints: mobile ? 5 : 1 });
   };
   const load = async () => {
-    await send('Page.navigate', { url: `${baseUrl}/index.html` });
+    await send('Page.navigate', { url: `${baseUrl}/index.html${pageQuery}` });
     for (let i = 0; i < 100; i++) {
       await sleep(100);
       if (await evaluate(`document.readyState === 'complete' && typeof gameState !== 'undefined'`).catch(() => false)) break;

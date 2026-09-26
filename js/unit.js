@@ -148,6 +148,7 @@ class Unit {
     this.queuedFor = null;     // buildingId while waiting for a full facility
     this.legPhase = 'travel';  // phase tag of the current route leg (see setPath)
     this.departing = false;    // walking out through the gate after mission dispatch
+    this.walkDistance = 0;     // world px walked; drives walk-cycle frames (animation.js)
     this.checkpointUntil = null; // visitor pausing at the gate checkpoint (real ms)
   }
 
@@ -318,6 +319,7 @@ class Unit {
       this.updateFacing(dx, dy);
 
       if (remaining >= dist) {
+        this.walkDistance += dist;
         this.x = this.targetX;
         this.y = this.targetY;
         remaining -= dist;
@@ -326,6 +328,7 @@ class Unit {
         continue;
       }
 
+      this.walkDistance += remaining;
       this.x += (dx / dist) * remaining;
       this.y += (dy / dist) * remaining;
       return false;

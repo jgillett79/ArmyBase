@@ -315,6 +315,16 @@ contract in render.js. Build mode picks an authored zone
 (`constructAt`/`zonePlacementState`). Browser review:
 `tools/browser-capture.cjs` (headless Edge/Chrome, no dependencies).
 
+**Brief 04 done (asset pipeline + playback)**: see
+`CLAUDE_IMPLEMENTATION/04_ASSET_INTEGRATION_MANIFEST.md`. `js/asset-manifest.js`
+is the single source for art files, pivots, slots, occluders and statuses;
+`tools/prepare-art.cjs` builds `assets/` from `art/` non-destructively;
+`tools/validate-assets.cjs` must pass. People are 44 world px tall
+(`unitWorldHeight`). Walk/idle frames and a matching firing set are still
+**missing** — requested in `art/CHATGPT_FEEDBACK.md`; `js/animation.js`
+plays them once they exist and falls back to stills until then. Don't
+promote a candidate to production without a consistency review.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

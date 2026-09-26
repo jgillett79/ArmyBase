@@ -9,8 +9,8 @@
 
 const CAMERA_MAX_ZOOM = 1.6;
 const CAMERA_DEFAULT_ZOOM = 1;
-// Opening view: gate, Entrance Hall, Barracks site and the first range site.
-const CAMERA_HOME = { x: 440, y: 520 };
+// Opening view: gate, Entrance Hall, the range beside the gate and the Barracks site.
+const CAMERA_HOME = { x: 430, y: 450 };
 const CAMERA_HOME_NARROW = { x: 300, y: 580 };
 
 class Camera {
