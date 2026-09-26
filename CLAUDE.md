@@ -297,6 +297,15 @@ each has a `zoneId` into `WORLD.zones`. The save key is now
 `armybase_save_v2`; the v1 key is read once and never modified. Tests:
 `tests/world.cjs`, `tests/save-migration.cjs`, plus the two smoke tests.
 
+**Brief 02 done (visible facility use)**: see
+`CLAUDE_IMPLEMENTATION/02_UNIT_ACTIVITY_MANIFEST.md`. Units reserve typed
+slots (`reserveSlot`/`releaseSlot`, queue on a full training building);
+facility effects start only at the slot (`isUsingFacility`), which render.js
+also uses. Route phase (`unit.routePhase`) is presentation only and never
+saved; reservations are rebuilt on load. `hospitalize()` is the one way into
+hospital. The old `chairOccupants`/`assignChair` are gone — chairs are
+Entrance Hall slots. Test: `tests/activity.cjs`.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

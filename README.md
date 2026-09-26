@@ -410,6 +410,16 @@ to a versioned v2 schema with a one-time, non-destructive migration from
 `node tests/save-migration.cjs` alongside the smoke tests. Details for the
 next brief: `CLAUDE_IMPLEMENTATION/01_WORLD_AND_SAVE_MANIFEST.md`.
 
+## Brief 02 (done): people visibly use facilities
+
+Visitors stop at the gate checkpoint, then walk to a reserved reception
+chair. Recruits change into uniform at the Barracks entrance. Soldiers walk
+the paths to a reserved slot (two distinct firing slots on a level-1 range),
+train only once there, queue when a facility is full, and walk out of the
+gate on missions. See `tests/activity.cjs`,
+`docs/brief02-activity-trace.txt` and
+`CLAUDE_IMPLEMENTATION/02_UNIT_ACTIVITY_MANIFEST.md`.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual

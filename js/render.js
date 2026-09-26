@@ -476,7 +476,9 @@ function drawWalkingSprite(ctx, img) {
 }
 
 function statusLabel(unit) {
+  if (unit.routePhase === 'queued') return 'queuing';
   switch (unit.status) {
+    case UNIT_STATUS.ON_MISSION: return 'deploying';
     case UNIT_STATUS.RECRUITING: return 'enlisting';
     case UNIT_STATUS.TRAINING: return 'training';
     case UNIT_STATUS.EATING: return 'eating';
@@ -488,32 +490,19 @@ function statusLabel(unit) {
   }
 }
 
-// A facility only shows activity after a soldier reaches its door. This uses
-// the same status/arrival conditions as the simulation, so a soldier walking
-// towards training never appears to be training already.
+// A facility only shows activity once a soldier stands on the slot they
+// reserved there — the exact condition the simulation uses for gains
+// (GameState.isUsingFacility), so walking, queuing or an unbuilt plot never
+// looks like activity.
 function activeFacilityFor(unit, gameState) {
-  if (unit.isCivilian || !unit.isAtTarget()) return null;
-  switch (unit.status) {
-    case UNIT_STATUS.TRAINING: {
-      const building = gameState.buildingById(unit.assignedBuildingId);
-      return building && building.isBuilt ? building : null;
-    }
-    case UNIT_STATUS.EATING: return gameState.messHall.isBuilt ? gameState.messHall : null;
-    case UNIT_STATUS.HYGIENE: return gameState.showers.isBuilt ? gameState.showers : null;
-    case UNIT_STATUS.RECREATION: return gameState.recRoom.isBuilt ? gameState.recRoom : null;
-    case UNIT_STATUS.SLEEPING: return gameState.barracks.isBuilt ? gameState.barracks : null;
-    default: return null;
-  }
+  if (unit.isCivilian || !unit.slot) return null;
+  const building = gameState.buildingByAnyId(unit.slot.buildingId);
+  return gameState.isUsingFacility(unit, building) ? building : null;
 }
 
 function drawFacilityActivity(ctx, unit, gameState, now) {
   const building = activeFacilityFor(unit, gameState);
   if (!building) return;
-  const door = buildingDoor(building);
-  // Some older saves may contain a stationary unit elsewhere; do not show
-  // activity until the unit is actually at this building.
-  if (Math.hypot(unit.x - door.x, unit.y - door.y) > 25) return;
-
   const phase = now * 0.005 + unit.colorSeed;
   const pulse = (Math.sin(phase) + 1) / 2;
   const x = unit.x, y = unit.y - UNIT_H / 2;
@@ -586,8 +575,8 @@ function renderFrame(ctx, gameState, selectedUnitId) {
 
   for (const unit of gameState.units) {
     // Away on a mission — async/black-box by design (see mission.js), so
-    // there's nothing to draw until they return.
-    if (unit.status === UNIT_STATUS.ON_MISSION) continue;
+    // there's nothing to draw once the squad has walked out of the gate.
+    if (unit.status === UNIT_STATUS.ON_MISSION && !unit.departing) continue;
     drawUnit(ctx, unit, unit.id === selectedUnitId);
     drawFacilityActivity(ctx, unit, gameState, performance.now());
   }

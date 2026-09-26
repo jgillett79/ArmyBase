@@ -48,6 +48,25 @@ function gatePosition(nodeId = 'gate') {
   return worldNodePosition(nodeId);
 }
 
+// ---------------------------------------------------------------------------
+// VISIBLE FACILITY USE — a soldier walks the path to a building's entrance,
+// steps to a reserved slot, uses it, and walks back out through the
+// entrance. This is presentation layered on the unchanged simulation: the
+// only gameplay effect is that training/needs gains start when the unit
+// reaches its slot (not merely the door), so what is drawn and what is
+// earned agree. Slots are reserved before a unit commits to one and are
+// released on any status change, hospital, mission, reassignment or
+// removal. Reservations aren't saved: load re-reserves them in roster order,
+// which is deterministic and can't double-book.
+// ---------------------------------------------------------------------------
+const FACILITY_ACTIVITIES = {
+  entrance_hall: 'wait', barracks: 'rest', shooting_range: 'fire', weight_room: 'lift',
+  obstacle_course: 'traverse', drill_yard: 'drill', mess_hall: 'eat', showers: 'wash', rec_room: 'relax',
+};
+const CIVILIAN_CHECKPOINT_MS = 2500; // real ms a visitor pauses at the gate before admission
+const QUEUE_SPACING = 26;            // world px between people queuing at a full facility
+const ACTIVITY_LOG_LIMIT = 300;
+
 class GameState {
   constructor() {
     this.cash = 200;
@@ -73,8 +92,9 @@ class GameState {
     // beside the gate on purpose: newcomers should not cross the whole base
     // to find a seat (user feedback, see CLAUDE.md).
     for (const building of this.allBuildings) building.zoneId = WORLD.defaultPlacements[building.id];
-    // Which unit (by id) occupies each Entrance Hall waiting slot, or null.
-    this.chairOccupants = new Array(this.waitingSlots.length).fill(null);
+    this.slotOccupants = new Map(); // "buildingId:slotId" -> unit id (see reserveSlot)
+    this.queues = new Map();        // buildingId -> unit ids waiting, first come first served
+    this.activityLog = [];
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
@@ -123,53 +143,186 @@ class GameState {
     return { x: slot.x, y: slot.y };
   }
 
-  // Claims the first free chair for a waiting civilian. Returns the chair
-  // index, or null if every chair is already taken (spawnCivilianIfRoom
-  // caps concurrent civilians at the chair count so this should be rare,
-  // but two civilians can still both be mid-walk toward the gate when the
-  // last chair fills — see tickCivilian's fallback for that case).
-  assignChair(unit) {
-    const index = this.chairOccupants.indexOf(null);
-    if (index === -1) return null;
-    this.chairOccupants[index] = unit.id;
-    unit.chairIndex = index;
-    return index;
+  // --- facility slots, queues and the activity trace -----------------------
+
+  // Append-only trace of presentation events (reserve, release, queue,
+  // phase changes, checkpoint, admission, uniform, departure, hospital) for
+  // tests and the render/debug pass. Bounded; not saved.
+  logActivity(unit, event, detail = {}) {
+    this.activityLog.push({ at: Date.now(), clock: this.gameClockMs, unitId: unit.id, name: unit.name, event, ...detail });
+    if (this.activityLog.length > ACTIVITY_LOG_LIMIT) this.activityLog.splice(0, this.activityLog.length - ACTIVITY_LOG_LIMIT);
   }
 
-  releaseChair(unit) {
-    if (unit.chairIndex === null) return;
-    this.chairOccupants[unit.chairIndex] = null;
-    unit.chairIndex = null;
+  // The slots a building offers right now. Training buildings open as many
+  // as their assignment capacity; the Entrance Hall has its fixed chairs.
+  // Barracks and needs buildings have no capacity limit by design, so they
+  // add standing spots inside the clearing — they must never make a hungry
+  // or tired soldier queue. `minCount` asks for enough spots for that.
+  facilitySlots(building, minCount = 0) {
+    if (!building.isBuilt) return [];
+    const zone = buildingZone(building);
+    const activity = FACILITY_ACTIVITIES[building.type];
+    const anchors = zone.slots.map(s => ({ buildingId: building.id, slotId: s.id, x: s.x, y: s.y, facing: s.facing, activity }));
+    if (building.capacity !== undefined) return anchors.slice(0, Math.min(building.capacity, anchors.length));
+    if (building === this.entranceHall) return anchors;
+    const slots = anchors.slice();
+    for (let k = 0; slots.length < minCount && k < 400; k++) {
+      const anchor = anchors[k % anchors.length];
+      const ring = Math.floor(k / anchors.length) + 1;
+      const angle = k * 2.4;
+      const x = anchor.x + Math.cos(angle) * 14 * ring, y = anchor.y + Math.sin(angle) * 9 * ring;
+      if (pointInPolygon(x, y, zone.footprint)) slots.push({ ...anchor, slotId: `${anchor.slotId}_extra${k}`, x, y });
+    }
+    return slots;
   }
 
-  // Walk the path graph from wherever the unit stands to nodeId, then step
-  // to `finish` (a short local approach off the path) if given. A route that
-  // can't be found sends the unit to the safe gate node instead of leaving
-  // it stranded; that only happens if the map data itself is broken.
-  routeToNode(unit, nodeId, finish = null) {
-    const route = findWorldRoute(unit.x, unit.y, nodeId, this.placedZoneIds);
+  slotKey(buildingId, slotId) { return `${buildingId}:${slotId}`; }
+
+  slotHolders(building) {
+    return [...this.slotOccupants.keys()].filter(key => key.startsWith(`${building.id}:`)).length;
+  }
+
+  // Claims the free slot nearest the unit (ties keep authored order), so
+  // reload puts someone back on the spot they were standing on.
+  reserveSlot(unit, building) {
+    const free = this.facilitySlots(building, this.slotHolders(building) + 1)
+      .filter(slot => !this.slotOccupants.has(this.slotKey(building.id, slot.slotId)));
+    if (!free.length) return null;
+    const distance = slot => Math.hypot(slot.x - unit.x, slot.y - unit.y);
+    const slot = free.reduce((best, s) => distance(s) < distance(best) - 0.5 ? s : best, free[0]);
+    this.slotOccupants.set(this.slotKey(building.id, slot.slotId), unit.id);
+    unit.slot = slot;
+    if (building === this.entranceHall) unit.chairIndex = this.waitingSlots.findIndex(s => s.id === slot.slotId);
+    this.logActivity(unit, 'reserve', { buildingId: building.id, slotId: slot.slotId });
+    return slot;
+  }
+
+  // Frees whatever the unit holds (slot or queue place) and lets the next
+  // queued unit in. Safe to call on a unit that holds nothing.
+  releaseSlot(unit, reason) {
+    if (unit.slot) {
+      const building = this.buildingByAnyId(unit.slot.buildingId);
+      this.slotOccupants.delete(this.slotKey(unit.slot.buildingId, unit.slot.slotId));
+      this.logActivity(unit, 'release', { buildingId: unit.slot.buildingId, slotId: unit.slot.slotId, reason });
+      unit.slot = null;
+      unit.chairIndex = null;
+      if (building) this.admitFromQueue(building);
+    }
+    if (unit.queuedFor) {
+      const buildingId = unit.queuedFor;
+      const queue = this.queues.get(buildingId) || [];
+      this.queues.set(buildingId, queue.filter(id => id !== unit.id));
+      unit.queuedFor = null;
+      this.logActivity(unit, 'leave_queue', { buildingId, reason });
+      this.shuffleQueue(this.buildingByAnyId(buildingId));
+    }
+  }
+
+  // Where the n-th person waits for a full facility: along its spur,
+  // stepping back from the entrance toward the trail.
+  queuePosition(building, index) {
+    const zone = buildingZone(building);
+    const access = worldNodePosition(zone.accessNode);
+    const dx = access.x - zone.entrance.x, dy = access.y - zone.entrance.y;
+    const length = Math.hypot(dx, dy) || 1;
+    const along = Math.min(QUEUE_SPACING * (index + 1), length);
+    return { x: zone.entrance.x + (dx / length) * along, y: zone.entrance.y + (dy / length) * along };
+  }
+
+  // First come, first served whenever a slot frees up (release, upgrade).
+  admitFromQueue(building) {
+    const queue = this.queues.get(building.id) || [];
+    while (queue.length) {
+      const free = this.facilitySlots(building, this.slotHolders(building) + 1)
+        .some(slot => !this.slotOccupants.has(this.slotKey(building.id, slot.slotId)));
+      if (!free) break;
+      const nextId = queue.shift();
+      const unit = this.units.find(u => u.id === nextId);
+      if (!unit) continue;
+      unit.queuedFor = null;
+      this.logActivity(unit, 'admitted_from_queue', { buildingId: building.id });
+      this.routeToBuilding(unit, building);
+    }
+    this.queues.set(building.id, queue);
+    this.shuffleQueue(building);
+  }
+
+  // Everyone still queuing moves up to their new place in line.
+  shuffleQueue(building) {
+    if (!building) return;
+    (this.queues.get(building.id) || []).forEach((id, index) => {
+      const unit = this.units.find(u => u.id === id);
+      if (!unit) return;
+      const spot = { ...this.queuePosition(building, index), phase: 'queue' };
+      if (unit.path.length) unit.path[unit.path.length - 1] = spot;
+      else unit.setPath([spot]);
+    });
+  }
+
+  // True only while the unit stands on a slot it holds at a built facility —
+  // the single condition for facility effects and activity drawing.
+  isUsingFacility(unit, building) {
+    return !!building && building.isBuilt && !!unit.slot && unit.slot.buildingId === building.id && unit.isAtSlot();
+  }
+
+  // --- routing ----------------------------------------------------------------
+
+  // Walk the path graph from wherever the unit stands to nodeId, tagging
+  // legs with `phase`, then append `finish` legs (local, off-path). A unit
+  // standing inside a zone first walks out through that zone's entrance
+  // rather than cutting across its footprint. A route that can't be found
+  // sends the unit to the safe gate node instead of stranding it; that only
+  // happens if the map data itself is broken.
+  routeToNode(unit, nodeId, finish = [], phase = 'travel') {
+    const legs = [];
+    let from = { x: unit.x, y: unit.y };
+    const inside = WORLD.zones.find(zone => pointInPolygon(unit.x, unit.y, zone.footprint));
+    if (inside) {
+      legs.push({ x: inside.entrance.x, y: inside.entrance.y, phase: 'leave' });
+      from = inside.entrance;
+    }
+    const route = findWorldRoute(from.x, from.y, nodeId, this.placedZoneIds);
     if (!route) {
       console.warn(`No route to ${nodeId}; sending ${unit.name} to the gate`);
-      unit.setPath([gatePosition(WORLD.safeNodes.gate)]);
+      unit.setPath([{ ...gatePosition(WORLD.safeNodes.gate), phase: 'travel' }]);
       return false;
     }
-    if (finish) route.push({ x: finish.x, y: finish.y });
-    unit.setPath(route);
+    legs.push(...route.map(p => ({ x: p.x, y: p.y, phase })));
+    legs.push(...finish);
+    unit.setPath(legs);
     return true;
   }
 
-  // Door, then a step inside the clearing with a little spread so a group
-  // doesn't stack on one pixel. Slot-level placement comes in brief 02.
+  // Reserve a slot, walk to the entrance, then step in to the slot. A full
+  // facility puts the unit in its queue instead. An unbuilt site (recruits
+  // or sleepers heading for a Barracks plot) just gets its entrance.
   routeToBuilding(unit, building) {
     const zone = buildingZone(building);
-    const centre = polygonCentroid(zone.footprint);
-    const dx = centre.x - zone.entrance.x, dy = centre.y - zone.entrance.y;
-    const length = Math.hypot(dx, dy) || 1;
-    const spread = randRange(-10, 10);
-    this.routeToNode(unit, doorNodeId(zone.id), {
-      x: zone.entrance.x + (dx / length) * 8 - (dy / length) * spread,
-      y: zone.entrance.y + (dy / length) * 8 + (dx / length) * spread,
-    });
+    const door = { x: zone.entrance.x, y: zone.entrance.y, phase: 'approach' };
+    if (!building.isBuilt) {
+      this.routeToNode(unit, doorNodeId(zone.id), [], 'approach');
+      return;
+    }
+    const slot = this.reserveSlot(unit, building);
+    if (slot) {
+      const enter = { x: slot.x, y: slot.y, phase: 'enter' };
+      // Already inside this clearing (e.g. reloaded mid-activity): step straight over.
+      if (pointInPolygon(unit.x, unit.y, zone.footprint)) unit.setPath([enter]);
+      else this.routeToNode(unit, doorNodeId(zone.id), [door, enter], 'approach');
+      return;
+    }
+    const queue = this.queues.get(building.id) || [];
+    queue.push(unit.id);
+    this.queues.set(building.id, queue);
+    unit.queuedFor = building.id;
+    this.logActivity(unit, 'queue', { buildingId: building.id, position: queue.length });
+    this.routeToNode(unit, zone.accessNode, [{ ...this.queuePosition(building, queue.length - 1), phase: 'queue' }], 'approach');
+  }
+
+  // Straight to a building's entrance with no slot — the recruit's walk to
+  // the Barracks, where the uniform goes on.
+  routeToDoor(unit, building) {
+    this.routeToNode(unit, doorNodeId(building.zoneId), [], 'approach');
   }
 
   // Idle wander: a random point along the trunk trail inside the fence, so
@@ -177,15 +330,26 @@ class GameState {
   routeToRandomRoadPoint(unit) {
     const edges = worldEdgeList(new Set()).filter(e => e.from !== 'gate_outside' && e.from !== 'gate');
     const edge = pick(edges);
-    const walk = edgePrefix(edge, randRange(0.1, 0.9));
+    const walk = edgePrefix(edge, randRange(0.1, 0.9)).map(p => ({ ...p, phase: 'travel' }));
     if (this.routeToNode(unit, edge.from)) unit.path.push(...walk);
+  }
+
+  // Recovering soldiers wait together near the aid station.
+  routeToAidStation(unit) {
+    const index = this.units.filter(u => u.status === UNIT_STATUS.HOSPITAL).indexOf(unit);
+    const angle = index * 2.4;
+    const node = worldNodePosition(WORLD.safeNodes.hospital);
+    this.routeToNode(unit, WORLD.safeNodes.hospital,
+      [{ x: node.x + Math.cos(angle) * 22, y: node.y + Math.sin(angle) * 14, phase: 'travel' }]);
   }
 
   // Single place that maps "what is this unit's status" to "where should it
   // be walking" — used both on a live status change (transitionUnit) and
   // whenever a unit needs a fresh route without a status change of its own
-  // (recruiting, loading a save, waking up from the hospital).
+  // (recruiting, loading a save, waking up from the hospital). Always drops
+  // any slot/queue place first.
   routeForStatus(unit) {
+    this.releaseSlot(unit, 'status');
     if (unit.status === UNIT_STATUS.EATING) {
       if (this.messHall.isBuilt) this.routeToBuilding(unit, this.messHall);
       else this.routeToRandomRoadPoint(unit);
@@ -199,14 +363,38 @@ class GameState {
       const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
       if (building.isBuilt) this.routeToBuilding(unit, building);
       else this.routeToRandomRoadPoint(unit);
-    } else if (unit.status === UNIT_STATUS.SLEEPING || unit.status === UNIT_STATUS.RECRUITING) {
+    } else if (unit.status === UNIT_STATUS.SLEEPING) {
       this.routeToBuilding(unit, this.barracks);
-    } else if (unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.ON_MISSION) {
-      // Neither moves nor renders while in this status (see tick()) — no
-      // route to assign.
+    } else if (unit.status === UNIT_STATUS.RECRUITING) {
+      this.routeToDoor(unit, this.barracks);
+    } else if (unit.status === UNIT_STATUS.HOSPITAL) {
+      this.routeToAidStation(unit);
+    } else if (unit.status === UNIT_STATUS.ON_MISSION) {
+      // Away (async/black-box, see mission.js) — dispatchMission() handles
+      // the walk out; nothing to route on load.
     } else {
       this.routeToRandomRoadPoint(unit);
     }
+  }
+
+  // The one way into hospital, so the slot is always released first.
+  hospitalize(unit, nowMs, reason) {
+    unit.sendToHospital(nowMs);
+    unit.departing = false;
+    this.logActivity(unit, 'hospital', { reason });
+    this.routeForStatus(unit);
+  }
+
+  // Compact view of who is where, for rendering and debugging.
+  activitySnapshot() {
+    return {
+      units: this.units.map(u => ({
+        unitId: u.id, status: u.status, phase: u.routePhase,
+        buildingId: u.slot ? u.slot.buildingId : null, slotId: u.slot ? u.slot.slotId : null,
+        activity: u.slot ? u.slot.activity : null, queuedFor: u.queuedFor,
+      })),
+      queues: Object.fromEntries([...this.queues].filter(([, q]) => q.length)),
+    };
   }
 
   buyFood(amount) {
@@ -281,6 +469,7 @@ class GameState {
     this.lumber -= price.lumber;
     this.steel -= price.steel;
     building.upgrade();
+    this.admitFromQueue(building); // a training upgrade opens more slots
   }
 
   upgradeBuilding(key) {
@@ -332,8 +521,7 @@ class GameState {
     const civ = new Unit({ x: outside.x, y: outside.y + randRange(-12, 12), isCivilian: true });
     civ.spawnedAt = Date.now();
     civ.enteredGate = false;
-    civ.targetX = gate.x;
-    civ.targetY = gate.y;
+    civ.setPath([{ x: gate.x, y: gate.y, phase: 'approach' }]);
     this.units.push(civ);
   }
 
@@ -344,13 +532,16 @@ class GameState {
     const cost = 50;
     if (this.cash < cost) return false;
     this.cash -= cost;
-    this.releaseChair(unit); // free their seat for the next civilian
+    unit.checkpointUntil = null;
     unit.recruit();
-    this.routeForStatus(unit); // RECRUITING -> routes them to the Barracks, see tick()
+    this.logActivity(unit, 'recruited');
+    this.routeForStatus(unit); // frees their chair; RECRUITING -> walks to the Barracks, see tick()
     return true;
   }
 
   removeUnit(unitId) {
+    const unit = this.units.find(u => u.id === unitId);
+    if (unit) this.releaseSlot(unit, 'removed');
     this.units = this.units.filter(u => u.id !== unitId);
   }
 
@@ -373,9 +564,15 @@ class GameState {
 
     const returnAt = Date.now() + tier.durationMs;
     for (const unit of squad) {
+      this.releaseSlot(unit, 'mission');
       unit.status = UNIT_STATUS.ON_MISSION;
       unit.missionReturnAt = returnAt;
       unit.missionTierId = tier.id;
+      // Presentation only: walk out through the gate, then disappear until
+      // the real-time return. Not saved — a reload mid-walk just hides them.
+      unit.departing = true;
+      this.routeToNode(unit, 'gate_outside', [], 'depart');
+      this.logActivity(unit, 'depart', { tierId: tier.id });
     }
     return true;
   }
@@ -407,9 +604,9 @@ class GameState {
     unit.missionTierId = null;
 
     if (succeeded) {
-      // Reappear at the gate, same "the wall/gate is the only way in or
-      // out" convention as a fresh recruit walking in — see RECRUITING.
-      const gate = gatePosition(WORLD.safeNodes.gate);
+      // Walk back in through the gate — the only way in or out.
+      unit.departing = false;
+      const gate = gatePosition('gate_outside');
       unit.x = gate.x;
       unit.y = gate.y;
       unit.status = UNIT_STATUS.IDLE;
@@ -418,12 +615,12 @@ class GameState {
       // Same 23h real-time hospital stay as any other failure in this game
       // — no permadeath, mission failure isn't treated as worse than
       // neglect death. See CLAUDE.md.
-      unit.sendToHospital(returnedAt);
+      this.hospitalize(unit, returnedAt, 'mission');
     }
   }
 
   // Advance simulation by dtSeconds. Used both for the live game loop
-  // (small dt, every frame) and for offline catch-up (one large dt).
+  // (small dt, every frame) and for offline catch-up (bounded steps).
   tick(dtSeconds, nowMs) {
     this.cash += CASH_PER_SECOND_IDLE * dtSeconds;
     this.gameClockMs = (this.gameClockMs + dtSeconds * 1000 * GAME_MS_PER_REAL_MS) % (24 * 60 * 60 * 1000);
@@ -438,24 +635,30 @@ class GameState {
     for (const unit of this.units) {
       if (unit.isCivilian) {
         this.tickCivilian(unit, dtSeconds, nowMs, toRemove);
+        this.notePhase(unit);
         continue;
       }
 
       if (unit.status === UNIT_STATUS.HOSPITAL) {
+        unit.step(dtSeconds); // walking to the aid station; presentation only
         if (unit.isRecovered(nowMs)) {
           unit.status = UNIT_STATUS.IDLE;
           this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
         }
+        this.notePhase(unit);
         continue;
       }
 
       if (unit.status === UNIT_STATUS.ON_MISSION) {
+        // Walk out of the gate first (presentation only), then gone.
+        if (unit.departing && unit.step(dtSeconds)) unit.departing = false;
         // Real-time, like the hospital timer — not derived from the
-        // compressed game clock. Excluded from movement/energy/training
-        // entirely while away (async/black-box mission, see mission.js).
+        // compressed game clock. Excluded from energy/training entirely
+        // while away (async/black-box mission, see mission.js).
         if (nowMs >= unit.missionReturnAt) {
           this.resolveMissionForUnit(unit, nowMs);
         }
+        this.notePhase(unit);
         continue;
       }
 
@@ -463,17 +666,18 @@ class GameState {
         // Walking to the Barracks — bypasses desiredStatus() entirely so
         // nothing (energy, time of day) can redirect them mid-walk before
         // they've actually enlisted. The uniform swap is the "arrival"
-        // moment: it only happens once they've truly reached the Barracks,
-        // not just gotten close (see Unit.isAtTarget()'s path check).
+        // moment at the Barracks entrance (see Unit.isAtTarget()'s path check).
         unit.step(dtSeconds);
         unit.applyEnergyDelta(gameHours, foodAvailable);
         if (unit.energy <= 0) {
-          unit.sendToHospital(nowMs);
+          this.hospitalize(unit, nowMs, 'energy');
         } else if (unit.isAtTarget()) {
           unit.outfit = 'uniform';
           unit.status = UNIT_STATUS.IDLE;
+          this.logActivity(unit, 'uniform', { buildingId: this.barracks.id });
           this.routeForStatus(unit);
         }
+        this.notePhase(unit);
         continue;
       }
 
@@ -483,29 +687,43 @@ class GameState {
 
       unit.step(dtSeconds);
 
-      const arrived = unit.isAtTarget();
-      const eating = unit.status === UNIT_STATUS.EATING && arrived && this.messHall.isBuilt;
+      // Effects start only once the unit stands on its reserved slot at a
+      // built facility — the same condition render.js uses to draw activity.
+      const eating = unit.status === UNIT_STATUS.EATING && this.isUsingFacility(unit, this.messHall);
       unit.applyEnergyDelta(gameHours, eating && foodAvailable);
-      unit.applyHygieneDelta(gameHours, this.showers.isBuilt && arrived);
-      unit.applyMoraleDelta(gameHours, this.recRoom.isBuilt && arrived);
+      unit.applyHygieneDelta(gameHours, this.isUsingFacility(unit, this.showers));
+      unit.applyMoraleDelta(gameHours, this.isUsingFacility(unit, this.recRoom));
       if (eating && foodAvailable) {
         foodConsumedThisTick += FOOD_CONSUMED_PER_GAME_HOUR * gameHours;
       }
-      if (unit.status === UNIT_STATUS.TRAINING && unit.isAtTarget()) {
+      if (unit.status === UNIT_STATUS.TRAINING) {
         const building = this.buildingById(unit.assignedBuildingId);
-        if (building) unit.applyTrainingGain(gameHours, building.trains);
+        if (this.isUsingFacility(unit, building)) unit.applyTrainingGain(gameHours, building.trains);
       }
 
       if (unit.energy <= 0) {
-        unit.sendToHospital(nowMs);
+        this.hospitalize(unit, nowMs, 'energy');
       }
+      this.notePhase(unit);
     }
 
     this.food = Math.max(0, this.food - foodConsumedThisTick);
 
     if (toRemove.size > 0) {
+      for (const unit of this.units) if (toRemove.has(unit.id)) this.releaseSlot(unit, 'removed');
       this.units = this.units.filter(u => !toRemove.has(u.id));
     }
+  }
+
+  // Logs route-phase changes (approach -> enter -> using, queue, leave...)
+  // and turns a unit to face its station when it starts using a slot.
+  notePhase(unit) {
+    const phase = unit.routePhase;
+    if (phase === unit.lastPhase) return;
+    if (phase === 'using') unit.facing = unit.slot.facing;
+    this.logActivity(unit, 'phase', { from: unit.lastPhase || null, to: phase,
+      buildingId: unit.slot ? unit.slot.buildingId : unit.queuedFor, slotId: unit.slot ? unit.slot.slotId : null });
+    unit.lastPhase = phase;
   }
 
   // Moves a unit into a new status and routes it to wherever that status
@@ -516,33 +734,44 @@ class GameState {
     this.routeForStatus(unit);
   }
 
-  // Every civilian's walk is funneled through the single gate (there's no
-  // other opening in the fence): outside gate -> checkpoint -> path to an
-  // Entrance Hall waiting chair -> back along the path -> outside -> despawn.
+  // Every visitor's walk is funneled through the single gate (there's no
+  // other opening in the fence): outside -> gate checkpoint (a short pause
+  // to be checked in) -> path to a reserved Entrance Hall chair -> after the
+  // timeout, back along the path -> outside -> despawn.
   tickCivilian(unit, dtSeconds, nowMs, toRemove) {
     const reached = unit.step(dtSeconds);
     if (unit.status === UNIT_STATUS.CIVILIAN_APPROACHING) {
       if (!unit.enteredGate) {
-        if (reached) {
+        if (unit.checkpointUntil !== null) {
+          if (nowMs < unit.checkpointUntil) return;
+          unit.checkpointUntil = null;
           unit.enteredGate = true;
-          const chairIndex = this.assignChair(unit);
-          if (chairIndex !== null) {
-            this.routeToNode(unit, WORLD.safeNodes.waiting, this.chairPosition(chairIndex));
+          const chair = this.reserveSlot(unit, this.entranceHall);
+          if (chair) {
+            const door = buildingDoor(this.entranceHall);
+            this.logActivity(unit, 'admitted', { slotId: chair.slotId });
+            this.routeToNode(unit, WORLD.safeNodes.waiting,
+              [{ ...door, phase: 'approach' }, { x: chair.x, y: chair.y, phase: 'enter' }], 'approach');
           } else {
-            // Every chair taken by another civilian still mid-walk — wait
+            // Every chair taken by another visitor still mid-walk — wait
             // just inside the gate rather than crossing the base with
             // nowhere to actually sit (spawnCivilianIfRoom keeps this rare,
             // not impossible).
+            this.logActivity(unit, 'admitted', { slotId: null });
             this.routeToNode(unit, WORLD.safeNodes.gate);
           }
+        } else if (reached) {
+          unit.checkpointUntil = nowMs + CIVILIAN_CHECKPOINT_MS;
+          unit.facing = 'right';
+          this.logActivity(unit, 'checkpoint');
         }
         return;
       }
       const waited = nowMs - unit.spawnedAt;
       if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
-        this.releaseChair(unit);
+        this.releaseSlot(unit, 'gave_up');
         unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
-        this.routeToNode(unit, 'gate_outside');
+        this.routeToNode(unit, 'gate_outside', [], 'leave_base');
       }
     } else if (unit.status === UNIT_STATUS.CIVILIAN_LEAVING) {
       if (reached) toRemove.add(unit.id); // outside the fence, gone

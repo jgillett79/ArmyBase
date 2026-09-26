@@ -139,6 +139,33 @@ class Unit {
     // see state.js's assignChair()/releaseChair(). Only meaningful while
     // isCivilian && status === CIVILIAN_APPROACHING.
     this.chairIndex = null;
+
+    // Presentation/route state — never saved. GameState rebuilds it
+    // deterministically from status on load (routeForStatus), so a reload
+    // can't double-book a slot. Gameplay status above stays the single
+    // source of truth for the simulation.
+    this.slot = null;          // reserved interaction slot: { buildingId, slotId, x, y, facing, activity }
+    this.queuedFor = null;     // buildingId while waiting for a full facility
+    this.legPhase = 'travel';  // phase tag of the current route leg (see setPath)
+    this.departing = false;    // walking out through the gate after mission dispatch
+    this.checkpointUntil = null; // visitor pausing at the gate checkpoint (real ms)
+  }
+
+  // What the player should see this unit doing, separate from its gameplay
+  // status: travel/approach along paths, enter (door to slot), using (at a
+  // reserved slot), queued, leave (slot back to the door), checkpoint.
+  get routePhase() {
+    if (this.checkpointUntil !== null) return 'checkpoint';
+    if (this.slot && this.isAtSlot()) return 'using';
+    if (this.queuedFor && this.path.length === 0 && Math.hypot(this.x - this.targetX, this.y - this.targetY) < 4) return 'queued';
+    return this.legPhase;
+  }
+
+  // Strict arrival at the reserved slot (not the looser ARRIVAL_RADIUS), so
+  // effects and activity poses start only once the unit is really there.
+  isAtSlot() {
+    return !!this.slot && this.path.length === 0
+      && Math.hypot(this.x - this.slot.x, this.y - this.slot.y) < 2;
   }
 
   recruit() {
@@ -238,7 +265,8 @@ class Unit {
   }
 
   // Replaces the current path with a fresh multi-leg route (a list of
-  // {x,y} waypoints) and immediately starts walking toward its first leg.
+  // {x,y} waypoints, each optionally tagged with the `phase` of the leg that
+  // ends there) and immediately starts walking toward its first leg.
   setPath(waypoints) {
     this.path = waypoints.slice();
     this.advancePath();
@@ -252,6 +280,7 @@ class Unit {
       const next = this.path.shift();
       this.targetX = next.x;
       this.targetY = next.y;
+      this.legPhase = next.phase || 'travel';
       return false;
     }
     return true;

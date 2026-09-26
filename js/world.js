@@ -95,9 +95,10 @@ const WORLD = {
 
   // Build zones. `entrance` is just outside the footprint on its door side;
   // a spur edge from `accessNode` to the entrance joins the trail once the
-  // zone has a building. `slots` are generic interaction anchors inside the
-  // footprint — the building type decides what activity each one hosts
-  // (brief 02). `surveyed` zones show a subtle marker from a fresh start.
+  // zone has a building. `slots` are interaction anchors inside the footprint
+  // (six per facility zone, enough for a level-3 training building); the
+  // building type decides what activity each one hosts — see state.js's
+  // FACILITY_ACTIVITIES. `surveyed` zones show a subtle marker from a fresh start.
   zones: [
     {
       id: 'zone_reception', label: 'Gate clearing', types: ['entrance_hall'], doorSide: 'south',
@@ -119,6 +120,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 340, y: 340, facing: 'down' }, { id: 's2', x: 380, y: 346, facing: 'down' },
         { id: 's3', x: 420, y: 346, facing: 'down' }, { id: 's4', x: 456, y: 336, facing: 'down' },
+        { id: 's5', x: 360, y: 300, facing: 'down' }, { id: 's6', x: 420, y: 300, facing: 'down' },
       ],
     },
     {
@@ -129,6 +131,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 680, y: 224, facing: 'up' }, { id: 's2', x: 720, y: 228, facing: 'up' },
         { id: 's3', x: 764, y: 228, facing: 'up' }, { id: 's4', x: 806, y: 222, facing: 'up' },
+        { id: 's5', x: 700, y: 184, facing: 'up' }, { id: 's6', x: 780, y: 184, facing: 'up' },
       ],
     },
     {
@@ -139,6 +142,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 668, y: 486, facing: 'down' }, { id: 's2', x: 696, y: 492, facing: 'down' },
         { id: 's3', x: 724, y: 492, facing: 'down' }, { id: 's4', x: 752, y: 484, facing: 'down' },
+        { id: 's5', x: 680, y: 446, facing: 'down' }, { id: 's6', x: 740, y: 446, facing: 'down' },
       ],
     },
     {
@@ -149,6 +153,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 1060, y: 250, facing: 'down' }, { id: 's2', x: 1110, y: 256, facing: 'down' },
         { id: 's3', x: 1160, y: 256, facing: 'down' }, { id: 's4', x: 1210, y: 250, facing: 'down' },
+        { id: 's5', x: 1100, y: 200, facing: 'down' }, { id: 's6', x: 1180, y: 200, facing: 'down' },
       ],
     },
     {
@@ -159,6 +164,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 1190, y: 448, facing: 'down' }, { id: 's2', x: 1226, y: 454, facing: 'down' },
         { id: 's3', x: 1262, y: 454, facing: 'down' }, { id: 's4', x: 1298, y: 446, facing: 'down' },
+        { id: 's5', x: 1210, y: 406, facing: 'down' }, { id: 's6', x: 1280, y: 406, facing: 'down' },
       ],
     },
     {
@@ -169,6 +175,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 610, y: 672, facing: 'up' }, { id: 's2', x: 650, y: 666, facing: 'up' },
         { id: 's3', x: 694, y: 666, facing: 'up' }, { id: 's4', x: 736, y: 672, facing: 'up' },
+        { id: 's5', x: 630, y: 712, facing: 'up' }, { id: 's6', x: 716, y: 712, facing: 'up' },
       ],
     },
     {
@@ -179,6 +186,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 340, y: 700, facing: 'up' }, { id: 's2', x: 380, y: 694, facing: 'up' },
         { id: 's3', x: 424, y: 694, facing: 'up' }, { id: 's4', x: 464, y: 700, facing: 'up' },
+        { id: 's5', x: 360, y: 742, facing: 'up' }, { id: 's6', x: 440, y: 742, facing: 'up' },
       ],
     },
     {
@@ -189,6 +197,7 @@ const WORLD = {
       slots: [
         { id: 's1', x: 900, y: 690, facing: 'up' }, { id: 's2', x: 940, y: 684, facing: 'up' },
         { id: 's3', x: 984, y: 684, facing: 'up' }, { id: 's4', x: 1026, y: 690, facing: 'up' },
+        { id: 's5', x: 920, y: 734, facing: 'up' }, { id: 's6', x: 1004, y: 734, facing: 'up' },
       ],
     },
     {
@@ -201,6 +210,8 @@ const WORLD = {
       slots: [
         { id: 's1', x: 1160, y: 680, facing: 'up' }, { id: 's2', x: 1196, y: 676, facing: 'up' },
         { id: 's3', x: 1232, y: 680, facing: 'up' },
+        { id: 's4', x: 1150, y: 712, facing: 'up' }, { id: 's5', x: 1186, y: 716, facing: 'up' },
+        { id: 's6', x: 1222, y: 716, facing: 'up' },
       ],
     },
   ],
