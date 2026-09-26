@@ -7,7 +7,7 @@ A new player recruits a visitor, assigns training, launches a local patrol, and 
 ## Current baseline and biggest risks
 
 - The beta has a working recruit/training/mission loop and two passing Node smoke checks. The smoke checks do not assess appearance, browser interaction, phone usability, or long-term balance.
-- Character art consists of directional stills with a procedural cutout stride. It needs authored, consistent walk frames and activity loops. The current building art and terrain are too static to establish a distinctive inhabited place.
+- Character art consists of directional stills. The earlier procedural cutout stride was removed because it looked broken; people still need authored, consistent walk frames and activity loops. Four first-slice buildings now have organic bases, while later facilities retain their older square or cutaway art.
 - The first patrol takes three real minutes. Later missions take 30 minutes to four hours; a first-session player may have too little to do while waiting. The 23-hour hospital timer is especially consequential. These values require observed playtests.
 - Progress is stored only in localStorage. Backup import/export exists, but corruption handling, migration, and cross-device continuity remain open.
 

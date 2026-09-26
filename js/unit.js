@@ -255,9 +255,8 @@ class Unit {
     return true;
   }
 
-  // Movement is always axis-aligned (see state.js's road network — every
-  // leg is either purely horizontal or purely vertical), so whichever axis
-  // has the larger delta is the one actually changing; the other is ~0.
+  // Path samples can move diagonally along the winding road; choose the
+  // dominant axis for the closest available directional drawing.
   updateFacing(dx, dy) {
     if (Math.abs(dx) > Math.abs(dy)) {
       this.facing = dx > 0 ? 'right' : 'left';

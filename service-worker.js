@@ -1,5 +1,5 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v2';
+const CACHE_NAME = 'command-base-v3';
 const APP_FILES = [
   "./",
   "index.html",
@@ -14,13 +14,17 @@ const APP_FILES = [
   "js/utils.js",
   "assets/buildings/.gitkeep",
   "assets/buildings/barracks.png",
+  "assets/buildings/barracks-organic.webp",
   "assets/buildings/drill_yard.png",
   "assets/buildings/entrance_hall.png",
+  "assets/buildings/entrance-hall-organic.webp",
   "assets/buildings/gatehouse.png",
   "assets/buildings/mess_hall.png",
+  "assets/buildings/mess-hall-organic.webp",
   "assets/buildings/obstacle_course.png",
   "assets/buildings/rec_room.png",
   "assets/buildings/shooting_range.png",
+  "assets/buildings/shooting-range-organic.webp",
   "assets/buildings/showers.png",
   "assets/buildings/vacant_lot.png",
   "assets/buildings/weight_room.png",

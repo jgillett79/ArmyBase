@@ -21,7 +21,9 @@ The browser build remains vanilla JavaScript, Canvas and localStorage, with no b
 
 ## Visual direction
 
-Warm, grounded illustrated alpine outpost. Buildings retain their existing isometric assets; a new sunrise illustration introduces the setting. The map uses painted alpine meadow and packed-earth surfaces. Existing directional character drawings are animated with a simple leg-cutout stride and body bounce. This is an intermediate animation technique: a later dedicated frame-by-frame character art pass should be tested with players before replacing it.
+Warm, grounded illustrated alpine outpost. The field starts with an entrance and a few visible building clearings; later facilities emerge among the meadow as they are built. The layout is staggered, clearings are irregular and people follow a gently winding path that connects the gate and facility entrances. Four initial facilities (Entrance Hall, Barracks, Shooting Range and Mess Hall) have revised sprites without hard rectangular plinths. The other facility assets still need the same pass.
+
+The old split-leg animation was removed because it visibly distorted the characters. Existing directional character drawings now move intact with a subtle body bounce. This is still an interim movement treatment, not a finished walk cycle; authored full-body frames for each direction and activity remain a production requirement.
 
 New artwork was generated for the project with this brief: a small welcoming military training outpost among mountain foothills, flat digital illustration with dark outlines, restrained olive/khaki/teal palette, readable shapes, no embedded text; overhead seamless rugged meadow and maintained earth texture variants in the same palette. The project serves optimized WebP copies under `assets/`.
 
@@ -30,7 +32,7 @@ New artwork was generated for the project with this brief: a small welcoming mil
 1. **Promotion and multiple bases.** Base 1 must persist with its remaining soldiers and passive income; two chosen soldiers move to Base 2. Define carried resources, construction, mission unlocks, and save migrations before implementing.
 2. **Further material sinks.** Validate the provisional lumber and steel upgrade costs with playtesting; specify gem costs for equipment and promotion so the top mission reward has lasting value.
 3. **Audience and release target.** Playtest the first session, mission wait times, 23-hour hospital consequence and portrait phone layout. Verify the installable PWA and offline cache on the deployed HTTPS host.
-4. **Visual production.** Commission or generate consistent walk-frame sets for each character direction if the current cutout animation fails player testing. Improve building scale/composition and environmental detail after gameplay validation.
+4. **Visual production.** Produce consistent full-body walk frames for each character direction and activity. Finish the organic-base treatment for the remaining facilities, improve scale/composition and add environmental detail after checking the first four revised buildings at gameplay size.
 5. **Player trust.** Backup download and restore are available, but save migration and corruption recovery need more work before promising durable long-term progress. localStorage can be cleared by a browser or device change.
 
 ## Release checks

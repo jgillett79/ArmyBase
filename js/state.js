@@ -7,7 +7,7 @@ const CELL_SIZE = 48; // px, matches canvas 960x576
 
 const CASH_PER_SECOND_IDLE = 0.03; // ~$108/hour; missions now matter more than waiting
 const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
-const CIVILIAN_WALK_TIMEOUT_MS = 12000; // how long they linger before leaving
+const CIVILIAN_WALK_TIMEOUT_MS = 30000; // let arrivals reach the hall and be noticed
 
 // ---------------------------------------------------------------------------
 // THREE CLOCKS — read this before touching any timing code.
@@ -63,28 +63,24 @@ const ENTRANCE_HALL_CHAIRS = [
 ];
 
 // ---------------------------------------------------------------------------
-// ROADS — a fixed "comb" network: one horizontal spine plus a vertical spoke
-// under each column of buildings. Every recruited unit's movement (walking
-// to a job, wandering when idle) travels via this network instead of
-// cutting straight lines across open ground.
-//
-// This works without real pathfinding (no A*/Dijkstra) because the layout
-// is a simple comb, not an arbitrary graph: every route is the same 3-leg
-// shape — drop from wherever the unit currently is straight down to the
-// spine (safe because every building sits well above ROAD_Y_SPINE, so that
-// drop never cuts through a building), slide along the spine to the
-// target's x, then travel up/down that x to the target. If the base layout
-// ever stops being "one spine + straight spokes," revisit this — don't
-// bolt real pathfinding onto a comb network that doesn't need it.
+// ROADS — a winding path links the gate and staggered building entrances.
+// People first join that path, follow its sampled curve in short segments,
+// then turn off at the destination. Both routing and rendering use roadYAt;
+// keep them together when changing the map. A future freely placed base
+// would need a real path graph instead of this fixed first-base route.
 // ---------------------------------------------------------------------------
 const ROAD_Y_SPINE = 360; // px — below every building's footprint (max bottom edge is y=336)
+function roadYAt(x) {
+  return ROAD_Y_SPINE + Math.sin((x - 80) / 110) * 13 + Math.sin(x / 48) * 3;
+}
 
-// Bottom-center of a building's footprint, in pixels — where its spoke road
-// meets it. Used both for routing and for drawing the roads in render.js.
+// Entrance on the edge facing the shared path. Southern buildings face north;
+// sending people to their old bottom edge made them walk through the artwork.
 function buildingDoor(building) {
+  const top = building.gridY * CELL_SIZE;
   return {
     x: building.gridX * CELL_SIZE + (BUILDING_FOOTPRINT_CELLS.w * CELL_SIZE) / 2,
-    y: (building.gridY + BUILDING_FOOTPRINT_CELLS.h) * CELL_SIZE,
+    y: top > ROAD_Y_SPINE ? top : top + BUILDING_FOOTPRINT_CELLS.h * CELL_SIZE,
   };
 }
 
@@ -100,18 +96,13 @@ class GameState {
     this.missionLog = [];
     this.units = [];
     this.barracks = new Barracks(2, 2);
-    this.shootingRange = new ShootingRange(8, 2);
-    this.messHall = new MessHall(14, 2);
-    // Second building row (Phase 2) — same x-spacing as row one, y=5 keeps
-    // them clear of the row-one footprint (h=2 cells) with room to spare.
-    this.weightRoom = new WeightRoom(2, 5);
+    this.shootingRange = new ShootingRange(9, 1);
+    this.messHall = new MessHall(15, 2);
+    // Staggered facility plots sit among the meadow, clear of one another.
+    this.weightRoom = new WeightRoom(3, 5);
     this.obstacleCourse = new ObstacleCourse(8, 5);
-    this.drillYard = new CombatDrillYard(14, 5);
-    // Third row, BELOW the road spine (y=8) rather than above it like rows
-    // one/two — reuses spokes A/B/C (same gridX as the buildings above them
-    // in each column) so no new spoke position is needed; routeTo()'s
-    // spine-then-target shape already works in either direction, only the
-    // road *drawing* in render.js needed to know about these three.
+    this.drillYard = new CombatDrillYard(15, 5);
+    // Southern plots face the main track with a north-side entrance.
     //
     // Entrance Hall sits in the gridX=2 slot — the column closest to the
     // gate — rather than gridX=14, on purpose: civilians walk here straight
@@ -123,7 +114,7 @@ class GameState {
     // distances to whichever training building they're assigned to, so this
     // didn't create a new "too far to walk" case the way Entrance Hall did.
     this.entranceHall = new EntranceHall(2, 8);
-    this.recRoom = new RecRoom(8, 8);
+    this.recRoom = new RecRoom(9, 8);
     this.showers = new Showers(14, 8);
     // Which unit (by id) occupies each ENTRANCE_HALL_CHAIRS slot, or null.
     this.chairOccupants = new Array(ENTRANCE_HALL_CHAIRS.length).fill(null);
@@ -160,7 +151,7 @@ class GameState {
   chairPosition(index) {
     const door = buildingDoor(this.entranceHall);
     const offset = ENTRANCE_HALL_CHAIRS[index];
-    return { x: door.x + offset.dx, y: door.y + offset.dy };
+    return { x: door.x + offset.dx, y: door.y - offset.dy };
   }
 
   // Claims the first free chair for a waiting civilian. Returns the chair
@@ -189,19 +180,23 @@ class GameState {
     return [this.barracks, this.shootingRange, this.messHall].map(b => buildingDoor(b).x);
   }
 
-  // The one shared movement primitive behind all road-based routing — see
-  // the ROADS comment above for why this 3-leg shape is always safe.
+  // Follow the winding main track in short segments, then turn toward the
+  // chosen building. Rendering samples the same roadYAt function.
   routeTo(unit, targetX, targetY) {
-    unit.setPath([
-      { x: unit.x, y: ROAD_Y_SPINE },
-      { x: targetX, y: ROAD_Y_SPINE },
-      { x: targetX, y: targetY },
-    ]);
+    const points = [{ x: unit.x, y: roadYAt(unit.x) }];
+    const distance = targetX - unit.x;
+    const steps = Math.ceil(Math.abs(distance) / 36);
+    for (let i = 1; i <= steps; i++) {
+      const x = unit.x + distance * i / steps;
+      points.push({ x, y: roadYAt(x) });
+    }
+    points.push({ x: targetX, y: targetY });
+    unit.setPath(points);
   }
 
   routeToBuilding(unit, building) {
-    const c = this.buildingCenter(building);
-    this.routeTo(unit, c.x + randRange(-20, 20), c.y + randRange(-20, 20));
+    const door = buildingDoor(building);
+    this.routeTo(unit, door.x + randRange(-10, 10), door.y + (door.y < ROAD_Y_SPINE ? 8 : -8));
   }
 
   // Idle wander now picks a random point along the road network instead of
@@ -209,7 +204,8 @@ class GameState {
   // have anywhere in particular to be.
   routeToRandomRoadPoint(unit) {
     if (Math.random() < 0.5) {
-      this.routeTo(unit, randRange(this.bounds.minX, this.bounds.maxX), ROAD_Y_SPINE);
+      const x = randRange(this.bounds.minX, this.bounds.maxX);
+      this.routeTo(unit, x, roadYAt(x));
     } else {
       const x = pick(this.roadSpokeXs);
       this.routeTo(unit, x, randRange(this.bounds.minY, ROAD_Y_SPINE));
@@ -222,14 +218,18 @@ class GameState {
   // (recruiting, loading a save, waking up from the hospital).
   routeForStatus(unit) {
     if (unit.status === UNIT_STATUS.EATING) {
-      this.routeToBuilding(unit, this.messHall);
+      if (this.messHall.isBuilt) this.routeToBuilding(unit, this.messHall);
+      else this.routeToRandomRoadPoint(unit);
     } else if (unit.status === UNIT_STATUS.HYGIENE) {
-      this.routeToBuilding(unit, this.showers);
+      if (this.showers.isBuilt) this.routeToBuilding(unit, this.showers);
+      else this.routeToRandomRoadPoint(unit);
     } else if (unit.status === UNIT_STATUS.RECREATION) {
-      this.routeToBuilding(unit, this.recRoom);
+      if (this.recRoom.isBuilt) this.routeToBuilding(unit, this.recRoom);
+      else this.routeToRandomRoadPoint(unit);
     } else if (unit.status === UNIT_STATUS.TRAINING) {
       const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
-      this.routeToBuilding(unit, building);
+      if (building.isBuilt) this.routeToBuilding(unit, building);
+      else this.routeToRandomRoadPoint(unit);
     } else if (unit.status === UNIT_STATUS.SLEEPING || unit.status === UNIT_STATUS.RECRUITING) {
       this.routeToBuilding(unit, this.barracks);
     } else if (unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.ON_MISSION) {
@@ -557,8 +557,7 @@ class GameState {
           const chairIndex = this.assignChair(unit);
           if (chairIndex !== null) {
             const seat = this.chairPosition(chairIndex);
-            unit.targetX = seat.x;
-            unit.targetY = seat.y;
+            this.routeTo(unit, seat.x, seat.y);
           } else {
             // Every chair taken by another civilian still mid-walk — wait
             // just inside the gate rather than crossing the whole base with
@@ -574,8 +573,7 @@ class GameState {
       if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
         this.releaseChair(unit);
         unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
-        unit.targetX = GATE_INSIDE_X;
-        unit.targetY = GATE_Y_CENTER;
+        this.routeTo(unit, GATE_INSIDE_X, GATE_Y_CENTER);
       }
     } else if (unit.status === UNIT_STATUS.CIVILIAN_LEAVING) {
       if (!reached) return;

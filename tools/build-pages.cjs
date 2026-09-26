@@ -22,7 +22,7 @@ for (const item of publicPaths) {
 }
 const worker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const versionedWorker = worker.replace(
-  "const CACHE_NAME = 'command-base-v2';",
+  /const CACHE_NAME = 'command-base-v\d+';/,
   `const CACHE_NAME = 'command-base-${revision.slice(0, 12)}';`
 );
 if (versionedWorker === worker) throw new Error('Service worker cache declaration changed; update the build');
