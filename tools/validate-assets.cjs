@@ -84,20 +84,54 @@ for (const [archetype, sets] of Object.entries(manifest.units)) {
     }
   }
   ok(`${archetype}: ${variants.length * stills.directions.length} directional stills present`);
+  const frameSets = [];
   for (const [name, set] of Object.entries({ walk: sets.walk, idle: sets.idle, ...(sets.activities || {}) })) {
     if (!set) continue;
-    const label = `${archetype} ${name}`;
+    if (set.drawn) {
+      checkStatus(`${archetype} ${name}`, set);
+      for (const [direction, drawn] of Object.entries(set.drawn)) frameSets.push([`${archetype} ${name} ${direction}`, drawn, name === 'walk' ? set : null]);
+      const undrawn = set.directions.filter(d => !set.drawn[d]);
+      if (undrawn.length) ok(`${archetype} ${name}: ${undrawn.join('/')} still to draw (art/CHATGPT_FEEDBACK.md)`);
+    } else frameSets.push([`${archetype} ${name}`, set, null]);
+  }
+  for (const [label, set, walkSet] of frameSets) {
     checkStatus(label, set);
     if (set.status === 'missing') { ok(`${label}: missing (requested in art/CHATGPT_FEEDBACK.md)`); continue; }
     if (!exists(set.file)) { fail(`${label}: missing file ${set.file}`); continue; }
-    if (set.frames) {
-      const [, , w, h] = set.frames[0];
-      if (!set.frames.every(f => f[2] === w && f[3] === h)) fail(`${label}: frames are not equal boxes`);
-      insideCrop(`${label} pivot`, [0, 0, w, h], set.pivot);
-      const outH = set.output.frameHeight, outW = Math.round(w * outH / h);
-      pixelJobs.push({ label, kind: 'strip', file: set.file, width: outW * set.frames.length, height: outH,
-        frames: set.frames.length, pivotRow: Math.round(set.pivot[1] * outH / h) });
+    if (set.source && !exists(set.source)) fail(`${label}: missing source ${set.source}`);
+    if (set.accent && !exists(set.accent)) fail(`${label}: missing accent mask ${set.accent}`);
+    if (!set.frames) continue;
+    const [, , w, h] = set.frames[0];
+    if (!set.frames.every(f => f[2] === w && f[3] === h)) fail(`${label}: frames are not equal boxes`);
+    insideCrop(`${label} pivot`, [0, 0, w, h], set.pivot);
+    const outH = set.output.frameHeight, outW = Math.round(w * outH / h);
+    const job = { label, kind: 'strip', file: set.file, width: outW * set.frames.length, height: outH,
+      frames: set.frames.length, pivotRow: Math.round(set.pivot[1] * outH / h) };
+    if (walkSet) {
+      // Walk cycles: feet legitimately sit on different rows (the forward
+      // foot is nearer the camera), so they get gait checks instead of the
+      // shared-baseline check.
+      job.gait = { source: set.source, frames: set.frames.length };
+      if (set.frames.length !== walkSet.framesPerDirection) fail(`${label}: ${set.frames.length} frames, walk cycles need ${walkSet.framesPerDirection}`);
+      if (set.gaitTrack) {
+        const track = JSON.parse(fs.readFileSync(path.join(root, set.gaitTrack), 'utf8'));
+        const expected = (walkSet.strideWorld / set.frames.length) * track.pxPerWorld;
+        if (track.strideWorld !== walkSet.strideWorld) fail(`${label}: foot track stride ${track.strideWorld} != manifest ${walkSet.strideWorld}`);
+        let stanceSteps = 0;
+        for (let i = 0; i < track.track.length; i++) {
+          const a = track.track[i], b = track.track[(i + 1) % track.track.length];
+          for (const foot of ['left', 'right']) {
+            if (!a[foot].planted || !b[foot].planted) continue;
+            stanceSteps++;
+            const moved = a[foot].y - b[foot].y; // up the screen as the soldier walks toward the camera
+            if (Math.abs(moved - expected) > 0.6) fail(`${label}: ${foot} foot slides (${moved.toFixed(2)}px per frame, planted needs ${expected.toFixed(2)})`);
+          }
+        }
+        if (stanceSteps < set.frames.length - 2) fail(`${label}: too few planted frames in the foot track`);
+        ok(`${label}: planted feet move ${expected.toFixed(2)} px/frame = walked distance (${stanceSteps} stance steps checked)`);
+      } else fail(`${label}: walk cycle has no foot track to prove planted feet`);
     }
+    pixelJobs.push(job);
   }
 }
 for (const [id, prop] of Object.entries(manifest.props || {})) {
@@ -115,12 +149,61 @@ for (const file of cached) if (file !== './' && !exists(file)) fail(`service wor
 for (const job of pixelJobs) if (!job.uncached && !cached.includes(job.file)) fail(`${job.file} is not in the service worker cache list`);
 
 // --- pixels --------------------------------------------------------------------------
+// Gait analysis, run in the page. Frames are aligned on the figure's head and
+// torso (top row + centre of the upper 40%), so uneven spacing in a study
+// can't fake a difference; then the LEG region (lower 45%) is compared
+// between every pair of frames, and the lowest foot's side is found.
+const GAIT_JS = String.raw`
+window.gaitStats = async (src, frames) => {
+  const img = await new Promise((resolve, reject) => { const i = new Image(); i.onload = () => resolve(i); i.onerror = () => reject(new Error('cannot load ' + src)); i.src = src; });
+  const W = img.naturalWidth, H = img.naturalHeight, fw = Math.floor(W / frames);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+  const d = g.getImageData(0, 0, W, H).data, on = (x, y) => d[(y * W + x) * 4 + 3] > 128;
+  const step = Math.max(1, Math.round(fw / 128));
+  const legs = [], lowest = [];
+  for (let f = 0; f < frames; f++) {
+    let top = -1, bottom = -1, minX = 1e9, maxX = -1;
+    for (let y = 0; y < H; y++) for (let x = f * fw; x < (f + 1) * fw; x++) if (on(x, y)) { if (top < 0) top = y; bottom = y; minX = Math.min(minX, x); maxX = Math.max(maxX, x); }
+    const height = bottom - top;
+    let sum = 0, n = 0;
+    for (let y = top; y < top + height * 0.4; y++) for (let x = f * fw; x < (f + 1) * fw; x++) if (on(x, y)) { sum += x; n++; }
+    const cx = sum / n, legTop = top + height * 0.55;
+    const set = new Set(); let lowL = -1, lowR = -1;
+    for (let y = Math.floor(legTop); y <= bottom; y += step) for (let x = f * fw; x < (f + 1) * fw; x += step) if (on(x, y)) {
+      set.add(Math.round((x - cx) / step) + ',' + Math.round((y - top) / step));
+      if (x < cx - fw * 0.03) lowL = Math.max(lowL, y - top); else if (x > cx + fw * 0.03) lowR = Math.max(lowR, y - top);
+    }
+    legs.push(set); lowest.push({ left: lowL, right: lowR, height });
+  }
+  const pairs = [];
+  for (let a = 0; a < frames; a++) for (let b = a + 1; b < frames; b++) {
+    let inter = 0; for (const k of legs[a]) if (legs[b].has(k)) inter++;
+    const union = legs[a].size + legs[b].size - inter;
+    pairs.push({ a, b, difference: 1 - inter / union });
+  }
+  return { pairs, minDifference: Math.min(...pairs.map(p => p.difference)), lowest };
+};`;
+const GAIT_MIN_DIFFERENCE = 0.12;   // every pair of frames must differ this much in the legs
+// Evaluate gait stats: returns problems (empty when the cycle passes).
+function gaitProblems(stats, frames) {
+  const problems = [];
+  const same = stats.pairs.filter(p => p.difference < GAIT_MIN_DIFFERENCE);
+  if (same.length) problems.push(`repeated phases: frames ${same.map(p => `${p.a + 1}&${p.b + 1} (${(p.difference * 100).toFixed(0)}% different)`).join(', ')} — each pair must differ by ${GAIT_MIN_DIFFERENCE * 100}%+ in the legs`);
+  const half = frames / 2, side = l => (l.left - l.right) / l.height;
+  const first = side(stats.lowest[0]), second = side(stats.lowest[half]);
+  if (!(Math.sign(first) !== Math.sign(second) && Math.abs(first) > 0.02 && Math.abs(second) > 0.02)) {
+    problems.push(`front foot does not alternate between frame 1 and frame ${half + 1} (left-right foot offsets ${first.toFixed(3)}, ${second.toFixed(3)} of body height)`);
+  }
+  return problems;
+}
+
 async function checkPixels() {
   const { startStaticServer, launchBrowser } = require('./lib/browser.cjs');
   const server = await startStaticServer(root);
   const page = await launchBrowser();
   try {
     await page.navigate(`${server.url}/tools/world-diagnostic.html`);
+    await page.evaluate(GAIT_JS + '; true');
     for (const job of pixelJobs) {
       const r = await page.evaluate(`new Promise((resolve, reject) => { const img = new Image(); img.onerror = () => reject(new Error('decode failed'));
         img.onload = () => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight;
@@ -141,7 +224,12 @@ async function checkPixels() {
       if (r.clear < 0.1 || r.opaque < 0.1) fail(`${where}: no genuine alpha (clear ${(r.clear * 100).toFixed(1)}%, opaque ${(r.opaque * 100).toFixed(1)}%)`);
       if (r.soft > 0.06) fail(`${where}: ${(r.soft * 100).toFixed(1)}% semi-transparent pixels (run tools/prepare-art.cjs)`);
       if (r.edge > 0) fail(`${where}: content touches the frame edge (${Object.entries(r.edges).map(([k, v]) => `${k}: ${v}px`).join(', ')})`);
-      if (job.kind === 'strip') {
+      if (job.gait) {
+        const stats = await page.evaluate(`gaitStats('/${job.gait.source}', ${job.gait.frames})`);
+        const problems = gaitProblems(stats, job.gait.frames);
+        problems.forEach(p => fail(`${job.label}: ${p}`));
+        if (!problems.length) ok(`${job.label}: ${job.gait.frames} distinct phases (legs differ by >= ${(stats.minDifference * 100).toFixed(0)}% between any two frames), front foot alternates`);
+      } else if (job.kind === 'strip') {
         const spread = Math.max(...r.feet) - Math.min(...r.feet);
         if (spread > 3) fail(`${where}: feet rows vary by ${spread}px across frames (${r.feet})`);
         if (r.feet.some(row => Math.abs(row - job.pivotRow) > 4)) fail(`${where}: feet rows ${r.feet} are off the pivot row ${job.pivotRow}`);
@@ -155,7 +243,29 @@ async function checkPixels() {
   }
 }
 
+// node tools/validate-assets.cjs --gait <image> <frames>
+// Scores any walk strip (e.g. a new study) with the same gait checks.
+async function gaitOnly(file, frames) {
+  const { startStaticServer, launchBrowser } = require('./lib/browser.cjs');
+  const server = await startStaticServer(root);
+  const page = await launchBrowser();
+  try {
+    await page.navigate(`${server.url}/tools/world-diagnostic.html`);
+    await page.evaluate(GAIT_JS + '; true');
+    const stats = await page.evaluate(`gaitStats('/${file}', ${frames})`);
+    console.log(`leg-region difference between frame pairs:\n${stats.pairs.map(p => `  ${p.a + 1}-${p.b + 1}: ${(p.difference * 100).toFixed(1)}%`).join('\n')}`);
+    const problems = gaitProblems(stats, frames);
+    console.log(problems.length ? `\nGAIT FAIL\n${problems.map(p => `- ${p}`).join('\n')}` : '\nGait passes: distinct phases, alternating front foot');
+    process.exitCode = problems.length ? 1 : 0;
+  } finally {
+    await page.close();
+    server.close();
+  }
+}
+
 (async () => {
+  const gaitIndex = process.argv.indexOf('--gait');
+  if (gaitIndex > 0) return gaitOnly(process.argv[gaitIndex + 1], Number(process.argv[gaitIndex + 2] || 6));
   if (!process.env.SKIP_PIXELS) await checkPixels();
   console.log(passes.map(p => `ok   ${p}`).join('\n'));
   if (failures.length) {

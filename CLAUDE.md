@@ -325,6 +325,12 @@ is the single source for art files, pivots, slots, occluders and statuses;
 plays them once they exist and falls back to stills until then. Don't
 promote a candidate to production without a consistency review.
 
+**Visual pass 27 Sep**: see `art/ART_HANDOFF_2026-09-27.md` (Response). Path
+edges are Catmull-Rom curves (walked = drawn); rock polygons are the rock's
+FOOT with the plateau raised above; `tools/rig-soldier.cjs` makes a
+validated 6-frame down walk (candidate); `validate-assets.cjs --gait` checks
+any strip. `tools/capture-showcase.cjs` makes the 960x576 review screen.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

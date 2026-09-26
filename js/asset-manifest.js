@@ -43,7 +43,7 @@ const ASSET_MANIFEST = {
       source: 'art/concepts/range-interaction-study.webp',
       crop: [56, 24, 1466, 945], output: { width: 768 }, alphaCleanup: true,
       alphaBounds: [60, 28, 1518, 965],
-      pivot: [790, 955], widthRatio: 0.94,
+      pivot: [790, 955], widthRatio: 1.1,
       doorSides: ['south'], orientation: 'three_quarter_south', light: 'upper-left',
       entrance: [790, 900],
       // Two covered stations with mats (level 1), then open lane positions.
@@ -68,7 +68,7 @@ const ASSET_MANIFEST = {
       source: 'art/concepts/barracks-study.webp',
       crop: [31, 140, 1473, 772], output: { width: 768 }, alphaCleanup: true,
       alphaBounds: [35, 144, 1500, 908],
-      pivot: [770, 896], widthRatio: 0.98,
+      pivot: [770, 896], widthRatio: 1.12,
       doorSides: ['south'], orientation: 'three_quarter_south', light: 'upper-left',
       entrance: [640, 720],
       slots: [
@@ -86,7 +86,7 @@ const ASSET_MANIFEST = {
       source: 'art/concepts/mess-hall-study.webp',
       crop: [35, 46, 1474, 934], output: { width: 768 }, alphaCleanup: true,
       alphaBounds: [39, 50, 1505, 976],
-      pivot: [770, 962], widthRatio: 0.96,
+      pivot: [770, 962], widthRatio: 1.1,
       doorSides: ['south'], orientation: 'three_quarter_south', light: 'upper-left',
       entrance: [1230, 760],
       // Bench places on the camera side of the two tables under the open side.
@@ -116,6 +116,21 @@ const ASSET_MANIFEST = {
     mess_hall: 'assets/buildings/mess-hall-organic.webp',
   },
 
+  // Visible content of the fitted (non-anchored) sprites: [imageW, imageH,
+  // x0, y0, x1, y1] in image px (alpha > 40). Fitting the content rather
+  // than the padded canvas draws these buildings 15-60% larger.
+  contentBounds: {
+    'assets/buildings/entrance-hall-organic.webp': [384, 256, 51, 16, 348, 243],
+    'assets/buildings/shooting-range-organic.webp': [384, 256, 18, 10, 367, 246],
+    'assets/buildings/barracks-organic.webp': [384, 256, 61, 14, 336, 234],
+    'assets/buildings/mess-hall-organic.webp': [384, 256, 50, 18, 334, 219],
+    'assets/buildings/weight_room.png': [576, 384, 103, 14, 474, 369],
+    'assets/buildings/obstacle_course.png': [576, 384, 48, 14, 529, 370],
+    'assets/buildings/drill_yard.png': [576, 384, 95, 14, 479, 368],
+    'assets/buildings/showers.png': [576, 384, 92, 14, 484, 370],
+    'assets/buildings/rec_room.png': [576, 384, 128, 13, 448, 369],
+  },
+
   gate: {
     status: 'needs-regeneration', file: 'assets/buildings/gatehouse.png',
     candidateSource: 'art/concepts/gate-intake-study.webp',
@@ -128,8 +143,35 @@ const ASSET_MANIFEST = {
   units: {
     soldier: {
       stills: { status: 'interim', pattern: 'assets/units/soldiers/soldier_{variant}_{direction}.png', directions: ['down', 'up', 'right'], mirrorLeft: true },
-      walk: { status: 'missing', framesPerDirection: 6, directions: ['down', 'up', 'right'], strideWorld: 36 },
-      idle: { status: 'missing', framesPerDirection: 2, directions: ['down', 'up', 'right'], frameMs: 700 },
+      // Walk/idle: one 6-frame cycle per direction on a 256x384 grid. `down` is
+      // the rigged soldier (tools/lib/soldier-rig.js): six distinct phases,
+      // planted feet proven by its foot track. It is a CANDIDATE: a different
+      // figure from the tinted stills used for the other directions, so it
+      // only shows with ?art=candidates until the full set exists.
+      walk: {
+        status: 'candidate', framesPerDirection: 6, directions: ['down', 'up', 'right'], strideWorld: 22,
+        drawn: {
+          down: {
+            status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v1.webp', version: 1,
+            source: 'art/rig/soldier_walk_down.png', accent: 'art/rig/soldier_walk_down_accent.png',
+            gaitTrack: 'art/rig/soldier_walk_down.json', alphaCleanup: true, tint: 'none',
+            frames: [[0, 0, 256, 384], [256, 0, 256, 384], [512, 0, 256, 384], [768, 0, 256, 384], [1024, 0, 256, 384], [1280, 0, 256, 384]],
+            pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
+            names: ['R contact', 'R down', 'passing', 'L contact', 'L down', 'passing'],
+          },
+        },
+      },
+      idle: {
+        status: 'candidate', framesPerDirection: 2, directions: ['down', 'up', 'right'],
+        drawn: {
+          down: {
+            status: 'candidate', file: 'assets/units/candidates/soldier-idle-down-v1.webp', version: 1,
+            source: 'art/rig/soldier_idle_down.png', accent: 'art/rig/soldier_idle_down_accent.png', alphaCleanup: true, tint: 'none',
+            frames: [[0, 0, 256, 384], [256, 0, 256, 384]], pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
+            frameMs: [900, 900],
+          },
+        },
+      },
       activities: {
         fire: {
           status: 'candidate', file: 'assets/units/candidates/soldier-fire-candidate-v1.webp', version: 1,

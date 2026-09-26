@@ -1,0 +1,87 @@
+{
+  "cell": [
+    256,
+    384
+  ],
+  "pivot": [
+    128,
+    330
+  ],
+  "strideWorld": 22,
+  "pxPerWorld": 6.818181818181818,
+  "frames": 6,
+  "track": [
+    {
+      "right": {
+        "x": 108,
+        "y": 367.5,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 292.5,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 342.5,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 303.2690470780972,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 317.5,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 330,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 292.5,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 367.5,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 303.2690470780972,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 342.5,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 330,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 317.5,
+        "planted": true
+      }
+    }
+  ]
+}

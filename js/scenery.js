@@ -159,68 +159,235 @@ function fillSmooth(ctx, polygon, style) {
   ctx.fill();
 }
 
-function drawWater(ctx, area, random) {
-  // Earthy bank, then deep water, then a lighter shallow rim and ripples.
-  traceSmoothPolygon(ctx, area.polygon);
-  ctx.lineJoin = 'round';
-  ctx.strokeStyle = '#8c7a55'; ctx.lineWidth = 18; ctx.stroke();
-  ctx.strokeStyle = '#a9956a'; ctx.lineWidth = 9; ctx.stroke();
-  fillSmooth(ctx, area.polygon, '#3f7d8a');
-  ctx.save();
-  traceSmoothPolygon(ctx, area.polygon);
-  ctx.clip();
-  traceSmoothPolygon(ctx, area.polygon);
-  ctx.strokeStyle = 'rgba(160, 214, 205, 0.55)'; ctx.lineWidth = 14; ctx.stroke();
-  const b = polygonBounds(area.polygon);
-  ctx.strokeStyle = 'rgba(214, 240, 232, 0.45)'; ctx.lineWidth = 2; ctx.lineCap = 'round';
-  for (let i = 0; i < (b.maxX - b.minX) * (b.maxY - b.minY) / 2600; i++) {
-    const x = b.minX + random() * (b.maxX - b.minX), y = b.minY + random() * (b.maxY - b.minY);
-    if (!pointInPolygon(x, y, area.polygon)) continue;
-    ctx.beginPath(); ctx.moveTo(x - 7, y); ctx.quadraticCurveTo(x, y - 3, x + 7, y); ctx.stroke();
-  }
-  ctx.restore();
-}
+// --- terrain edges -----------------------------------------------------------------
+//
+// Terrain reads as land shaped by rock and water (see
+// art/explorations/river-cliff-edge-study.webp for the look — used as a
+// reference only; the geometry is the authored WORLD polygons). Every edge
+// that faces the camera (outward normal pointing down the screen) gets a
+// face: stepped rock columns under cliffs and outcrops, and rock drops into
+// water where land sits above a river or pond. Edges seen from above get a
+// pebble beach instead.
 
-// Cliff/rock: a lit top face plus a darker vertical face along every edge
-// that faces the camera (downward normal), giving the three-quarter depth.
-function drawRockMass(ctx, area, random) {
-  const faceHeight = area.kind === 'cliff' ? 30 : 16;
-  const poly = area.polygon;
-  const clockwise = poly.reduce((sum, p, i) => {
-    const q = poly[(i + 1) % poly.length];
-    return sum + (q[0] - p[0]) * (q[1] + p[1]);
-  }, 0) < 0;
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i], b = poly[(i + 1) % poly.length];
-    const dx = b[0] - a[0], dy = b[1] - a[1];
-    const normalY = (clockwise ? dx : -dx) / (Math.hypot(dx, dy) || 1);
-    if (normalY <= 0.25) continue;
-    ctx.beginPath();
-    ctx.moveTo(a[0], a[1]); ctx.lineTo(b[0], b[1]);
-    ctx.lineTo(b[0], b[1] + faceHeight); ctx.lineTo(a[0], a[1] + faceHeight);
-    ctx.closePath();
-    ctx.fillStyle = '#4f4b42'; ctx.fill();
-    ctx.strokeStyle = 'rgba(25, 24, 20, 0.5)'; ctx.lineWidth = 2; ctx.stroke();
-  }
-  fillSmooth(ctx, poly, area.kind === 'cliff' ? '#7e7a69' : '#8c887a');
-  traceSmoothPolygon(ctx, poly);
-  ctx.strokeStyle = '#34322b'; ctx.lineWidth = 3; ctx.stroke();
-  // Crack and moss marks, clipped to the top face.
-  ctx.save();
-  traceSmoothPolygon(ctx, poly);
-  ctx.clip();
-  const bounds = polygonBounds(poly);
-  for (let i = 0; i < (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY) / 1800; i++) {
-    const x = bounds.minX + random() * (bounds.maxX - bounds.minX), y = bounds.minY + random() * (bounds.maxY - bounds.minY);
-    if (random() < 0.5) {
-      ctx.strokeStyle = 'rgba(50, 48, 40, 0.45)'; ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + 8 + random() * 10, y + 3 + random() * 5); ctx.stroke();
-    } else {
-      ctx.fillStyle = 'rgba(96, 118, 70, 0.45)';
-      ctx.beginPath(); ctx.ellipse(x, y, 6 + random() * 8, 3 + random() * 3, 0, 0, Math.PI * 2); ctx.fill();
+// Points along the same rounded outline traceSmoothPolygon() draws, each
+// with the outward unit normal, about `spacing` world px apart.
+function outlineSamples(polygon, spacing) {
+  const mid = (a, b) => ({ x: (a[0] + b[0]) / 2, y: (a[1] + b[1]) / 2 });
+  const curve = [];
+  for (let i = 0; i < polygon.length; i++) {
+    const start = mid(polygon[(i - 1 + polygon.length) % polygon.length], polygon[i]);
+    const end = mid(polygon[i], polygon[(i + 1) % polygon.length]);
+    const c = { x: polygon[i][0], y: polygon[i][1] };
+    for (let t = 0; t < 1; t += 0.05) {
+      curve.push({ x: (1 - t) ** 2 * start.x + 2 * (1 - t) * t * c.x + t * t * end.x,
+        y: (1 - t) ** 2 * start.y + 2 * (1 - t) * t * c.y + t * t * end.y });
     }
   }
+  const area = polygon.reduce((sum, p, i) => { const q = polygon[(i + 1) % polygon.length]; return sum + p[0] * q[1] - q[0] * p[1]; }, 0);
+  const samples = [];
+  let travelled = 0, next = 0;
+  for (let i = 0; i < curve.length; i++) {
+    const a = curve[i], b = curve[(i + 1) % curve.length];
+    const length = Math.hypot(b.x - a.x, b.y - a.y);
+    if (!length) continue;
+    const nx = (area > 0 ? b.y - a.y : a.y - b.y) / length, ny = (area > 0 ? a.x - b.x : b.x - a.x) / length;
+    while (next <= travelled + length) {
+      const t = (next - travelled) / length;
+      samples.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t, nx, ny });
+      next += spacing;
+    }
+    travelled += length;
+  }
+  return samples;
+}
+
+// One rock column: lit face on the left, shade on the right, a pale cap,
+// cracks and a dark outline (upper-left key light).
+function drawRockColumn(ctx, x, top, width, height, random) {
+  const lean = (random() - 0.5) * 3;
+  const left = x - width / 2, right = x + width / 2, bottom = top + height;
+  const split = left + width * (0.36 + random() * 0.14); // lit facet | shaded facet
+  const tone = 150 + Math.floor(random() * 26);
+  const shape = () => {
+    ctx.beginPath();
+    ctx.moveTo(left + 1, top + 3);
+    ctx.lineTo(split, top);
+    ctx.lineTo(right - 1, top + 3);
+    ctx.lineTo(right + lean, bottom - 3);
+    ctx.lineTo(split + lean, bottom + 1);
+    ctx.lineTo(left + lean, bottom - 2);
+    ctx.closePath();
+  };
+  shape();
+  ctx.fillStyle = `rgb(${tone - 40}, ${tone - 46}, ${tone - 56})`; // shaded facet
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(left + 1, top + 3); ctx.lineTo(split, top); ctx.lineTo(split + lean, bottom + 1); ctx.lineTo(left + lean, bottom - 2);
+  ctx.closePath();
+  ctx.fillStyle = `rgb(${tone + 28}, ${tone + 20}, ${tone + 4})`; // lit facet (upper-left light)
+  ctx.fill();
+  // Horizontal ledges break the column into stacked blocks.
+  ctx.strokeStyle = 'rgba(58, 50, 40, 0.55)'; ctx.lineWidth = 1.2;
+  for (let y = top + 9 + random() * 6; y < bottom - 6; y += 10 + random() * 9) {
+    ctx.beginPath(); ctx.moveTo(left + 2, y); ctx.lineTo(right - 2, y + (random() - 0.5) * 3); ctx.stroke();
+  }
+  ctx.strokeStyle = 'rgba(58, 50, 40, 0.45)';
+  ctx.beginPath(); ctx.moveTo(split, top + 1); ctx.lineTo(split + lean, bottom); ctx.stroke();
+  shape();
+  ctx.strokeStyle = '#342e25'; ctx.lineWidth = 1.8; ctx.stroke();
+  ctx.fillStyle = 'rgba(236, 228, 204, 0.75)';
+  ctx.beginPath(); ctx.moveTo(left + 3, top + 3); ctx.lineTo(split, top + 1); ctx.lineTo(right - 3, top + 3); ctx.lineTo(split, top + 5); ctx.closePath(); ctx.fill();
+}
+
+function drawBoulder(ctx, x, y, r, random) {
+  ctx.fillStyle = 'rgba(20, 24, 18, 0.28)';
+  ctx.beginPath(); ctx.ellipse(x + r * 0.35, y + r * 0.25, r, r * 0.45, 0, 0, Math.PI * 2); ctx.fill();
+  const tone = 130 + Math.floor(random() * 30);
+  ctx.fillStyle = `rgb(${tone}, ${tone - 8}, ${tone - 20})`;
+  ctx.strokeStyle = '#3a342b'; ctx.lineWidth = 1.4;
+  ctx.beginPath(); ctx.ellipse(x, y - r * 0.35, r, r * 0.72, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = 'rgba(232, 224, 200, 0.55)';
+  ctx.beginPath(); ctx.ellipse(x - r * 0.35, y - r * 0.65, r * 0.42, r * 0.25, -0.3, 0, Math.PI * 2); ctx.fill();
+}
+
+function drawBush(ctx, x, y, r, random) {
+  const greens = ['#6f8a37', '#8a9c3e', '#5b7432'];
+  for (let k = 0; k < 3; k++) {
+    ctx.fillStyle = greens[Math.floor(random() * greens.length)];
+    ctx.beginPath(); ctx.arc(x + (k - 1) * r * 0.7, y - r * (0.4 + random() * 0.4), r * (0.6 + random() * 0.3), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(214, 224, 120, 0.45)';
+  ctx.beginPath(); ctx.arc(x - r * 0.4, y - r * 0.9, r * 0.35, 0, Math.PI * 2); ctx.fill();
+}
+
+// Cliffs and outcrops. The authored polygon is the FOOT of the rock — the
+// ground it excludes — so faces never spill onto paths or build zones. The
+// plateau is the same outline raised by `rise`; every side not facing away
+// from the camera shows as stepped rock columns between plateau and foot,
+// with scree at the foot and bushes along the lip.
+function drawRockMass(ctx, area, random) {
+  const poly = area.polygon;
+  const cliff = area.kind === 'cliff';
+  const rise = cliff ? 58 : 26;
+  const top = poly.map(([x, y]) => [x, y - rise]);
+  const lipSamples = outlineSamples(poly, cliff ? 13 : 11);
+  const face = lipSamples.filter(s => s.ny > -0.2);
+
+  // Plateau: warm meadow on cliffs, bare rock on outcrops, darker at the rim.
+  fillSmooth(ctx, top, cliff ? (scenePattern(ctx, 'ground_grass', 0.42) || '#6f7c45') : '#8f8b7d');
+  if (cliff) fillSmooth(ctx, top, 'rgba(196, 184, 96, 0.14)');
+  traceSmoothPolygon(ctx, top);
+  ctx.strokeStyle = cliff ? 'rgba(52, 64, 34, 0.55)' : 'rgba(60, 58, 50, 0.6)'; ctx.lineWidth = 6; ctx.stroke();
+  const bounds = polygonBounds(top);
+  for (let i = 0; i < (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY) / (cliff ? 2200 : 600); i++) {
+    const x = bounds.minX + random() * (bounds.maxX - bounds.minX), y = bounds.minY + random() * (bounds.maxY - bounds.minY);
+    if (!pointInPolygon(x, y, top) || pointPolygonDistance(x, y, top) < 0) continue;
+    if (random() < 0.6) drawBoulder(ctx, x, y, cliff ? 5 + random() * 9 : 4 + random() * 7, random);
+    else drawBush(ctx, x, y, 5 + random() * 4, random);
+  }
+
+  // Faces: columns from the plateau rim down to the foot, sorted so nearer
+  // (lower) columns overlap farther ones. Side-facing edges show narrower,
+  // shorter steps.
+  const columns = face.map(s => ({ s, jitter: random(), width: (cliff ? 24 : 16) + random() * 10 }))
+    .sort((a, b) => a.s.y - b.s.y);
+  for (const { s, jitter, width } of columns) {
+    const step = rise * (0.72 + jitter * 0.28); // uneven tops read as stepped rock
+    drawRockColumn(ctx, s.x, s.y - step, width * (0.8 + 0.2 * Math.max(0, s.ny)), step + 3, random);
+  }
+  for (const { s } of columns) {
+    if (s.ny > 0.3 && random() < 0.55) drawBoulder(ctx, s.x + (random() - 0.5) * 14, s.y + 2 + random() * 5, 3 + random() * 5, random);
+  }
+  for (const s of outlineSamples(top, 20)) if (s.ny > -0.2 && random() < 0.5) drawBush(ctx, s.x, s.y + 2, 5 + random() * 4, random);
+}
+
+// River/pond: depth-shaded water; rock drops (with foam) where land sits
+// above the water; pebble beaches where the bank is seen from above; flow
+// streaks and midstream boulders.
+function drawWater(ctx, area, random) {
+  const poly = area.polygon;
+  const bounds = polygonBounds(poly);
+  fillSmooth(ctx, poly, '#3c7d8b');
+  ctx.save();
+  traceSmoothPolygon(ctx, poly);
+  ctx.clip();
+  traceSmoothPolygon(ctx, poly);
+  ctx.strokeStyle = 'rgba(102, 170, 170, 0.8)'; ctx.lineWidth = 26; ctx.stroke();
+  traceSmoothPolygon(ctx, poly);
+  ctx.strokeStyle = 'rgba(160, 214, 205, 0.55)'; ctx.lineWidth = 10; ctx.stroke();
+  // Flow streaks run along the nearest bank.
+  const samples = outlineSamples(poly, 9);
+  ctx.lineCap = 'round';
+  for (let i = 0; i < (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY) / 700; i++) {
+    const x = bounds.minX + random() * (bounds.maxX - bounds.minX), y = bounds.minY + random() * (bounds.maxY - bounds.minY);
+    if (!pointInPolygon(x, y, poly)) continue;
+    let nearest = samples[0], best = Infinity;
+    for (const s of samples) { const d = (s.x - x) ** 2 + (s.y - y) ** 2; if (d < best) { best = d; nearest = s; } }
+    const tx = -nearest.ny, ty = nearest.nx, len = 6 + random() * 12;
+    ctx.strokeStyle = `rgba(226, 244, 240, ${0.25 + random() * 0.35})`;
+    ctx.lineWidth = 1 + random() * 1.4;
+    ctx.beginPath(); ctx.moveTo(x - tx * len, y - ty * len);
+    ctx.quadraticCurveTo(x + ty * 2, y - tx * 2, x + tx * len, y + ty * len); ctx.stroke();
+  }
   ctx.restore();
+
+  // Banks. Land-above edges (outward normal pointing up the screen) show a
+  // rock drop into the water; the rest get pebbles half in the water.
+  for (const s of samples) {
+    if (s.ny < -0.2 && random() < 0.75) {
+      const height = 12 + random() * 14;
+      drawRockColumn(ctx, s.x, s.y - 1, 12 + random() * 8, height, random);
+      ctx.strokeStyle = 'rgba(246, 252, 250, 0.85)'; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.ellipse(s.x, s.y + height, 8 + random() * 5, 2.5, 0, 0, Math.PI * 2); ctx.stroke();
+    } else if (random() < 0.4) {
+      drawBoulder(ctx, s.x + s.nx * 2, s.y + s.ny * 2 + 3, 2.5 + random() * 4, random);
+    }
+  }
+  // A few boulders midstream with foam rings.
+  for (let i = 0; i < (bounds.maxX - bounds.minX) * (bounds.maxY - bounds.minY) / 9000; i++) {
+    const x = bounds.minX + random() * (bounds.maxX - bounds.minX), y = bounds.minY + random() * (bounds.maxY - bounds.minY);
+    if (!pointInPolygon(x, y, poly) || pointPolygonDistance(x, y, poly) > 0) continue;
+    const r = 5 + random() * 9;
+    ctx.strokeStyle = 'rgba(246, 252, 250, 0.7)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(x, y + 1, r * 1.3, r * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
+    drawBoulder(ctx, x, y, r, random);
+  }
+}
+
+// Trail: earth base, lighter centre, worn ruts, then a ragged grass fringe
+// and pebbles so the edge isn't a clean tube.
+function drawPathEdges(ctx, edges, random) {
+  const trace = () => { ctx.beginPath(); for (const edge of edges) traceSmoothLine(ctx, edge.points); };
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  trace(); ctx.strokeStyle = 'rgba(70, 58, 38, 0.4)'; ctx.lineWidth = 42; ctx.stroke();
+  trace(); ctx.strokeStyle = '#a4814f'; ctx.lineWidth = 34; ctx.stroke();
+  trace(); ctx.strokeStyle = 'rgba(206, 172, 116, 0.55)'; ctx.lineWidth = 18; ctx.stroke();
+  ctx.setLineDash([18, 14]);
+  trace(); ctx.strokeStyle = 'rgba(120, 92, 58, 0.3)'; ctx.lineWidth = 3; ctx.stroke();
+  ctx.setLineDash([]);
+  const greens = ['rgba(92, 116, 52, 0.75)', 'rgba(104, 124, 58, 0.7)', 'rgba(80, 100, 46, 0.7)'];
+  for (const edge of edges) {
+    for (let i = 1; i < edge.points.length; i++) {
+      const a = edge.points[i - 1], b = edge.points[i];
+      const length = Math.hypot(b.x - a.x, b.y - a.y);
+      if (!length) continue;
+      const nx = -(b.y - a.y) / length, ny = (b.x - a.x) / length;
+      for (let d = 0; d < length; d += 7) {
+        const x = a.x + (b.x - a.x) * d / length, y = a.y + (b.y - a.y) * d / length;
+        for (const side of [-1, 1]) {
+          if (random() < 0.3) {
+            const off = 14 + random() * 7;
+            ctx.fillStyle = greens[Math.floor(random() * 3)];
+            ctx.beginPath(); ctx.ellipse(x + nx * off * side, y + ny * off * side, 1.5 + random() * 3, 1 + random() * 1.6, random(), 0, Math.PI * 2); ctx.fill();
+          }
+        }
+        if (random() < 0.08) {
+          ctx.fillStyle = 'rgba(96, 84, 66, 0.7)';
+          ctx.beginPath(); ctx.arc(x + nx * (random() - 0.5) * 20, y + ny * (random() - 0.5) * 20, 1.2 + random() * 1.4, 0, Math.PI * 2); ctx.fill();
+        }
+      }
+    }
+  }
 }
 
 function drawClearing(ctx, zone, built) {
@@ -245,17 +412,6 @@ function drawClearing(ctx, zone, built) {
   }
 }
 
-function drawPathEdges(ctx, edges) {
-  const trace = () => { ctx.beginPath(); for (const edge of edges) traceSmoothLine(ctx, edge.points); };
-  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-  trace(); ctx.strokeStyle = 'rgba(70, 58, 38, 0.45)'; ctx.lineWidth = 44; ctx.stroke();
-  trace(); ctx.strokeStyle = '#a4814f'; ctx.lineWidth = 36; ctx.stroke();
-  trace(); ctx.strokeStyle = 'rgba(206, 172, 116, 0.55)'; ctx.lineWidth = 20; ctx.stroke();
-  // Worn wheel ruts.
-  ctx.setLineDash([18, 14]);
-  trace(); ctx.strokeStyle = 'rgba(120, 92, 58, 0.35)'; ctx.lineWidth = 3; ctx.stroke();
-  ctx.setLineDash([]);
-}
 
 function drawFenceLines(ctx) {
   for (const fence of WORLD.fences) {
@@ -305,7 +461,7 @@ function paintStaticLayer(visibleZones, builtZones) {
   for (const zone of WORLD.zones) if (visibleZones.has(zone.id)) drawClearing(ctx, zone, builtZones.has(zone.id));
 
   const edges = worldEdgeList(visibleZones).filter(edge => edge.to !== 'aid_station');
-  drawPathEdges(ctx, edges);
+  drawPathEdges(ctx, edges, random);
 
   const { rocks, tufts } = scenery();
   for (const tuft of tufts) {

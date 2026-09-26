@@ -148,9 +148,15 @@ async function prepareFrames(page, name, anim) {
         ${prop.alphaCleanup ? 'cleanAlpha(c);' : ''} return b64(c); })()`);
       write(prop.file, image);
     }
-    for (const [name, anim] of Object.entries(manifest.units.soldier.activities)) {
-      if (!anim.frames || (only && only !== `soldier-${name}`)) continue;
-      await prepareFrames(page, `soldier-${name}`, anim);
+    const soldier = manifest.units.soldier;
+    const frameSets = [
+      ...Object.entries(soldier.activities).map(([name, anim]) => [`soldier-${name}`, anim]),
+      ...Object.entries((soldier.walk && soldier.walk.drawn) || {}).map(([direction, anim]) => [`soldier-walk-${direction}`, anim]),
+      ...Object.entries((soldier.idle && soldier.idle.drawn) || {}).map(([direction, anim]) => [`soldier-idle-${direction}`, anim]),
+    ];
+    for (const [name, anim] of frameSets) {
+      if (!anim.frames || (only && only !== name)) continue;
+      await prepareFrames(page, name, anim);
     }
     if (page.problems.length) throw new Error(page.problems.join('\n'));
   } finally {
