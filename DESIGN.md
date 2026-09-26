@@ -27,6 +27,45 @@ The old split-leg animation was removed because it visibly distorted the charact
 
 New artwork was generated for the project with this brief: a small welcoming military training outpost among mountain foothills, flat digital illustration with dark outlines, restrained olive/khaki/teal palette, readable shapes, no embedded text; overhead seamless rugged meadow and maintained earth texture variants in the same palette. The project serves optimized WebP copies under `assets/`.
 
+## Target: a terrain-shaped, inhabited base
+
+The three player references received on 26 September 2026 refine the target. `graphicsType.jpg` shows the desired bold, readable, illustrated three-quarter look, **not** a request to reuse its desert scene or emblem. `NotSquareLayout.jpg` shows a base boundary and circulation shaped by water, cliffs and clearings, **not** a template to trace. `Interact with Buildings.jpg` shows the key gameplay promise: workers visibly using individual stations rather than merely disappearing into a building. The original project art in `art/concepts/terrain-shaped-base.webp` explores these ideas in an alpine foothill setting. It is a composition reference, not a playable map texture.
+
+**Player-facing goal:** Starting with a gate, entrance and a small number of useful sites, the player builds an outpost that grows around the landscape. Civilians pass the gate, wait for admission, become named soldiers, walk along the paths, visibly train or use amenities, then depart on missions. At any normal gameplay zoom, the player can tell which facilities are active and who is using them.
+
+**First implementation choice:** use one carefully authored terrain map with irregular, non-overlapping build zones. Each zone has a hand-placed anchor and a small set of allowed orientations/footprints; buildings do not snap to screen rows. This is a practical path to an excellent composed first base. Arbitrary free placement, terraforming and multiple generated maps are future features and require a more general pathfinding, art-rotation and save system. Building pads should follow rock, vegetation and water edges. Never rotate a single three-quarter bitmap to fake an unsupported camera angle.
+
+### World and construction contract
+
+- World coordinates are independent of the 960 × 576 camera. The first authored world can be larger than the viewport, with camera pan and restrained zoom. Pointer hit testing must invert camera transform. The canvas remains usable on portrait phones with touch controls and HTML roster fallback.
+- Reserve enough screen space for interaction: at the default zoom, an active outdoor facility should be roughly 220–300 screen pixels across and a person large enough to distinguish a walk from a firing/lifting pose. The current 144 × 96 building thumbnails cannot convey the requested activity and must not dictate the new world scale.
+- Store map zones as polygons or irregular masks plus orientation, a stable zone ID, allowed building types, entrance anchor, activity anchors and an access path node. Collision checks use the actual footprint polygon and clearance from water/cliffs/other buildings, not a common 3 × 2 grid box. Keep chosen building type and level separate from zone geometry.
+- The path network is an authored graph following the terrain. When a facility is built, activate its short connection from the main trail to its door; avoid drawing a road to every unbuilt future site. Route units along the graph using a shortest-path search and short local approach segments. Recompute a route if construction invalidates its destination. Reserve safe gate, waiting and hospital fallback nodes.
+- Construction needs a ghost preview, valid/invalid feedback, a short build animation, and a visible before/after change. The initial view should contain only the entrance, gate and a few subtle surveyed sites. Later zones can be revealed with progression while the wider terrain remains readable.
+- Preserve the current economy, mission tiers, soldier identities and timing during the map rewrite. Introduce a save version and migration from `armybase_save_v1`; preserve resources, buildings, roster, equipment, missions and timers, map old building IDs to new zone IDs and safely relocate units to valid entrance/road nodes. Keep export/import working and test reload mid-mission and mid-construction.
+
+### Visible interaction contract
+
+- Every facility has an `entrance` and one or more `activitySlots` in world coordinates, with supported activities, occupancy limit, facing and animation key. A unit approaches the entrance, walks to an available slot, uses it while the existing simulation applies its effects, and leaves via the entrance. A full slot queues safely or keeps the unit on an appropriate idle task.
+- Draw activity in **layers**: terrain and ground footprint; rear walls/props; people and effects sorted by ground-contact Y; front walls/foreground/roof. Outdoor training should expose the whole station. Indoor facilities can use a controlled cutaway or reveal only while selected/occupied, but should not draw a soldier on top of a solid roof. Hit testing must still select the unit.
+- Examples: target practice has aim/recoil/reload with target reaction; weight training has a full-body lift and rest; obstacle course has traversed obstacles; mess has seated eating; barracks has bed/rest; reception has an actual greeting/admission moment. The activity cue must start only when the unit reaches its slot, and stop on status change or mission departure.
+- A walk animation must animate the **whole figure**, including coordinated arm/leg motion and planted feet. At minimum, one consistent soldier archetype needs six authored frames for each visible travel direction and idle poses before this is called a finished visual slice. Palette variants must retain a unit's identity from idle to walk to activity. No split-leg manipulation of a still image.
+
+### Art production contract
+
+- Lock one consistent three-quarter camera, relative scale, upper-left light, outline weight, shadow direction and restrained olive/teal/ochre palette. At game zoom, buildings are identifiable by silhouette, not just labels. Keep terrain, structures, props, units and UI within the same visual language.
+- Produce separate transparent layers for a modular building: `ground`, `back`, `foreground/roof` (where needed), and shadow. Record image pixel size, in-game world size, draw pivot at ground contact, door and slot anchors, occlusion mask, and allowed orientation in an asset manifest. Do not bake people, text, paths or the full landscape into a building sprite.
+- The generated files in `art/concepts/` are **studies**: a composed world, an isolated gate, an outdoor range and four firing poses. They demonstrate feasibility and set a quality target. Their alpha bounds, anchor geometry, pose consistency and small-size readability must be cleaned and tested before moving them into `assets/`. The firing pose study is not a walk cycle.
+- Prioritize a golden slice: gate/admission, Entrance Hall, Barracks, one range, 4–8 moving people, one complete visible activity, irregular terrain and path, build preview, save migration. Review a fresh-start screenshot, an expanded-base screenshot and a 30-second continuous movement clip at actual game scale before drawing the other five facilities.
+
+### Acceptance gates for the rewrite
+
+1. A fresh base reads as an outpost set within terrain; the paths and footprints have no visible grid alignment. Every new facility changes the scene without covering water, cliffs, doors or paths.
+2. A civilian enters through the gate and can be recruited; the same soldier walks to a range slot and visibly trains there. Full-body animation has no sliding or snapping between idle/walk/activity states.
+3. Two soldiers can use distinct slots without overlap; full slots queue; departures and status changes clear reservations. Activity graphics and stat gains agree.
+4. Existing v1 saves migrate once without resource, roster, mission or timer loss. Export/import and offline catch-up remain usable.
+5. Desktop and portrait-phone controls work, rendering remains responsive at 20 soldiers, and actual browser recordings/screenshots pass visual review. Automated smoke tests alone do not establish those gates.
+
 ## Design decisions still needed
 
 1. **Promotion and multiple bases.** Base 1 must persist with its remaining soldiers and passive income; two chosen soldiers move to Base 2. Define carried resources, construction, mission unlocks, and save migrations before implementing.
