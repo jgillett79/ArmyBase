@@ -96,7 +96,17 @@
   </details>
 
   <main id="gameArea">
-    <canvas id="gameCanvas" width="960" height="576" aria-label="Base map. Use the roster below to select soldiers and visitors."></canvas>
+    <canvas id="gameCanvas" width="960" height="576" aria-label="Base map. Drag to pan, pinch or scroll to zoom. Use the roster below to select soldiers and visitors."></canvas>
+    <div class="map-controls" role="group" aria-label="Map view">
+      <button id="zoomInBtn" type="button" aria-label="Zoom in">+</button>
+      <button id="zoomOutBtn" type="button" aria-label="Zoom out">&minus;</button>
+      <button id="homeViewBtn" type="button" aria-label="Back to the gate">&#8962;</button>
+    </div>
+    <div id="buildBar" class="build-bar hidden" role="status" aria-live="polite">
+      <span id="buildBarText"></span>
+      <button id="buildConfirmBtn" type="button">Build here</button>
+      <button id="buildCancelBtn" type="button">Cancel</button>
+    </div>
   </main>
 
   <section class="roster-section" aria-labelledby="rosterHeading">
@@ -199,11 +209,13 @@
 
   <script src="js/utils.js"></script>
   <script src="js/world.js"></script>
+  <script src="js/camera.js"></script>
   <script src="js/unit.js"></script>
   <script src="js/building.js"></script>
   <script src="js/mission.js"></script>
   <script src="js/state.js"></script>
   <script src="js/save.js"></script>
+  <script src="js/scenery.js"></script>
   <script src="js/render.js"></script>
   <script src="js/main.js"></script>
   <script>

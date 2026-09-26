@@ -40,27 +40,7 @@ const TERRAIN_SPRITES = {
   wall: loadSprite('assets/terrain/wall.png'),
   road: loadSprite('assets/terrain/road.png'),
 };
-const TERRAIN_SCALE = 0.25;
-const terrainPatternCache = {};
-
-// Canvas patterns need a live 2D context to create, but this game only
-// ever has one canvas — so once a pattern's created it's cached and reused
-// every frame instead of rebuilding it, until the source image finishes
-// loading (returns null until then, same graceful-fallback idea as
-// spriteReady() elsewhere in this file).
-function getTerrainPattern(ctx, key) {
-  if (terrainPatternCache[key]) return terrainPatternCache[key];
-  const img = TERRAIN_SPRITES[key];
-  if (!spriteReady(img)) return null;
-  const pattern = ctx.createPattern(img, 'repeat');
-  if (pattern && pattern.setTransform) {
-    // Divided by the world-view scale so textures keep their on-screen size.
-    const scale = (key === 'ground_apron' || key === 'ground_grass' ? 0.48 : TERRAIN_SCALE) / VIEW_SCALE;
-    pattern.setTransform(new DOMMatrix([scale, 0, 0, scale, 0, 0]));
-  }
-  terrainPatternCache[key] = pattern;
-  return pattern;
-}
+// Patterns for these are built in scenery.js on the offscreen layer.
 
 // Each identity has 3 directional sprites (down/up/right — see ASSETS.md's
 // "Character direction system") plus the original single-pose sprite as a
@@ -104,11 +84,6 @@ const UNIT_SPRITES = {
   soldier_6: soldierSpriteSet(6),
 };
 
-// Unit sprite size in world px. The 32x48 art (ASSETS.md) is drawn at 1.25x so
-// people stay legible while the whole world is fitted to the canvas.
-const UNIT_W = 40;
-const UNIT_H = 60;
-
 // Dispatches on outfit, not isCivilian — a RECRUITING unit (walking to the
 // Barracks after being recruited) has isCivilian=false already but still
 // wears its civilian outfit visually until it arrives and outfit flips to
@@ -118,14 +93,11 @@ function unitSpriteSet(unit) {
   return UNIT_SPRITES['soldier_' + (unit.soldierVariant || 1)];
 }
 
-// True once a waiting civilian has actually reached their assigned chair
-// (not just been assigned one — see state.js's assignChair(), which sets
-// chairIndex the moment they cross the gate, well before they arrive).
-// isAtTarget() requires the walk to be fully done, so this only flips on
-// once they're really standing at the seat.
+// True once a waiting visitor stands on the Entrance Hall chair they
+// reserved (not just when it was reserved at the gate).
 function isSeatedCivilian(unit) {
   return unit.isCivilian && unit.status === UNIT_STATUS.CIVILIAN_APPROACHING
-    && unit.chairIndex !== null && unit.isAtTarget();
+    && unit.chairIndex !== null && unit.isAtSlot();
 }
 
 // Picks the directional image for unit.facing ('left' reuses 'right' — see
@@ -144,23 +116,12 @@ function unitSprite(unit) {
   return spriteReady(img) ? img : set.fallback;
 }
 
-// --- world view ------------------------------------------------------------
+// --- view helpers --------------------------------------------------------------
 
-// The canvas stays 960 x 576; the authored world (world.js) is larger. For
-// now the whole world is fitted into the canvas. A pannable, zoomable camera
-// replaces this in the render/build pass (brief 03) — keep every coordinate
-// conversion going through worldToScreen/screenToWorld so that swap is local.
-const VIEW_W = 960;
-const VIEW_H = 576;
-const VIEW_SCALE = Math.min(VIEW_W / WORLD_W, VIEW_H / WORLD_H);
-
-function screenToWorld(x, y) {
-  return { x: x / VIEW_SCALE, y: y / VIEW_SCALE };
-}
-
-function worldToScreen(x, y) {
-  return { x: x * VIEW_SCALE, y: y * VIEW_SCALE };
-}
+// Current camera zoom, so labels and markers can stay a constant screen size
+// while sprites scale with the world.
+let renderZoom = 1;
+const px = n => n / renderZoom;
 
 // Closed polygon with corners rounded through edge midpoints, so authored
 // terrain and clearings read as natural shapes rather than straight cuts.
@@ -189,98 +150,34 @@ function traceSmoothLine(ctx, points) {
   if (points.length === 2) ctx.lineTo(points[1].x, points[1].y);
 }
 
-const TERRAIN_STYLE = {
-  water: { fill: '#4f8c95', edge: '#9cc7c0', edgeWidth: 5 },
-  cliff: { fill: '#6f6c60', edge: '#3f3d35', edgeWidth: 4 },
-  rock: { fill: '#8a8676', edge: '#4a4739', edgeWidth: 3 },
+// --- facilities: the layered draw contract ---------------------------------------
+//
+// Every facility draws through the same layers, back to front:
+//   shadow — contact shadow cast lower-right (upper-left key light)
+//   ground — its clearing, painted in the static layer (scenery.js)
+//   back   — structure behind anyone using it
+//   (people and trees, depth-sorted by ground-contact y)
+//   front  — pieces that must cover people standing at its slots
+// `kind` decides what happens to people inside the footprint:
+//   open   — outdoor station or porch: occupants stay visible and sorted
+//   indoor — occupants are under the roof and hidden (a count badge shows
+//            who's inside); while revealed — selected, or holding the
+//            selected soldier — the roof lifts: floor, low walls, people,
+//            then a front rail. Never a person drawn on top of a roof.
+// The interim art is one bitmap per facility, so `back` is the whole
+// sprite; brief 04 supplies true split layers through this same contract.
+const FACILITY_ART = {
+  entrance_hall: { kind: 'open' },
+  barracks: { kind: 'indoor' },
+  mess_hall: { kind: 'indoor' },
+  showers: { kind: 'indoor' },
+  rec_room: { kind: 'indoor' },
+  weight_room: { kind: 'indoor' },
+  shooting_range: { kind: 'open' },
+  obstacle_course: { kind: 'open' },
+  drill_yard: { kind: 'open' },
 };
-
-// Meadow, then water/cliff/rock exclusions from the authored map.
-function drawTerrain(ctx) {
-  ctx.fillStyle = getTerrainPattern(ctx, 'ground_grass') || '#78804e';
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
-  for (const area of WORLD.terrain) {
-    const style = TERRAIN_STYLE[area.kind];
-    traceSmoothPolygon(ctx, area.polygon);
-    ctx.fillStyle = style.fill;
-    ctx.fill();
-    ctx.strokeStyle = style.edge;
-    ctx.lineWidth = style.edgeWidth;
-    ctx.stroke();
-  }
-}
-
-// A zone shows a clearing once its facility exists; surveyed starter sites
-// show a faint one so the first choices are visible without drawing every
-// future plot.
-function zoneIsVisible(building) {
-  return building.isBuilt || buildingZone(building).surveyed;
-}
-
-function drawZoneClearings(ctx, gameState) {
-  for (const building of gameState.allBuildings) {
-    if (!zoneIsVisible(building)) continue;
-    ctx.save();
-    ctx.globalAlpha = building.isBuilt ? 1 : 0.55;
-    traceSmoothPolygon(ctx, buildingZone(building).footprint);
-    ctx.fillStyle = getTerrainPattern(ctx, 'ground_apron') || '#9b906c';
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
-// Trunk trail always; a facility's spur only once it is built or surveyed.
-// The aid-station stub is a fallback node, not a visible destination.
-function drawPaths(ctx, gameState) {
-  const visibleZones = new Set(gameState.allBuildings.filter(zoneIsVisible).map(b => b.zoneId));
-  const edges = worldEdgeList(visibleZones).filter(edge => edge.to !== 'aid_station');
-  const trace = () => {
-    ctx.beginPath();
-    for (const edge of edges) traceSmoothLine(ctx, edge.points);
-  };
-  ctx.save();
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  trace(); ctx.strokeStyle = 'rgba(77, 66, 45, 0.48)'; ctx.lineWidth = 46; ctx.stroke();
-  trace(); ctx.strokeStyle = 'rgba(154, 119, 75, 0.92)'; ctx.lineWidth = 36; ctx.stroke();
-  trace(); ctx.strokeStyle = 'rgba(194, 159, 103, 0.30)'; ctx.lineWidth = 16; ctx.stroke();
-  ctx.restore();
-}
-
-function drawFences(ctx) {
-  ctx.save();
-  for (const fence of WORLD.fences) {
-    ctx.beginPath();
-    fence.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
-    ctx.strokeStyle = 'rgba(42, 48, 31, 0.6)'; ctx.lineWidth = 10; ctx.stroke();
-    ctx.strokeStyle = '#a89469'; ctx.lineWidth = 5; ctx.stroke();
-    ctx.fillStyle = '#c3af80';
-    for (let i = 1; i < fence.length; i++) {
-      const [x0, y0] = fence[i - 1], [x1, y1] = fence[i];
-      const count = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 80));
-      for (let j = 0; j <= count; j++) {
-        ctx.fillRect(x0 + (x1 - x0) * j / count - 5, y0 + (y1 - y0) * j / count - 8, 10, 16);
-      }
-    }
-  }
-  ctx.restore();
-}
-
-// The single gate sits in the gap of the west fence at the `gate` node.
-function drawGatehouse(ctx) {
-  const gate = worldNodePosition('gate');
-  const w = 64, h = 110, x = gate.x - w / 2, y = gate.y - h / 2;
-  const img = BUILDING_SPRITES.gatehouse;
-  if (spriteReady(img)) {
-    ctx.drawImage(img, x, y, w, h);
-    return;
-  }
-  ctx.fillStyle = '#8a7a5a';
-  ctx.fillRect(x, y, w, h);
-  ctx.strokeStyle = '#d8d8c8';
-  ctx.lineWidth = 3;
-  ctx.strokeRect(x, y, w, h);
-}
+const CONSTRUCTION_MS = 1600;
 
 const BUILDING_LABELS = {
   entrance_hall: 'Entrance Hall', barracks: 'Barracks', shooting_range: 'Shooting Range',
@@ -292,66 +189,174 @@ const BUILDING_FALLBACK_COLORS = {
   weight_room: '#5a4a6a', obstacle_course: '#6a5a30', drill_yard: '#4a5a6a', showers: '#4a7a8a', rec_room: '#8a6a4a',
 };
 
-// Interim: the existing 3:2 sprites are fitted to the zone's width and
-// grounded on its lower edge. Layered, per-zone art replaces this later.
-function drawBuilding(ctx, building) {
-  const zone = buildingZone(building);
+// Interim placement: the 3:2 sprite fitted to the zone width and grounded
+// on its lower edge. Brief 04's manifest replaces this with real pivots.
+function facilitySpriteRect(building, zoneId = building.zoneId) {
+  const zone = zoneById(zoneId);
   const bounds = polygonBounds(zone.footprint);
   const centre = polygonCentroid(zone.footprint);
+  const w = (bounds.maxX - bounds.minX) * 0.92, h = w / 1.5;
+  return { x: centre.x - w / 2, y: bounds.maxY - h - 6, w, h };
+}
 
-  if (!building.isBuilt) {
-    if (!zone.surveyed) return;
-    // An empty site is a survey stake, not a rectangular slab. The build
-    // menu still carries the full name/cost.
-    ctx.save();
-    ctx.fillStyle = 'rgba(42, 44, 31, 0.28)';
-    ctx.beginPath(); ctx.ellipse(centre.x, centre.y + 30, 54, 14, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#927c53';
-    ctx.fillRect(centre.x - 3, centre.y - 10, 6, 44);
-    ctx.fillStyle = '#d5c69e';
-    ctx.fillRect(centre.x - 32, centre.y - 16, 64, 26);
-    ctx.fillStyle = '#3a3b2d';
-    ctx.font = 'bold 18px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('+', centre.x, centre.y + 4);
-    ctx.restore();
-    return;
-  }
-
-  const w = (bounds.maxX - bounds.minX) * 0.92;
-  const h = w / 1.5;
-  const x = centre.x - w / 2;
-  const y = bounds.maxY - h - 6;
+function drawFacilityImage(ctx, building, rect) {
   const img = BUILDING_SPRITES[building.type];
-  if (spriteReady(img)) {
-    ctx.drawImage(img, x, y, w, h);
-  } else {
+  if (spriteReady(img)) ctx.drawImage(img, rect.x, rect.y, rect.w, rect.h);
+  else {
     ctx.fillStyle = BUILDING_FALLBACK_COLORS[building.type];
-    ctx.fillRect(x, y, w, h);
-    ctx.strokeStyle = '#8a9478';
-    ctx.strokeRect(x, y, w, h);
+    ctx.fillRect(rect.x, rect.y + rect.h * 0.3, rect.w, rect.h * 0.7);
   }
+}
 
-  // Keep names off the roofs; a small plaque leaves the building silhouette
-  // visible at game zoom. Upgrade/occupancy details live in the build panel.
+function drawFacilityShadow(ctx, building) {
+  if (!building.isBuilt) return;
+  const zone = buildingZone(building);
   ctx.save();
-  ctx.fillStyle = 'rgba(33, 43, 34, 0.83)';
-  ctx.fillRect(x + 24, y + h - 24, w - 48, 24);
-  ctx.fillStyle = '#f1e9d4';
-  ctx.font = 'bold 16px sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(BUILDING_LABELS[building.type], x + w / 2, y + h - 6);
+  ctx.translate(10, 6);
+  traceSmoothPolygon(ctx, zone.footprint);
+  ctx.fillStyle = 'rgba(18, 24, 14, 0.16)';
+  ctx.fill();
   ctx.restore();
 }
 
-function drawClock(ctx, hourOfDay, isDaytime) {
+function drawFacilityBack(ctx, building, revealed, now) {
+  if (!building.isBuilt) return;
+  const rect = facilitySpriteRect(building);
+  const zone = buildingZone(building);
+  const sinceBuilt = now - (building.constructedAt || -Infinity);
+
+  if (sinceBuilt < CONSTRUCTION_MS) {
+    drawConstruction(ctx, building, rect, sinceBuilt / CONSTRUCTION_MS, now);
+    return;
+  }
+  if (revealed && FACILITY_ART[building.type].kind === 'indoor') {
+    // Roof lifted: a floor, then only the lower band of the walls.
+    traceSmoothPolygon(ctx, zone.footprint);
+    ctx.fillStyle = '#b39a70';
+    ctx.fill();
+    ctx.save();
+    traceSmoothPolygon(ctx, zone.footprint);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(96, 72, 44, 0.45)';
+    ctx.lineWidth = 2;
+    const b = polygonBounds(zone.footprint);
+    for (let y = b.minY + 10; y < b.maxY; y += 14) { ctx.beginPath(); ctx.moveTo(b.minX, y); ctx.lineTo(b.maxX, y); ctx.stroke(); }
+    ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x - 10, rect.y + rect.h * 0.62, rect.w + 20, rect.h);
+    ctx.clip();
+    ctx.globalAlpha = 0.9;
+    drawFacilityImage(ctx, building, rect);
+    ctx.restore();
+    return;
+  }
+  drawFacilityImage(ctx, building, rect);
+}
+
+function drawFacilityFront(ctx, building, revealed) {
+  if (!building.isBuilt || !revealed || FACILITY_ART[building.type].kind !== 'indoor') return;
+  // Low front rail of the cutaway, in front of the people inside.
+  const zone = buildingZone(building);
+  const b = polygonBounds(zone.footprint);
+  ctx.save();
+  ctx.strokeStyle = '#5a4630';
+  ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.moveTo(b.minX + 18, b.maxY - 10); ctx.lineTo(b.maxX - 18, b.maxY - 10); ctx.stroke();
+  ctx.strokeStyle = '#a58a5e';
+  ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(b.minX + 18, b.maxY - 12); ctx.lineTo(b.maxX - 18, b.maxY - 12); ctx.stroke();
+  ctx.restore();
+}
+
+// Short build animation: scaffold and dust while the structure rises from
+// the ground. Visual only — the purchase already happened.
+function drawConstruction(ctx, building, rect, progress, now) {
+  const rise = Math.min(1, progress * 1.15);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(rect.x - 10, rect.y + rect.h * (1 - rise), rect.w + 20, rect.h * rise + 10);
+  ctx.clip();
+  drawFacilityImage(ctx, building, rect);
+  ctx.restore();
+  ctx.save();
+  ctx.globalAlpha = 1 - Math.max(0, progress - 0.75) * 4;
+  ctx.strokeStyle = '#8a6a3e';
+  ctx.lineWidth = 4;
+  for (let i = 0; i <= 4; i++) {
+    const x = rect.x + rect.w * (0.1 + i * 0.2);
+    ctx.beginPath(); ctx.moveTo(x, rect.y + rect.h); ctx.lineTo(x, rect.y + rect.h * 0.25); ctx.stroke();
+  }
+  for (const level of [0.45, 0.7]) {
+    ctx.beginPath(); ctx.moveTo(rect.x + rect.w * 0.08, rect.y + rect.h * level); ctx.lineTo(rect.x + rect.w * 0.92, rect.y + rect.h * level); ctx.stroke();
+  }
+  for (let i = 0; i < 7; i++) {
+    const phase = (now / 400 + i * 0.7) % 1;
+    ctx.fillStyle = `rgba(214, 196, 150, ${0.45 * (1 - phase)})`;
+    ctx.beginPath();
+    ctx.arc(rect.x + rect.w * (0.1 + (i * 0.137) % 0.8), rect.y + rect.h - phase * 30, 10 + phase * 14, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+// Who is out of sight under a roof right now.
+function indoorFacilityAt(unit, gameState) {
+  for (const building of gameState.allBuildings) {
+    if (!building.isBuilt || FACILITY_ART[building.type].kind !== 'indoor') continue;
+    if (pointInPolygon(unit.x, unit.y, buildingZone(building).footprint)) return building;
+  }
+  return null;
+}
+
+function isUnitVisible(unit, gameState, revealed) {
+  if (unit.status === UNIT_STATUS.ON_MISSION && !unit.departing) return false;
+  const indoor = indoorFacilityAt(unit, gameState);
+  return !indoor || revealed.has(indoor.id);
+}
+
+function drawOccupancyBadge(ctx, building, count) {
+  const rect = facilitySpriteRect(building);
+  const x = rect.x + rect.w - px(18), y = rect.y + rect.h * 0.28;
+  ctx.save();
+  ctx.fillStyle = 'rgba(24, 36, 30, 0.9)';
+  ctx.strokeStyle = '#e7cf93';
+  ctx.lineWidth = px(1.5);
+  ctx.beginPath(); ctx.arc(x, y, px(13), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = '#f4ead0';
+  ctx.font = `bold ${px(12)}px sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.fillText(String(count), x, y + px(4));
+  ctx.restore();
+}
+
+// Gate in the gap of the west fence (interim single sprite).
+function drawGatehouse(ctx) {
+  const gate = worldNodePosition('gate');
+  const w = 64, h = 128, x = gate.x - w / 2, y = gate.y - h + 36;
+  const img = BUILDING_SPRITES.gatehouse;
+  if (spriteReady(img)) ctx.drawImage(img, x, y, w, h);
+  else { ctx.fillStyle = '#8a7a5a'; ctx.fillRect(x, y, w, h); }
+}
+
+// --- people --------------------------------------------------------------------------
+
+// Unit sprite size in world px. unit.x/unit.y is the ground-contact point
+// (feet): people stand on paths and slots, and depth sorting and hit testing
+// use that same point.
+const UNIT_W = 40;
+const UNIT_H = 60;
+
+function drawClock(ctx, hourOfDay, isDaytime, viewW) {
   const h = Math.floor(hourOfDay);
   const m = Math.floor((hourOfDay - h) * 60);
   const label = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${isDaytime ? '☀' : '☽'}`;
-  ctx.fillStyle = '#d8d8c8';
+  ctx.fillStyle = 'rgba(16, 26, 22, 0.72)';
+  ctx.fillRect(viewW - 92, 8, 84, 22);
+  ctx.fillStyle = '#e8e4d0';
   ctx.font = 'bold 13px monospace';
   ctx.textAlign = 'right';
-  ctx.fillText(label, VIEW_W - 10, 18);
+  ctx.fillText(label, viewW - 14, 24);
   ctx.textAlign = 'left';
 }
 
@@ -370,25 +375,25 @@ function drawUnit(ctx, unit, isSelected) {
   const inHospital = unit.status === UNIT_STATUS.HOSPITAL;
   const img = unitSprite(unit);
   const halfW = UNIT_W / 2;
-  const top = unit.y - UNIT_H / 2;      // sprite top edge
-  const bottom = unit.y + UNIT_H / 2;   // sprite bottom edge (feet)
-  const moving = !inHospital && !isSeatedCivilian(unit) &&
+  const bottom = unit.y;               // feet
+  const top = unit.y - UNIT_H;         // sprite top edge
+  const moving = !isSeatedCivilian(unit) &&
     (unit.path.length > 0 || Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y) > 1);
   const stride = moving ? Math.sin(performance.now() * 0.014 + unit.colorSeed) : 0;
 
   ctx.save();
-  ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.5 : 1;
-  ctx.fillStyle = moving ? 'rgba(8, 20, 17, 0.22)' : 'rgba(8, 20, 17, 0.32)';
+  ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.6 : 1;
+  ctx.fillStyle = 'rgba(8, 20, 17, 0.3)';
   ctx.beginPath();
-  ctx.ellipse(unit.x, bottom - 1, moving ? 16 : 13, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(unit.x + 3, bottom - 1, 14, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // selection highlight — soft ellipse under the feet
   if (isSelected) {
-    ctx.fillStyle = 'rgba(242, 233, 168, 0.55)';
+    ctx.strokeStyle = 'rgba(248, 230, 160, 0.95)';
+    ctx.lineWidth = px(2.5);
     ctx.beginPath();
-    ctx.ellipse(unit.x, bottom - 2, halfW, 9, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.ellipse(unit.x, bottom - 1, halfW, 9, 0, 0, Math.PI * 2);
+    ctx.stroke();
   }
 
   if (spriteReady(img)) {
@@ -399,73 +404,79 @@ function drawUnit(ctx, unit, isSelected) {
     // not isCivilian, for the same reason as unitSprite() above.
     ctx.save();
     const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
-    ctx.filter = `hue-rotate(${hue}deg) saturate(${sat})`;
-    // The sitting pose is a single fixed orientation (facing forward, out
-    // of the chair) — it doesn't turn to face unit.facing like the
-    // walking sprites do, so skip the left-mirror for a seated civilian.
+    const lift = moving ? -Math.abs(stride) * 1.5 : 0;
+    // The sitting pose is a single fixed orientation, so no left-mirror.
     if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
-      // No dedicated 'left' art (see ASSETS.md) — mirror the 'right'
-      // sprite around the unit's own draw position instead.
-      ctx.translate(unit.x + halfW, top + (moving ? -Math.abs(stride) * 1.5 : 0));
+      // No dedicated 'left' art (see ASSETS.md) — mirror the 'right' sprite.
+      ctx.translate(unit.x + halfW, top + lift);
       ctx.scale(-1, 1);
-      drawWalkingSprite(ctx, img);
     } else {
-      ctx.translate(unit.x - halfW, top + (moving ? -Math.abs(stride) * 1.5 : 0));
-      drawWalkingSprite(ctx, img);
+      ctx.translate(unit.x - halfW, top + lift);
     }
+    drawWalkingSprite(ctx, tintedSprite(img, hue, sat));
     ctx.restore();
   } else {
-    // fallback: original colored dot until the sprite loads
-    const radius = unit.isCivilian ? 6 : 8;
     ctx.beginPath();
-    ctx.arc(unit.x, unit.y, radius, 0, Math.PI * 2);
-    ctx.fillStyle = unit.isCivilian
-      ? `hsl(${hue}, 25%, 55%)`
-      : `hsl(${hue}, 55%, 50%)`;
+    ctx.arc(unit.x, unit.y - UNIT_H / 2, unit.isCivilian ? 8 : 10, 0, Math.PI * 2);
+    ctx.fillStyle = unit.isCivilian ? `hsl(${hue}, 25%, 55%)` : `hsl(${hue}, 55%, 50%)`;
     ctx.fill();
   }
 
-  // hospital ring — the only status shown as a ring (a "problem" signal);
-  // other statuses are shown via the text label so the canvas stays readable.
+  // hospital ring — the only status shown as a ring (a "problem" signal).
   if (inHospital) {
-    ctx.lineWidth = 2;
+    ctx.lineWidth = px(2);
     ctx.strokeStyle = '#b4444a';
-    ctx.setLineDash([3, 3]);
+    ctx.setLineDash([px(3), px(3)]);
     ctx.beginPath();
-    ctx.ellipse(unit.x, unit.y, halfW + 3, UNIT_H / 2 + 2, 0, 0, Math.PI * 2);
+    ctx.ellipse(unit.x, unit.y - UNIT_H / 2, halfW + 3, UNIT_H / 2 + 2, 0, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
   }
 
-  // label — soldiers always show name (that's the point); civilians show
-  // their outfit marker so you can tell "bus rider" from "taxi" from "walk-in"
-  ctx.font = '16px monospace'; // ~10px on screen at the fitted view
+  // Labels keep a constant screen size at any zoom. Soldiers always show a
+  // name (that's the point); visitors show their outfit marker.
+  ctx.font = `${px(11)}px monospace`;
   ctx.textAlign = 'center';
   if (!unit.isCivilian) {
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)';
     ctx.shadowBlur = 3;
-    ctx.fillStyle = '#d8d8c8';
-    ctx.fillText(unit.name.split(' ')[0], unit.x, top - 6);
-    ctx.fillText(statusLabel(unit), unit.x, bottom + 18);
+    ctx.fillStyle = '#ece6d2';
+    ctx.fillText(unit.name.split(' ')[0], unit.x, top - px(4));
+    ctx.fillText(statusLabel(unit), unit.x, bottom + px(12));
     ctx.restore();
-
-    // tiny energy bar under the unit — low energy should be visible without
-    // opening the profile panel, since that's what sends them to hospital.
-    const barW = 32, barH = 5;
-    const bx = unit.x - barW / 2, by = bottom + 23;
-    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    // Energy bar: low energy is what sends people to hospital.
+    const barW = px(24), barH = px(3);
+    const bx = unit.x - barW / 2, by = bottom + px(15);
+    ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(bx, by, barW, barH);
     const pct = unit.energy / unit.maxEnergy;
     ctx.fillStyle = pct < 0.25 ? '#b4444a' : '#7fae4a';
     ctx.fillRect(bx, by, barW * pct, barH);
   } else {
     const marker = outfitMarker(unit.outfit);
-    if (marker) ctx.fillText(marker, unit.x, top - 2);
+    if (marker) ctx.fillText(marker, unit.x, top - px(2));
   }
   ctx.textAlign = 'left';
-
   ctx.restore();
+}
+
+// A CSS filter per person per frame is slow (software canvases especially),
+// so each person's hue-shifted sprite is rendered once and reused.
+const tintedSpriteCache = new Map();
+function tintedSprite(img, hue, saturation) {
+  const key = `${img.src}|${hue}|${saturation}`;
+  let tinted = tintedSpriteCache.get(key);
+  if (tinted) return tinted;
+  tinted = document.createElement('canvas');
+  tinted.width = img.naturalWidth;
+  tinted.height = img.naturalHeight;
+  const c = tinted.getContext('2d');
+  if (!c) return img;
+  c.filter = `hue-rotate(${hue}deg) saturate(${saturation})`;
+  c.drawImage(img, 0, 0);
+  tintedSpriteCache.set(key, tinted);
+  return tinted;
 }
 
 // Keep the figure intact while moving. Cutting two "legs" out of still art
@@ -500,87 +511,199 @@ function activeFacilityFor(unit, gameState) {
   return gameState.isUsingFacility(unit, building) ? building : null;
 }
 
+// Interim activity cues around the working soldier. Brief 04 replaces these
+// with authored full-body activity frames keyed on unit.slot.activity.
 function drawFacilityActivity(ctx, unit, gameState, now) {
   const building = activeFacilityFor(unit, gameState);
   if (!building) return;
   const phase = now * 0.005 + unit.colorSeed;
   const pulse = (Math.sin(phase) + 1) / 2;
-  const x = unit.x, y = unit.y - UNIT_H / 2;
+  const x = unit.x, y = unit.y - UNIT_H;
   ctx.save();
   ctx.lineCap = 'round';
   ctx.lineWidth = 2;
 
-  if (unit.status === UNIT_STATUS.TRAINING) {
-    if (building.id === 'shooting_range') {
-      // Small target above the working soldier; the center pulses on a hit.
-      ctx.strokeStyle = '#e9d5aa';
-      ctx.beginPath(); ctx.arc(x + 17, y - 8, 7, 0, Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = '#ad6050';
-      ctx.beginPath(); ctx.arc(x + 17, y - 8, 2 + pulse, 0, Math.PI * 2); ctx.stroke();
-    } else if (building.id === 'weight_room' || building.id === 'drill_yard') {
-      const lift = pulse * 4;
-      ctx.strokeStyle = '#d1c7a9';
-      ctx.beginPath(); ctx.moveTo(x - 12, y - 7 - lift); ctx.lineTo(x + 12, y - 7 - lift); ctx.stroke();
-      ctx.fillStyle = '#465b58';
-      ctx.fillRect(x - 13, y - 11 - lift, 3, 8);
-      ctx.fillRect(x + 10, y - 11 - lift, 3, 8);
-    } else {
-      ctx.strokeStyle = '#e5d6b0';
-      ctx.beginPath();
-      ctx.moveTo(x - 10, y - 4); ctx.lineTo(x + 9, y - 4);
-      ctx.moveTo(x + 9, y - 4); ctx.lineTo(x + 5, y - 8);
-      ctx.stroke();
-      ctx.fillStyle = '#d9a35c';
-      ctx.beginPath(); ctx.arc(x - 7 + pulse * 13, y - 9, 2, 0, Math.PI * 2); ctx.fill();
+  if (unit.slot.activity === 'fire') {
+    // Muzzle flash in the slot's facing, and a hit marker at the targets.
+    const [dx, dy] = { right: [1, 0], left: [-1, 0], up: [0, -1], down: [0, 1] }[unit.slot.facing] || [1, 0];
+    if (pulse > 0.8) {
+      ctx.fillStyle = '#ffd47a';
+      ctx.beginPath(); ctx.arc(x + dx * 24, y + 22 + dy * 16, 4, 0, Math.PI * 2); ctx.fill();
     }
-  } else if (unit.status === UNIT_STATUS.EATING) {
+    const hitX = unit.x + dx * 100, hitY = unit.y - 24 + dy * 100;
+    ctx.strokeStyle = 'rgba(233, 213, 170, 0.8)';
+    ctx.beginPath(); ctx.arc(hitX, hitY, 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.strokeStyle = '#ad6050';
+    ctx.beginPath(); ctx.arc(hitX, hitY, 1.5 + pulse * 2, 0, Math.PI * 2); ctx.stroke();
+  } else if (unit.slot.activity === 'lift' || unit.slot.activity === 'drill') {
+    const lift = pulse * 6;
+    ctx.strokeStyle = '#d1c7a9';
+    ctx.beginPath(); ctx.moveTo(x - 16, y + 8 - lift); ctx.lineTo(x + 16, y + 8 - lift); ctx.stroke();
+    ctx.fillStyle = '#465b58';
+    ctx.fillRect(x - 18, y + 3 - lift, 4, 10);
+    ctx.fillRect(x + 14, y + 3 - lift, 4, 10);
+  } else if (unit.slot.activity === 'traverse') {
+    ctx.fillStyle = '#d9a35c';
+    ctx.beginPath(); ctx.arc(x - 12 + pulse * 24, y - 6, 3, 0, Math.PI * 2); ctx.fill();
+  } else if (unit.slot.activity === 'eat') {
     ctx.fillStyle = '#ead7ad';
-    ctx.beginPath(); ctx.ellipse(x + 12, y - 3, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#f0e9d8';
-    for (let i = 0; i < 2; i++) {
-      ctx.beginPath(); ctx.moveTo(x + 9 + i * 5, y - 8);
-      ctx.quadraticCurveTo(x + 5 + i * 5 + pulse * 3, y - 15, x + 11 + i * 5, y - 19); ctx.stroke();
-    }
-  } else if (unit.status === UNIT_STATUS.HYGIENE) {
+    ctx.beginPath(); ctx.ellipse(x + 14, y + 26, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+  } else if (unit.slot.activity === 'wash') {
     ctx.fillStyle = '#8ec9c9';
     for (let i = 0; i < 3; i++) {
       const fall = (pulse * 9 + i * 4) % 12;
-      ctx.beginPath(); ctx.arc(x - 9 + i * 9, y - 17 + fall, 2, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x - 9 + i * 9, y - 4 + fall, 2, 0, Math.PI * 2); ctx.fill();
     }
-  } else if (unit.status === UNIT_STATUS.RECREATION) {
+  } else if (unit.slot.activity === 'relax') {
     ctx.fillStyle = '#e9ce91';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.fillText('♪', x + 10, y - 9 - pulse * 5);
-  } else if (unit.status === UNIT_STATUS.SLEEPING) {
+    ctx.font = `bold ${px(14)}px sans-serif`;
+    ctx.fillText('♪', x + 12, y + 4 - pulse * 5);
+  } else if (unit.slot.activity === 'rest') {
     ctx.fillStyle = '#c5d5d0';
-    ctx.font = 'bold 12px sans-serif';
-    ctx.fillText('z', x + 10, y - 8 - pulse * 5);
+    ctx.font = `bold ${px(12)}px sans-serif`;
+    ctx.fillText('z', x + 12, y + 4 - pulse * 5);
   }
   ctx.restore();
 }
 
-function renderFrame(ctx, gameState, selectedUnitId) {
+// --- overlays --------------------------------------------------------------------
+
+// Build mode: legal sites for the chosen facility, the hovered/selected site
+// with a ghost of the building, and red outlines where it can't go.
+function drawBuildOverlay(ctx, gameState, buildMode, now) {
+  const building = gameState.buildingByAnyId(buildMode.buildingId);
+  if (!building) return;
+  for (const zone of WORLD.zones) {
+    if (!zoneAllowsType(zone, building.type)) continue;
+    const state = gameState.zonePlacementState(building, zone.id);
+    const focused = zone.id === buildMode.selectedZoneId || zone.id === buildMode.hoverZoneId;
+    traceSmoothPolygon(ctx, zone.footprint);
+    if (state === 'blocked') {
+      ctx.setLineDash([px(8), px(6)]);
+      ctx.strokeStyle = 'rgba(214, 96, 80, 0.85)'; ctx.lineWidth = px(2); ctx.stroke();
+      ctx.setLineDash([]);
+      continue;
+    }
+    const pulse = 0.18 + 0.08 * Math.sin(now / 300);
+    ctx.fillStyle = focused ? `rgba(150, 220, 130, ${pulse + 0.1})` : `rgba(150, 220, 130, ${pulse})`;
+    ctx.fill();
+    ctx.strokeStyle = focused ? '#e9f7c6' : 'rgba(190, 240, 160, 0.8)';
+    ctx.lineWidth = px(focused ? 3 : 2);
+    ctx.stroke();
+  }
+  const ghostZone = buildMode.selectedZoneId || buildMode.hoverZoneId;
+  if (ghostZone && gameState.zonePlacementState(building, ghostZone) !== 'blocked') {
+    ctx.save();
+    ctx.globalAlpha = 0.62;
+    if (!buildMode.affordable) ctx.filter = 'grayscale(1) sepia(1) saturate(4) hue-rotate(-40deg)';
+    drawFacilityImage(ctx, building, facilitySpriteRect(building, ghostZone));
+    ctx.restore();
+  }
+}
+
+// Developer overlay (?debug=scene or the G key): zones, path graph, slot
+// anchors (red = reserved), queue spots and entrances.
+function drawDebugOverlay(ctx, gameState) {
+  ctx.save();
+  ctx.lineWidth = px(1.5);
+  for (const zone of WORLD.zones) {
+    ctx.beginPath();
+    zone.footprint.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+    ctx.closePath();
+    ctx.strokeStyle = '#a7f0ff'; ctx.stroke();
+    const c = polygonCentroid(zone.footprint);
+    ctx.fillStyle = '#e6fbff'; ctx.font = `${px(11)}px monospace`; ctx.textAlign = 'center';
+    ctx.fillText(zone.id, c.x, c.y);
+    ctx.fillStyle = '#ff5a4a';
+    ctx.beginPath(); ctx.arc(zone.entrance.x, zone.entrance.y, px(4), 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.strokeStyle = 'rgba(255, 170, 60, 0.9)';
+  for (const edge of worldEdgeList(null)) {
+    ctx.beginPath();
+    edge.points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+    ctx.stroke();
+  }
+  for (const [id, node] of Object.entries(WORLD.nodes)) {
+    ctx.fillStyle = '#20231c';
+    ctx.beginPath(); ctx.arc(node.x, node.y, px(4), 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fff4d6'; ctx.textAlign = 'left';
+    ctx.fillText(id, node.x + px(6), node.y - px(4));
+  }
+  for (const building of gameState.allBuildings) {
+    for (const slot of gameState.facilitySlots(building, gameState.slotHolders(building))) {
+      const taken = gameState.slotOccupants.has(gameState.slotKey(building.id, slot.slotId));
+      ctx.fillStyle = taken ? '#ff5a4a' : '#ffffff';
+      ctx.beginPath(); ctx.arc(slot.x, slot.y, px(3.5), 0, Math.PI * 2); ctx.fill();
+    }
+    (gameState.queues.get(building.id) || []).forEach((_, i) => {
+      const spot = gameState.queuePosition(building, i);
+      ctx.fillStyle = '#ffd84a';
+      ctx.fillRect(spot.x - px(3), spot.y - px(3), px(6), px(6));
+    });
+  }
+  ctx.restore();
+}
+
+// --- frame -------------------------------------------------------------------------
+
+let fallbackCamera = null;
+
+// view: { camera, dpr, now, buildMode, debug, revealedBuildingId }.
+function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
+  const camera = view.camera || (fallbackCamera ||= new Camera(960, 576));
+  const dpr = view.dpr || 1;
+  const now = view.now ?? performance.now();
+  renderZoom = camera.zoom;
+
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.clearRect(0, 0, VIEW_W, VIEW_H);
-  ctx.setTransform(VIEW_SCALE, 0, 0, VIEW_SCALE, 0, 0);
-  drawTerrain(ctx);
-  drawZoneClearings(ctx, gameState);
-  drawPaths(ctx, gameState);
-  drawFences(ctx);
+  ctx.fillStyle = '#1a1d14';
+  ctx.fillRect(0, 0, camera.viewW * dpr, camera.viewH * dpr);
+  const s = dpr * camera.zoom;
+  ctx.setTransform(s, 0, 0, s, -camera.x * s, -camera.y * s);
+
+  ctx.drawImage(staticLayer(gameState), 0, 0, WORLD_W, WORLD_H);
   drawGatehouse(ctx);
-  // Northern buildings first so nearer ones overlap them.
+
+  // Facilities opened up for viewing: selected, or holding the selected soldier.
+  const selected = gameState.units.find(u => u.id === selectedUnitId);
+  const revealed = new Set();
+  if (view.revealedBuildingId) revealed.add(view.revealedBuildingId);
+  if (selected) { const inside = indoorFacilityAt(selected, gameState); if (inside) revealed.add(inside.id); }
+
+  // Northern facilities first so nearer ones overlap them.
   const buildings = gameState.allBuildings.slice()
     .sort((a, b) => polygonBounds(buildingZone(a).footprint).maxY - polygonBounds(buildingZone(b).footprint).maxY);
-  for (const building of buildings) drawBuilding(ctx, building);
+  for (const building of buildings) drawFacilityShadow(ctx, building);
+  for (const building of buildings) drawFacilityBack(ctx, building, revealed.has(building.id), now);
 
+  // People and trees, depth-sorted by ground contact.
+  const bounds = camera.visibleBounds(120);
+  const inView = (x, y) => x > bounds.minX && x < bounds.maxX && y > bounds.minY && y < bounds.maxY + 100;
+  const items = [];
+  for (const tree of scenery().trees) if (inView(tree.x, tree.y)) items.push({ y: tree.y, tree });
+  const hiddenCount = new Map();
   for (const unit of gameState.units) {
-    // Away on a mission — async/black-box by design (see mission.js), so
-    // there's nothing to draw once the squad has walked out of the gate.
-    if (unit.status === UNIT_STATUS.ON_MISSION && !unit.departing) continue;
-    drawUnit(ctx, unit, unit.id === selectedUnitId);
-    drawFacilityActivity(ctx, unit, gameState, performance.now());
+    if (!isUnitVisible(unit, gameState, revealed)) {
+      const indoor = indoorFacilityAt(unit, gameState);
+      if (indoor && !(unit.status === UNIT_STATUS.ON_MISSION)) hiddenCount.set(indoor.id, (hiddenCount.get(indoor.id) || 0) + 1);
+      continue;
+    }
+    if (inView(unit.x, unit.y)) items.push({ y: unit.y, unit });
+  }
+  items.sort((a, b) => a.y - b.y);
+  for (const item of items) {
+    if (item.tree) drawTree(ctx, item.tree);
+    else {
+      drawUnit(ctx, item.unit, item.unit.id === selectedUnitId);
+      drawFacilityActivity(ctx, item.unit, gameState, now);
+    }
   }
 
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  drawClock(ctx, gameState.hourOfDay, gameState.isDaytime);
+  for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id));
+  for (const [buildingId, count] of hiddenCount) drawOccupancyBadge(ctx, gameState.buildingByAnyId(buildingId), count);
+  if (view.buildMode) drawBuildOverlay(ctx, gameState, view.buildMode, now);
+  if (view.debug) drawDebugOverlay(ctx, gameState);
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawClock(ctx, gameState.hourOfDay, gameState.isDaytime, camera.viewW);
 }

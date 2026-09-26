@@ -173,9 +173,11 @@ const WORLD = {
       footprint: [[560, 640], [670, 624], [780, 636], [806, 700], [780, 770], [672, 786], [566, 774], [540, 706]],
       entrance: { x: 672, y: 610 },
       slots: [
-        { id: 's1', x: 610, y: 672, facing: 'up' }, { id: 's2', x: 650, y: 666, facing: 'up' },
-        { id: 's3', x: 694, y: 666, facing: 'up' }, { id: 's4', x: 736, y: 672, facing: 'up' },
-        { id: 's5', x: 630, y: 712, facing: 'up' }, { id: 's6', x: 716, y: 712, facing: 'up' },
+        // Firing line on the west side facing east, toward the targets of the
+        // interim range sprite. Brief 04 re-registers these from the art manifest.
+        { id: 's1', x: 604, y: 672, facing: 'right' }, { id: 's2', x: 604, y: 706, facing: 'right' },
+        { id: 's3', x: 640, y: 690, facing: 'right' }, { id: 's4', x: 640, y: 724, facing: 'right' },
+        { id: 's5', x: 604, y: 740, facing: 'right' }, { id: 's6', x: 640, y: 758, facing: 'right' },
       ],
     },
     {

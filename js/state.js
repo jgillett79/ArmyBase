@@ -123,14 +123,68 @@ class GameState {
     return new Set(this.allBuildings.map(b => b.zoneId).filter(Boolean));
   }
 
-  // Moves an unbuilt building to another legal, free zone. Built buildings
-  // stay put — relocation would need a demolish/rebuild design first.
-  placeBuilding(building, zoneId) {
+  // Can `building` (unbuilt) go on zoneId? 'current' (already its site),
+  // 'free', 'swap' (another unbuilt facility is surveyed there and can take
+  // this one's site instead) or 'blocked' (built on, or wrong type).
+  zonePlacementState(building, zoneId) {
     const zone = zoneById(zoneId);
-    if (!zone || !zoneAllowsType(zone, building.type) || building.isBuilt) return false;
-    if (this.allBuildings.some(b => b !== building && b.zoneId === zoneId)) return false;
+    if (!zone || !zoneAllowsType(zone, building.type) || building.isBuilt) return 'blocked';
+    if (building.zoneId === zoneId) return 'current';
+    const occupant = this.allBuildings.find(b => b !== building && b.zoneId === zoneId);
+    if (!occupant) return 'free';
+    if (occupant.isBuilt) return 'blocked';
+    return this.relocationFor(occupant, [zoneId], building.zoneId) ? 'swap' : 'blocked';
+  }
+
+  // A legal zone for an unbuilt facility being displaced: preferably
+  // `preferred`, else any free zone that allows it. Never one in `avoid`.
+  relocationFor(building, avoid, preferred) {
+    const taken = zoneId => this.allBuildings.some(b => b !== building && b.zoneId === zoneId);
+    if (preferred && !avoid.includes(preferred) && zoneAllowsType(zoneById(preferred), building.type)) return preferred;
+    const free = WORLD.zones.find(z => !avoid.includes(z.id) && zoneAllowsType(z, building.type) && !taken(z.id));
+    return free ? free.id : null;
+  }
+
+  // Moves an unbuilt building to another legal zone, swapping with an
+  // unbuilt facility surveyed there. Built buildings stay put — relocation
+  // would need a demolish/rebuild design first.
+  placeBuilding(building, zoneId) {
+    const state = this.zonePlacementState(building, zoneId);
+    if (state === 'blocked') return false;
+    if (state === 'swap') {
+      const occupant = this.allBuildings.find(b => b !== building && b.zoneId === zoneId);
+      occupant.zoneId = this.relocationFor(occupant, [zoneId], building.zoneId);
+    }
     building.zoneId = zoneId;
     return true;
+  }
+
+  // What the first level of a facility costs, as the build menu shows it.
+  constructionPrice(building) {
+    return building.buildCost ? { cash: building.buildCost(), lumber: 0, steel: 0 } : this.upgradePrice(building);
+  }
+
+  // Why it can't be afforded yet ('' when it can), e.g. "$34 more · 10 lumber".
+  constructionShortfall(building) {
+    const price = this.constructionPrice(building);
+    const missing = [];
+    if (this.cash < price.cash) missing.push(`$${Math.ceil(price.cash - this.cash)} more`);
+    if (this.lumber < price.lumber) missing.push(`${price.lumber - Math.floor(this.lumber)} more lumber`);
+    if (this.steel < price.steel) missing.push(`${price.steel - Math.floor(this.steel)} more steel`);
+    return missing.join(' · ');
+  }
+
+  // Build an unbuilt facility on a chosen zone through the normal purchase
+  // rules (economy unchanged). Returns false without changing anything if
+  // the site is illegal or it can't be afforded.
+  constructAt(key, zoneId) {
+    const building = this[key];
+    if (!building || building.isBuilt || building === this.entranceHall) return false;
+    if (this.constructionShortfall(building) || this.zonePlacementState(building, zoneId) === 'blocked') return false;
+    this.placeBuilding(building, zoneId);
+    if (building.buildCost) return this.buildNeedsBuilding(key);
+    if (building === this.barracks) return this.upgradeBarracks();
+    return this.upgradeBuilding(key);
   }
 
   get waitingSlots() {
@@ -446,6 +500,7 @@ class GameState {
     if (!building || building.isBuilt || this.cash < building.buildCost()) return false;
     this.cash -= building.buildCost();
     building.build();
+    building.constructedAt = Date.now(); // runtime only: drives the build animation
     return true;
   }
 
@@ -469,6 +524,7 @@ class GameState {
     this.lumber -= price.lumber;
     this.steel -= price.steel;
     building.upgrade();
+    building.constructedAt = Date.now(); // runtime only: drives the build animation
     this.admitFromQueue(building); // a training upgrade opens more slots
   }
 

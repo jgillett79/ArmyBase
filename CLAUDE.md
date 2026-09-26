@@ -306,6 +306,15 @@ saved; reservations are rebuilt on load. `hospitalize()` is the one way into
 hospital. The old `chairOccupants`/`assignChair` are gone — chairs are
 Entrance Hall slots. Test: `tests/activity.cjs`.
 
+**Brief 03 done (camera, layered facilities, build controls)**: see
+`CLAUDE_IMPLEMENTATION/03_RENDER_AND_BUILD_MANIFEST.md`. `camera.js` owns
+world<->screen (all hit tests go through it); `scenery.js` paints a cached
+static layer plus seeded trees; `unit.x/unit.y` is now the ground-contact
+point (feet). Facilities draw through the shadow/back/front + open/indoor
+contract in render.js. Build mode picks an authored zone
+(`constructAt`/`zonePlacementState`). Browser review:
+`tools/browser-capture.cjs` (headless Edge/Chrome, no dependencies).
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

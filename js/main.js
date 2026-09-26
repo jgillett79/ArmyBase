@@ -132,7 +132,12 @@ function renderRoster() {
     const detail = document.createElement('small');
     detail.textContent = unit.isCivilian ? 'Visitor · Tap to recruit' : `Level ${unit.level} · ${unit.status.replaceAll('_', ' ')}`;
     card.append(name, detail);
-    card.addEventListener('click', () => unit.isCivilian ? openRecruitPopup(unit) : openProfile(unit));
+    card.addEventListener('click', () => {
+      // The roster is the reliable touch fallback; it also brings the person into view.
+      camera.centreOn(unit.x, unit.y - UNIT_H / 2);
+      if (unit.isCivilian) openRecruitPopup(unit);
+      else openProfile(unit);
+    });
     rosterListEl.append(card);
   }
   if (!people.length) rosterListEl.textContent = 'Visitors will arrive at the gate. Tap one to recruit your first soldier.';
@@ -369,35 +374,94 @@ function renderMissionResults() {
   if (!gameState.missionLog.length) list.textContent = 'Your squad’s stories will appear here.';
 }
 
-// ---------- Barracks build/upgrade ----------
+// ---------- Build & upgrade ----------
+//
+// A facility's first level opens build mode: legal sites light up on the
+// map, the chosen site shows a ghost of the building, and the bar under the
+// map says what it costs or what is still missing. Later levels upgrade in
+// place. Prices and resources are the unchanged economy in state.js.
 
-buildBarracksBtn.addEventListener('click', () => {
-  gameState.upgradeBarracks();
+const buildBarEl = document.getElementById('buildBar');
+const buildBarTextEl = document.getElementById('buildBarText');
+const buildConfirmBtn = document.getElementById('buildConfirmBtn');
+const buildCancelBtn = document.getElementById('buildCancelBtn');
+let buildMode = null; // { key, buildingId, hoverZoneId, selectedZoneId, affordable, returnView }
+
+function startBuildMode(key) {
+  const building = gameState[key];
+  if (!building || building.isBuilt) return;
+  buildMode = { key, buildingId: building.id, hoverZoneId: null, selectedZoneId: building.zoneId,
+    affordable: true, returnView: { x: camera.x, y: camera.y, zoom: camera.zoom } };
+  camera.fitWorld(); // every legal site in view
+  if (gameAreaEl.scrollIntoView) gameAreaEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  refreshBuildBar();
+}
+
+function endBuildMode(focusZoneId) {
+  if (!buildMode) return;
+  const { returnView } = buildMode;
+  buildMode = null;
+  camera.zoom = returnView.zoom;
+  if (focusZoneId) {
+    const centre = polygonCentroid(zoneById(focusZoneId).footprint);
+    camera.centreOn(centre.x, centre.y);
+  } else {
+    camera.x = returnView.x;
+    camera.y = returnView.y;
+    camera.clampToWorld();
+  }
+  refreshBuildBar();
+}
+
+function priceText(price) {
+  return `$${price.cash}${price.lumber ? ` + ${price.lumber} lumber` : ''}${price.steel ? ` + ${price.steel} steel` : ''}`;
+}
+
+function refreshBuildBar() {
+  buildBarEl.classList.toggle('hidden', !buildMode);
+  if (!buildMode) return;
+  const building = gameState[buildMode.key];
+  const shortfall = gameState.constructionShortfall(building);
+  buildMode.affordable = !shortfall;
+  const zone = buildMode.selectedZoneId && zoneById(buildMode.selectedZoneId);
+  const where = zone ? zone.label : 'choose a highlighted site';
+  buildBarTextEl.textContent = `${BUILDING_LABELS[building.type]} · ${priceText(gameState.constructionPrice(building))} · ${where}`
+    + (shortfall ? ` · Need ${shortfall}` : '');
+  buildConfirmBtn.disabled = !zone || !!shortfall;
+}
+
+buildConfirmBtn.addEventListener('click', () => {
+  if (!buildMode || !buildMode.selectedZoneId) return;
+  const zoneId = buildMode.selectedZoneId;
+  if (gameState.constructAt(buildMode.key, zoneId)) endBuildMode(zoneId);
+  else refreshBuildBar();
 });
+buildCancelBtn.addEventListener('click', () => endBuildMode());
 
-for (const { key, buildBtn } of trainingBuildingUi) {
-  buildBtn.addEventListener('click', () => {
-    gameState.upgradeBuilding(key);
-  });
+function onBuildButton(key) {
+  const building = gameState[key];
+  if (!building.isBuilt) startBuildMode(key);
+  else if (key === 'barracks') gameState.upgradeBarracks();
+  else gameState.upgradeBuilding(key);
 }
 
-for (const { key, buildBtn } of needsBuildingUi) {
-  buildBtn.addEventListener('click', () => {
-    gameState.buildNeedsBuilding(key);
-  });
-}
+buildBarracksBtn.addEventListener('click', () => onBuildButton('barracks'));
+for (const { key, buildBtn } of trainingBuildingUi) buildBtn.addEventListener('click', () => onBuildButton(key));
+for (const { key, buildBtn } of needsBuildingUi) buildBtn.addEventListener('click', () => onBuildButton(key));
 
 buyFoodBtn.addEventListener('click', () => {
   gameState.buyFood(20);
 });
 
+// Unbuilt facilities always open build mode (it explains what's missing);
+// upgrades stay disabled until affordable.
 function refreshBuildButtons() {
   if (gameState.barracks.isMaxLevel) {
     buildBarracksBtn.disabled = true;
     buildBarracksBtn.textContent = 'Barracks Maxed';
   } else {
     barracksCostEl.textContent = upgradePriceText(gameState.barracks);
-    buildBarracksBtn.disabled = !gameState.canBuildOrUpgradeBarracks();
+    buildBarracksBtn.disabled = gameState.barracks.isBuilt && !gameState.canBuildOrUpgradeBarracks();
   }
 
   for (const { key, label, buildBtn, costEl } of trainingBuildingUi) {
@@ -407,7 +471,7 @@ function refreshBuildButtons() {
       buildBtn.textContent = `${label} Maxed`;
     } else {
       costEl.textContent = upgradePriceText(building);
-      buildBtn.disabled = !gameState.canUpgradeBuilding(building);
+      buildBtn.disabled = building.isBuilt && !gameState.canUpgradeBuilding(building);
     }
   }
 
@@ -417,12 +481,13 @@ function refreshBuildButtons() {
       buildBtn.disabled = true;
       buildBtn.textContent = `${label} Built`;
     } else {
-      buildBtn.disabled = gameState.cash < building.buildCost();
+      buildBtn.disabled = false;
     }
   }
 
   buyFoodBtn.disabled = gameState.cash < 30;
   foodValueEl.textContent = Math.floor(gameState.food);
+  refreshBuildBar();
 }
 
 function upgradePriceText(building) {
@@ -430,38 +495,154 @@ function upgradePriceText(building) {
   return `${price.cash}${price.lumber ? ` + ${price.lumber} lumber` : ''}${price.steel ? ` + ${price.steel} steel` : ''}`;
 }
 
-// ---------- Canvas input ----------
+// ---------- Map view: camera, pointer, touch ----------
 
-canvas.addEventListener('click', (e) => {
+const gameAreaEl = document.getElementById('gameArea');
+const camera = new Camera(960, 576);
+let devicePixelScale = 1;
+let revealedBuildingId = null; // indoor facility opened up by a tap
+let debugScene = typeof location !== 'undefined' && /[?&]debug=scene\b/.test(location.search || '');
+
+// Canvas fills the map column: landscape 5:3 (960 x 576 on desktop); on a
+// portrait phone it gets taller so the base isn't a thin strip. Backing
+// store follows devicePixelRatio for crisp art.
+function resizeCanvas() {
+  const width = Math.round(gameAreaEl.clientWidth || 960);
+  const innerW = window.innerWidth || width, innerH = window.innerHeight || 0;
+  const portrait = innerH > innerW && width < 700;
+  const height = portrait ? Math.round(Math.min(innerH * 0.62, width * 1.35)) : Math.round(width * 0.6);
+  devicePixelScale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  canvas.width = Math.round(width * devicePixelScale);
+  canvas.height = Math.round(height * devicePixelScale);
+  camera.setViewport(width, height);
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
+camera.home();
+
+document.getElementById('zoomInBtn').addEventListener('click', () => camera.zoomAt(camera.viewW / 2, camera.viewH / 2, 1.25));
+document.getElementById('zoomOutBtn').addEventListener('click', () => camera.zoomAt(camera.viewW / 2, camera.viewH / 2, 0.8));
+document.getElementById('homeViewBtn').addEventListener('click', () => camera.home());
+
+window.addEventListener('keydown', event => {
+  const typing = document.activeElement && /INPUT|TEXTAREA/.test(document.activeElement.tagName || '');
+  if (event.key === 'Escape' && buildMode) endBuildMode();
+  else if (!typing && (event.key === 'g' || event.key === 'G')) debugScene = !debugScene;
+});
+
+function localPoint(event) {
   const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const { x: clickX, y: clickY } = screenToWorld((e.clientX - rect.left) * scaleX, (e.clientY - rect.top) * scaleY);
+  return { x: event.clientX - rect.left, y: event.clientY - rect.top };
+}
 
-  // find the unit whose sprite box contains the click (nearest center wins
-  // when sprites overlap). Box matches the UNIT_W x UNIT_H world-px sprite drawn in render.js.
-  let closest = null;
-  let closestDist = Infinity;
+// Indoor facilities currently shown opened up (matches renderFrame()).
+function revealedFacilities() {
+  const revealed = new Set();
+  if (revealedBuildingId) revealed.add(revealedBuildingId);
+  const selected = gameState.units.find(u => u.id === selectedUnitId);
+  const inside = selected && indoorFacilityAt(selected, gameState);
+  if (inside) revealed.add(inside.id);
+  return revealed;
+}
+
+// The drawn person under a world point (feet at unit.y, sprite above it);
+// the nearest body centre wins when sprites overlap.
+function unitAtWorld(point) {
+  const revealed = revealedFacilities();
+  let closest = null, closestDist = Infinity;
   for (const unit of gameState.units) {
-    if (unit.status === UNIT_STATUS.ON_MISSION) continue; // not rendered, not clickable
-    const withinBox = Math.abs(unit.x - clickX) <= UNIT_W / 2 + 2 &&
-      clickY >= unit.y - UNIT_H / 2 - 2 && clickY <= unit.y + UNIT_H / 2 + 2;
-    if (!withinBox) continue;
-    const d = Math.hypot(unit.x - clickX, unit.y - clickY);
-    if (d < closestDist) {
-      closest = unit;
-      closestDist = d;
-    }
+    if (!isUnitVisible(unit, gameState, revealed) || unit.status === UNIT_STATUS.ON_MISSION) continue;
+    const within = Math.abs(unit.x - point.x) <= UNIT_W / 2 + 4
+      && point.y >= unit.y - UNIT_H - 4 && point.y <= unit.y + 8;
+    if (!within) continue;
+    const d = Math.hypot(unit.x - point.x, unit.y - UNIT_H / 2 - point.y);
+    if (d < closestDist) { closest = unit; closestDist = d; }
   }
+  return closest;
+}
 
-  if (!closest) return;
+function zoneAtWorld(point) {
+  const zone = WORLD.zones.find(z => pointInPolygon(point.x, point.y, z.footprint));
+  return zone ? zone.id : null;
+}
 
-  if (closest.isCivilian) {
-    openRecruitPopup(closest);
-  } else {
-    openProfile(closest);
+function handleTap(screenX, screenY) {
+  const point = camera.screenToWorld(screenX, screenY);
+  if (buildMode) {
+    const zoneId = zoneAtWorld(point);
+    const building = gameState[buildMode.key];
+    if (zoneId && gameState.zonePlacementState(building, zoneId) !== 'blocked') buildMode.selectedZoneId = zoneId;
+    refreshBuildBar();
+    return;
+  }
+  const unit = unitAtWorld(point);
+  if (unit) {
+    if (unit.isCivilian) openRecruitPopup(unit);
+    else openProfile(unit);
+    return;
+  }
+  // Tapping an indoor facility lifts its roof to show who's inside.
+  const zoneId = zoneAtWorld(point);
+  const building = zoneId && gameState.allBuildings.find(b => b.zoneId === zoneId && b.isBuilt);
+  const indoor = building && FACILITY_ART[building.type].kind === 'indoor';
+  revealedBuildingId = indoor && revealedBuildingId !== building.id ? building.id : null;
+}
+
+// One pointer drags the map, two pinch-zoom; a press that barely moves is a
+// tap. Works the same for mouse, pen and touch.
+const activePointers = new Map();
+let dragDistance = 0;
+let pinch = null;
+const TAP_SLOP = 6;
+
+function pinchState() {
+  const [a, b] = [...activePointers.values()];
+  return { mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, dist: Math.max(1, Math.hypot(a.x - b.x, a.y - b.y)) };
+}
+
+canvas.addEventListener('pointerdown', event => {
+  if (canvas.setPointerCapture) canvas.setPointerCapture(event.pointerId);
+  activePointers.set(event.pointerId, localPoint(event));
+  if (activePointers.size === 1) dragDistance = 0;
+  if (activePointers.size === 2) pinch = pinchState();
+});
+
+canvas.addEventListener('pointermove', event => {
+  const point = localPoint(event);
+  if (!activePointers.has(event.pointerId)) {
+    if (buildMode) buildMode.hoverZoneId = zoneAtWorld(camera.screenToWorld(point.x, point.y));
+    return;
+  }
+  const previous = activePointers.get(event.pointerId);
+  activePointers.set(event.pointerId, point);
+  if (activePointers.size === 1) {
+    dragDistance += Math.hypot(point.x - previous.x, point.y - previous.y);
+    if (dragDistance > TAP_SLOP) camera.panBy(point.x - previous.x, point.y - previous.y);
+  } else if (activePointers.size === 2 && pinch) {
+    const next = pinchState();
+    camera.zoomAt(next.mid.x, next.mid.y, next.dist / pinch.dist);
+    camera.panBy(next.mid.x - pinch.mid.x, next.mid.y - pinch.mid.y);
+    pinch = next;
+    dragDistance = Infinity; // a pinch never ends in a tap
   }
 });
+
+function endPointer(event) {
+  const point = activePointers.get(event.pointerId);
+  activePointers.delete(event.pointerId);
+  if (activePointers.size < 2) pinch = null;
+  if (point && activePointers.size === 0 && event.type === 'pointerup' && dragDistance <= TAP_SLOP) handleTap(point.x, point.y);
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+canvas.addEventListener('wheel', event => {
+  event.preventDefault();
+  const point = localPoint(event);
+  camera.zoomAt(point.x, point.y, Math.exp(-event.deltaY * 0.0015));
+}, { passive: false });
 
 // ---------- Game loop ----------
 
@@ -503,7 +684,8 @@ function frame(now) {
     lastRosterTime = nowMs;
   }
   renderActiveMissions();
-  renderFrame(ctx, gameState, selectedUnitId);
+  renderFrame(ctx, gameState, selectedUnitId, { camera, dpr: devicePixelScale, now: performance.now(),
+    buildMode, debug: debugScene, revealedBuildingId });
 
   if (Date.now() - lastSaveTime > SAVE_INTERVAL_MS) {
     document.getElementById('saveNotice').classList.toggle('hidden', gameState.save());

@@ -420,6 +420,17 @@ gate on missions. See `tests/activity.cjs`,
 `docs/brief02-activity-trace.txt` and
 `CLAUDE_IMPLEMENTATION/02_UNIT_ACTIVITY_MANIFEST.md`.
 
+## Brief 03 (done): camera, layered facilities and build controls
+
+The map is a pannable, zoomable view of the authored world (drag, pinch,
+wheel, +/−/home). Terrain, water, cliffs, trees and paths are painted once
+into a cached layer; people and trees are depth-sorted. Indoor facilities
+hide occupants under the roof with a count badge and lift the roof when
+tapped. Building a facility opens a site picker with a ghost preview,
+affordability message and a short construction animation. Review captures
+and checks: `node tools/browser-capture.cjs http://localhost:8000 captures
+--clip`, `docs/screenshots/brief03-*`.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual

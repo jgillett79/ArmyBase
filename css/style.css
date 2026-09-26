@@ -372,8 +372,18 @@ h1 { font-size: clamp(2.9rem, 7vw, 5rem); line-height: .98; margin: 0 0 19px; co
 .construction-grid { padding: 0 14px 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
 .construction-grid .hud-block { min-width: 0; }
 .construction-grid button { width: 100%; min-height: 42px; text-align: left; }
-#gameArea { width: min(100%, 960px); overflow-x: auto; border: 1px solid #476158; border-radius: 12px; box-shadow: 0 18px 48px #0007; }
-#gameCanvas { width: 960px; max-width: none; height: 576px; }
+#gameArea { width: min(100%, 962px); overflow: hidden; border: 1px solid #476158; border-radius: 12px; box-shadow: 0 18px 48px #0007; }
+/* Sized by main.js resizeCanvas(); the camera handles pan and zoom, so the
+   canvas takes all touch gestures instead of scrolling the page. */
+#gameCanvas { width: 100%; max-width: none; touch-action: none; cursor: grab; }
+#gameCanvas:active { cursor: grabbing; }
+.map-controls { position: absolute; left: 10px; top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.map-controls button { width: 40px; height: 40px; padding: 0; font-size: 1.25rem; font-weight: 800; line-height: 1; background: #1b2a27e6; border: 1px solid #6f8c7f; color: #f3ecd5; }
+.build-bar { position: absolute; left: 10px; right: 10px; bottom: 10px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; padding: 10px 12px; background: #182622ee; border: 1px solid #c8a968; border-radius: 10px; font-size: .9rem; }
+.build-bar span { flex: 1 1 220px; }
+.build-bar button { min-height: 40px; }
+#buildConfirmBtn { background: #d5bb79; color: #1d2923; font-weight: 800; border-color: #e3cd9a; }
+#buildConfirmBtn:disabled { background: #4a4f45; color: #b8b8a8; border-color: #5d6457; }
 .roster-section { width: min(100%, 960px); margin-bottom: 70px; }
 .roster-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 10px; }
 .roster-card { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-height: 94px; text-align: left; padding: 14px; background: #20332e; border: 1px solid #426157; border-radius: 12px; }
