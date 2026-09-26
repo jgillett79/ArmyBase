@@ -33,4 +33,16 @@ input.value = 'My edited name';
 vm.runInContext('frame(performance.now() + 16)', sandbox);
 assert.equal(input.value, 'My edited name', 'live refresh must not erase an in-progress name edit');
 assert.ok(sandbox.lastFrame, 'animation loop must continue');
+// Facility effects must follow actual arrivals, not merely a scheduled status.
+vm.runInContext(`sample.status = UNIT_STATUS.TRAINING;
+  sample.assignedBuildingId = gameState.shootingRange.id;
+  gameState.shootingRange.level = 1;
+  sample.targetX = sample.x + 50;`, sandbox);
+assert.equal(vm.runInContext('activeFacilityFor(sample, gameState)', sandbox), null,
+  'walking soldiers must not display facility activity');
+vm.runInContext('sample.targetX = sample.x; sample.targetY = sample.y; sample.path = [];', sandbox);
+assert.equal(vm.runInContext('activeFacilityFor(sample, gameState)?.id', sandbox), 'shooting_range');
+vm.runInContext('gameState.shootingRange.level = 0', sandbox);
+assert.equal(vm.runInContext('activeFacilityFor(sample, gameState)', sandbox), null,
+  'an unbuilt facility must not display activity');
 console.log('UI smoke test passed');

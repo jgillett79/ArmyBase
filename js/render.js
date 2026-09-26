@@ -629,6 +629,88 @@ function statusLabel(unit) {
   }
 }
 
+// A facility only shows activity after a soldier reaches its door. This uses
+// the same status/arrival conditions as the simulation, so a soldier walking
+// towards training never appears to be training already.
+function activeFacilityFor(unit, gameState) {
+  if (unit.isCivilian || !unit.isAtTarget()) return null;
+  switch (unit.status) {
+    case UNIT_STATUS.TRAINING: {
+      const building = gameState.buildingById(unit.assignedBuildingId);
+      return building && building.isBuilt ? building : null;
+    }
+    case UNIT_STATUS.EATING: return gameState.messHall.isBuilt ? gameState.messHall : null;
+    case UNIT_STATUS.HYGIENE: return gameState.showers.isBuilt ? gameState.showers : null;
+    case UNIT_STATUS.RECREATION: return gameState.recRoom.isBuilt ? gameState.recRoom : null;
+    case UNIT_STATUS.SLEEPING: return gameState.barracks.isBuilt ? gameState.barracks : null;
+    default: return null;
+  }
+}
+
+function drawFacilityActivity(ctx, unit, gameState, now) {
+  const building = activeFacilityFor(unit, gameState);
+  if (!building) return;
+  const door = buildingDoor(building);
+  // Some older saves may contain a stationary unit elsewhere; do not show
+  // activity until the unit is actually at this building.
+  if (Math.hypot(unit.x - door.x, unit.y - door.y) > 25) return;
+
+  const phase = now * 0.005 + unit.colorSeed;
+  const pulse = (Math.sin(phase) + 1) / 2;
+  const x = unit.x, y = unit.y - UNIT_H / 2;
+  ctx.save();
+  ctx.lineCap = 'round';
+  ctx.lineWidth = 2;
+
+  if (unit.status === UNIT_STATUS.TRAINING) {
+    if (building.id === 'shooting_range') {
+      // Small target above the working soldier; the center pulses on a hit.
+      ctx.strokeStyle = '#e9d5aa';
+      ctx.beginPath(); ctx.arc(x + 17, y - 8, 7, 0, Math.PI * 2); ctx.stroke();
+      ctx.strokeStyle = '#ad6050';
+      ctx.beginPath(); ctx.arc(x + 17, y - 8, 2 + pulse, 0, Math.PI * 2); ctx.stroke();
+    } else if (building.id === 'weight_room' || building.id === 'drill_yard') {
+      const lift = pulse * 4;
+      ctx.strokeStyle = '#d1c7a9';
+      ctx.beginPath(); ctx.moveTo(x - 12, y - 7 - lift); ctx.lineTo(x + 12, y - 7 - lift); ctx.stroke();
+      ctx.fillStyle = '#465b58';
+      ctx.fillRect(x - 13, y - 11 - lift, 3, 8);
+      ctx.fillRect(x + 10, y - 11 - lift, 3, 8);
+    } else {
+      ctx.strokeStyle = '#e5d6b0';
+      ctx.beginPath();
+      ctx.moveTo(x - 10, y - 4); ctx.lineTo(x + 9, y - 4);
+      ctx.moveTo(x + 9, y - 4); ctx.lineTo(x + 5, y - 8);
+      ctx.stroke();
+      ctx.fillStyle = '#d9a35c';
+      ctx.beginPath(); ctx.arc(x - 7 + pulse * 13, y - 9, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (unit.status === UNIT_STATUS.EATING) {
+    ctx.fillStyle = '#ead7ad';
+    ctx.beginPath(); ctx.ellipse(x + 12, y - 3, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#f0e9d8';
+    for (let i = 0; i < 2; i++) {
+      ctx.beginPath(); ctx.moveTo(x + 9 + i * 5, y - 8);
+      ctx.quadraticCurveTo(x + 5 + i * 5 + pulse * 3, y - 15, x + 11 + i * 5, y - 19); ctx.stroke();
+    }
+  } else if (unit.status === UNIT_STATUS.HYGIENE) {
+    ctx.fillStyle = '#8ec9c9';
+    for (let i = 0; i < 3; i++) {
+      const fall = (pulse * 9 + i * 4) % 12;
+      ctx.beginPath(); ctx.arc(x - 9 + i * 9, y - 17 + fall, 2, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (unit.status === UNIT_STATUS.RECREATION) {
+    ctx.fillStyle = '#e9ce91';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText('♪', x + 10, y - 9 - pulse * 5);
+  } else if (unit.status === UNIT_STATUS.SLEEPING) {
+    ctx.fillStyle = '#c5d5d0';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText('z', x + 10, y - 8 - pulse * 5);
+  }
+  ctx.restore();
+}
+
 function renderFrame(ctx, gameState, selectedUnitId) {
   ctx.clearRect(0, 0, GRID_COLS * CELL_SIZE, GRID_ROWS * CELL_SIZE);
   drawGrid(ctx, gameState);
@@ -650,5 +732,6 @@ function renderFrame(ctx, gameState, selectedUnitId) {
     // there's nothing to draw until they return.
     if (unit.status === UNIT_STATUS.ON_MISSION) continue;
     drawUnit(ctx, unit, unit.id === selectedUnitId);
+    drawFacilityActivity(ctx, unit, gameState, performance.now());
   }
 }
