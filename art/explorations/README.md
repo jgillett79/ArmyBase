@@ -7,3 +7,5 @@ These images test an alpine-outpost art direction. They are not yet gameplay spr
 `soldier-right-walk-study.webp` explores six side-facing poses of one uniformed character on transparency. At full size the poses read as a walk, but the style does not yet match the existing units; the character is not provided in up/down views or activity poses, and frame boxes need review at gameplay size. Do not replace the game's sprites with this study as-is.
 
 Generated with the built-in image generation tool. Production assets should be approved as a composite at 960 × 576 first, then delivered as consistent directions and activity loops with verified alpha, frame dimensions and naming.
+
+27 September follow-up: `river-cliff-edge-study.webp` is an isolated cliff and riverbank composition for the authored terrain edge, not a seamless tile or a drop-in background. `soldier-down-walk-rejected.webp` is a transparent three-quarter attempt in the newer range/firing style, but it repeats the same gait phase six times. It is kept so the failure is visible. See `art/ART_HANDOFF_2026-09-27.md` before using either image.

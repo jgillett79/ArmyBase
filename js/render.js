@@ -404,7 +404,6 @@ function drawUnit(ctx, unit, isSelected, now = performance.now()) {
   const top = unit.y - UNIT_H;         // sprite top edge
   const moving = !isSeatedCivilian(unit) &&
     (unit.path.length > 0 || Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y) > 1);
-  const stride = moving ? Math.sin(now * 0.014 + unit.colorSeed) : 0;
   const pose = unitFramePose(unit, now); // activity/walk frames when the art exists (animation.js)
 
   ctx.save();
@@ -432,14 +431,16 @@ function drawUnit(ctx, unit, isSelected, now = performance.now()) {
     // not isCivilian, for the same reason as unitSprite() above.
     ctx.save();
     const sat = unit.outfit === 'uniform' ? 1.5 : 0.85;
-    const lift = moving ? -Math.abs(stride) * 1.5 : 0;
+    // Until real walk frames exist, keep the still's feet on the ground.
+    // The previous vertical bounce lifted the whole sprite away from its
+    // contact shadow every step and read as flying.
     // The sitting pose is a single fixed orientation, so no left-mirror.
     if (unit.facing === 'left' && !isSeatedCivilian(unit)) {
       // No dedicated 'left' art (see ASSETS.md) — mirror the 'right' sprite.
-      ctx.translate(unit.x + halfW, top + lift);
+      ctx.translate(unit.x + halfW, top);
       ctx.scale(-1, 1);
     } else {
-      ctx.translate(unit.x - halfW, top + lift);
+      ctx.translate(unit.x - halfW, top);
     }
     drawWalkingSprite(ctx, tintedSprite(img, hue, sat));
     ctx.restore();
