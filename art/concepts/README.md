@@ -27,6 +27,8 @@ Additional follow-ups: gate open pose edits the closed image to raise only the b
 
 27 September facility and scenery batch: `weight-room-study.webp`, `obstacle-course-study.webp`, `drill-yard-study.webp`, `showers-study.webp`, `rec-room-study.webp`, `gate-kiosk-separate-study.webp`, `gate-boom-separate-study.webp`, `bridge-only-study.webp`, `props-structures-study.webp` and `props-landscape-study.webp`. All were generated against the established range art as style reference with a south-facing three-quarter view and transparent background. They are source studies; the roofs, fronts and slots still need exact production separation and manifest registration. The bridge-only study is visually separate from its water but needs geometry and an actual crossing route before use. Nine small static props were safely extracted; see `art/ART_PRODUCTION_QUEUE.md` and `art/production/scene-props.json`.
 
+Additional terrain and use props: `terrain-meadow-path-edge-study.webp` is a diagonal grass-to-dirt transition; `terrain-river-cliff-edge-study.webp` is a river edge with raised cliff face; `activity-props-study.webp` depicts target, hit plate, barbell, bench, front bench rail and kettlebells. The edge studies are not seamless and have coloured edge artifacts to clean. Some activity prop silhouettes touch cell boundaries and must be separated by hand before a game asset can be exported. Their status is listed in `art/ART_PRODUCTION_QUEUE.md`.
+
 ## Integration result (brief 04, 27 September 2026)
 
 Processed through `tools/prepare-art.cjs` (sources here are never modified); review sheets in `art/review/`, statuses in `js/asset-manifest.js`, and what to redraw in `art/CHATGPT_FEEDBACK.md`.

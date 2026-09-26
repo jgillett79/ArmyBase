@@ -14,6 +14,8 @@ This set is available on `main` for inspection; adding source art to Git does no
 | Gate | `art/concepts/gate-kiosk-separate-study.webp` and `art/concepts/gate-boom-separate-study.webp` | Separate source studies | Kiosk needs back/front occlusion split. Crop boom as one rigid piece, register a stationary hinge with kiosk, then rotate boom; retain single walkable checkpoint. |
 | Scenery props | `art/concepts/props-structures-study.webp`, `art/concepts/props-landscape-study.webp`; nine exported PNGs under `assets/props/scene_*.png` | **Nine usable static cutouts, unplaced** | `art/production/scene-props.json` has pixel sizes and ground pivots. Place via seeded, clearance-aware scenery; compare against procedural props, avoid double-drawing. Three touching cell boundaries remain source studies only. |
 | Soldier walking | `art/explorations/soldier-down-walk-rejected.webp` | **Rejected** | Six apparent frames repeat the same gait. Use controlled frame drawing/rigging; then build down/up/right and coherent idle/activity and accent masks. |
+| Meadow/path and river/cliff transitions | `art/concepts/terrain-meadow-path-edge-study.webp`, `art/concepts/terrain-river-cliff-edge-study.webp` | Unregistered terrain studies | Fit to authored edge geometry, remove visible coloured alpha fringes, cut into compatible segments, test seams and occlusion at default and 1.6× zoom. These are not seamless tiles. |
+| Activity equipment | `art/concepts/activity-props-study.webp` | Source sheet | Target, hit plate, barbell, bench, front rail and kettlebells require individually cropped clean alpha. Several drawings touch cell borders: do not slice as a blind 3×2 grid. The bench rail must overlay seated people. |
 
 ## Proof before promoting a study
 
