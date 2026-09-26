@@ -153,6 +153,15 @@ const ASSET_MANIFEST = {
     },
   },
 
+  // Stand-alone props (upstream art/production/range-berms.json). The delivered
+  // PNGs had ~90%-alpha bodies, so prepare-art writes cleaned copies. Pivot = ground
+  // contact in image px. Listed, not placed: the provisional range art already
+  // carries its own front walls; place these when the range kit is split.
+  props: {
+    range_berm_left: { status: 'production', file: 'assets/props/range_berm_left-clean.png', source: 'assets/props/range_berm_left.png', alphaCleanup: true, size: [228, 132], pivot: [114, 128], role: 'front occluder, left firing lane' },
+    range_berm_right: { status: 'production', file: 'assets/props/range_berm_right-clean.png', source: 'assets/props/range_berm_right.png', alphaCleanup: true, size: [228, 116], pivot: [114, 112], role: 'front occluder, right firing lane' },
+  },
+
   terrain: {
     ground_grass: { status: 'interim', file: 'assets/terrain/ground_grass-v2.webp', tile: true },
     ground_apron: { status: 'interim', file: 'assets/terrain/ground_apron-v2.webp', tile: true },

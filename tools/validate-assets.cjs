@@ -100,13 +100,19 @@ for (const [archetype, sets] of Object.entries(manifest.units)) {
     }
   }
 }
+for (const [id, prop] of Object.entries(manifest.props || {})) {
+  checkStatus(`prop ${id}`, prop);
+  if (!exists(prop.file)) { fail(`prop ${id}: missing ${prop.file}`); continue; }
+  insideCrop(`prop ${id} pivot`, [0, 0, prop.size[0], prop.size[1]], prop.pivot);
+  pixelJobs.push({ label: `prop ${id}`, kind: 'image', file: prop.file, width: prop.size[0], height: prop.size[1], uncached: true });
+}
 for (const entry of Object.values(manifest.terrain)) if (entry.file && !exists(entry.file)) fail(`terrain missing: ${entry.file}`);
 
 // Every asset the offline cache lists must exist (and processed art must be cached).
 const worker = fs.readFileSync(path.join(root, 'service-worker.js'), 'utf8');
 const cached = [...worker.matchAll(/^\s*"([^"\n]+)"[,]?$/gm)].map(m => m[1]);
 for (const file of cached) if (file !== './' && !exists(file)) fail(`service worker caches missing file ${file}`);
-for (const job of pixelJobs) if (!cached.includes(job.file)) fail(`${job.file} is not in the service worker cache list`);
+for (const job of pixelJobs) if (!job.uncached && !cached.includes(job.file)) fail(`${job.file} is not in the service worker cache list`);
 
 // --- pixels --------------------------------------------------------------------------
 async function checkPixels() {

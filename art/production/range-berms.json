@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "camera": "fixed three-quarter, warm light from upper left",
+  "coordinateConvention": "image pixels from upper left; pivot is the ground-contact center at bottom of padded transparent canvas",
+  "drawOrder": "render range ground/back, then units, then these foreground props",
+  "source": "art/concepts/range-foreground-study.webp",
+  "assets": [
+    {
+      "id": "range_berm_left",
+      "path": "assets/props/range_berm_left.png",
+      "width": 228,
+      "height": 132,
+      "pivot": [114, 128],
+      "role": "foreground occluder for left firing lane"
+    },
+    {
+      "id": "range_berm_right",
+      "path": "assets/props/range_berm_right.png",
+      "width": 228,
+      "height": 116,
+      "pivot": [114, 112],
+      "role": "foreground occluder for right firing lane"
+    }
+  ],
+  "integrationNote": "Position relative to Brief 2's final range slot anchors; do not derive collision from these pictures. Draw at native pixel size at the reference camera zoom, with camera scaling handled by the renderer."
+}

@@ -141,6 +141,13 @@ async function prepareFrames(page, name, anim) {
       if (!art.crop || (only && only !== type)) continue;
       await prepareFacility(page, type, art);
     }
+    for (const [id, prop] of Object.entries(manifest.props || {})) {
+      if (!prop.source || (only && only !== id)) continue;
+      const image = await page.evaluate(`(async () => { const src = await loadImage('/${prop.source}');
+        const c = canvasOf(src.naturalWidth, src.naturalHeight); c.getContext('2d').drawImage(src, 0, 0);
+        ${prop.alphaCleanup ? 'cleanAlpha(c);' : ''} return b64(c); })()`);
+      write(prop.file, image);
+    }
     for (const [name, anim] of Object.entries(manifest.units.soldier.activities)) {
       if (!anim.frames || (only && only !== `soldier-${name}`)) continue;
       await prepareFrames(page, `soldier-${name}`, anim);

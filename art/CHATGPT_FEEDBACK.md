@@ -122,6 +122,25 @@ Weight room, obstacle course, drill yard, showers, rec room, entrance hall (rece
   - tyre-mark decal
   - utility vehicle, three-quarter from the south
 
+## Second round (studies received 26 September, 22:43–23:01)
+
+These arrived while the pipeline was being built. They move in the right direction (separate gate arm, separate foreground berms, a walk-pose attempt) but need another pass before they can animate.
+
+- **`soldier-walk-poses-study`: good attempt, three blockers.**
+  1. **Camera.** It's a pure side profile. The game's camera is three-quarter from the south, so the figure must be seen slightly from above, and it needs down, up and right directions.
+  2. **Style.** It's softer and painterly with thin outlines, while the buildings are chunky with dark outlines. It also isn't the same soldier as `soldier-firing-poses-study`. Use one character, in the buildings' style.
+  3. **Gait.** Poses 1, 3 and 5 are near-duplicates, and so are 2 and 4, so the six frames don't make a stride. The frames also sit at different heights and spacings, not on a grid.
+
+  Follow spec A exactly: 256 × 384 cells, feet on row 368, the distinct phases listed there, no gaps. The idle, seated and crouch poses in the bottom row are useful, and should be delivered as their own sheets on the same grid.
+- **`civilian-walk-poses-study`:** the same notes as the soldier. Keep the ochre-jacket identity; it reads well. The seated pose sits on the ground, but the reception needs sitting on a bench or chair seen from the front.
+- **`gate-arm-closed-study` and `gate-arm-open-study`:** splitting the boom out is exactly right. However:
+  - the open image changed the boom's colours (red/white to yellow/white) and moved and rescaled the plinth and hinge;
+  - both use a smoother, 3D-render look unlike the kiosk.
+
+  Deliver **one** plinth image that never changes, plus **one** boom image drawn horizontally. Give the hinge-pin pixel in both images; the game rotates the boom itself. Match the kiosk's outline and palette.
+- **`range-foreground-study` → `assets/props/range_berm_*.png`:** well separated, padded, and with sensible pivots in `range-berms.json`. They still had the soft-alpha problem: only ~1.5% of pixels were fully opaque, and 50% were semi-transparent. `prepare-art` now writes cleaned copies (`*-clean.png`), and those validate. Next time, export at full opacity. They aren't placed yet: the provisional range bitmap already has its own front walls, so they'll be used when the range is delivered as split layers.
+- **`reception-hall-study`:** received and not processed yet. Before it can replace the entrance hall, check it against points 7, 8 and 10 above: entrance facing the camera, a small contact pad, and a separate roof and front rail.
+
 ## How new art enters the game
 
 1. The files land in `art/incoming/` and are referenced from `js/asset-manifest.js`, with their crop, pivot, slots and occluders.
