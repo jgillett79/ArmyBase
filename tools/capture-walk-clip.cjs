@@ -2,10 +2,10 @@
 //
 //   node tools/capture-walk-clip.cjs [outDir]    (default: captures/walk-clip/)
 //
-// Two soldiers shuttle between the range (west rise) and the obstacle
-// course (southwest flats) through the normal routing, so the long leg down
-// the west trail uses the drawn down-walk (a third trains at the range);
-// up/right legs still use the directional stills (not drawn yet). Saves:
+// Two soldiers (staggered) loop on the west trail between junctions w1 and
+// t2 through normal routing: walk DOWN (drawn walk), stand facing down for
+// 3 s (drawn idle), walk back UP (still sprite — up isn't drawn yet), repeat.
+// This is the down-walk/idle continuity check. Saves:
 //   walk-clip-30s.webm          30 s at zoom 1 (game size), 960 x 576
 //   walk-clip-contact.png       six frames from the clip
 //   walk-steps-1.6x.png         12 consecutive frames (every 80 ms) cropped
@@ -21,18 +21,20 @@ const outDir = path.resolve(process.argv[2] || path.join(root, 'captures', 'walk
 
 const SCENE = `(() => { localStorage.clear();
   gameState = new GameState(); gameState.cash = 5000; gameState.food = 400; gameState.gameClockMs = 9 * 3600000;
-  gameState.lastCivilianSpawn = Date.now() + 1e9;
-  gameState.shootingRange.level = 1; gameState.obstacleCourse.level = 1; gameState.barracks.level = 1;
-  const start = zoneById('zone_west_rise').entrance;
-  window.__walkers = ['Grace Okafor', 'Kenji Rossi', 'Omar Chen'].map((name, i) => {
-    const u = new Unit({ x: start.x + i * 10, y: start.y + 4, isCivilian: false });
+  gameState.lastCivilianSpawn = Date.now() + 1e9; gameState.barracks.level = 1; gameState.shootingRange.level = 1;
+  if (window.__shuttle) clearInterval(window.__shuttle);
+  const top = worldNodePosition('w1');
+  window.__walkers = ['Grace Okafor', 'Kenji Rossi'].map((name, i) => {
+    const u = new Unit({ x: top.x, y: top.y, isCivilian: false });
     u.name = name; u.soldierVariant = i + 2; u.energy = 100; gameState.units.push(u);
-    gameState.assignToBuilding(u.id, i < 2 ? 'obstacle_course' : 'shooting_range'); return u; });
-  // Shuttle: once at the course, go back to the range, and so on.
-  window.__shuttle = setInterval(() => { for (const u of __walkers.slice(0, 2)) {
-    if (u.routePhase !== 'using' || !u.slot) continue;
-    gameState.assignToBuilding(u.id, u.slot.buildingId === 'obstacle_course' ? 'shooting_range' : 'obstacle_course'); } }, 400);
-  selectedUnitId = null; camera.zoom = 1; camera.centreOn(420, 520); return true; })()`;
+    u.__leg = 'wait'; u.__until = Date.now() + i * 2200; return u; });
+  // Idle soldiers with no job keep whatever path they are given.
+  window.__shuttle = setInterval(() => { for (const u of __walkers) {
+    if (u.path.length || Date.now() < u.__until) continue;
+    if (u.__leg === 'wait' || u.__leg === 'up') { u.__leg = 'down'; gameState.routeToNode(u, 't2'); }
+    else if (u.__leg === 'down') { u.__leg = 'idle'; u.facing = 'down'; u.__until = Date.now() + 3000; }
+    else { u.__leg = 'up'; gameState.routeToNode(u, 'w1'); } } }, 100);
+  selectedUnitId = null; camera.zoom = 1; camera.centreOn(430, 520); return true; })()`;
 
 (async () => {
   fs.mkdirSync(outDir, { recursive: true });
@@ -75,7 +77,7 @@ const SCENE = `(() => { localStorage.clear();
     const walker = `__walkers[0]`;
     for (let i = 0; i < 100; i++) {
       await sleep(80);
-      if (await page.evaluate(`${walker}.facing === 'down' && ${walker}.path.length > 1 && ${walker}.y > 440`)) break;
+      if (await page.evaluate(`${walker}.__leg === 'down' && ${walker}.path.length > 3`)) break;
     }
     const frames = [];
     for (let i = 0; i < 12; i++) {

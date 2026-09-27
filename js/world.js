@@ -125,6 +125,9 @@ const WORLD = {
     // through once it swings open.
     pause: { x: 20, y: 611 }, guard: { x: 96, y: 598 },
     boomHinge: { x: 40, y: 632 }, boomLength: 42, boomClosedAngle: -90, boomOpenAngle: 0,
+    // Ground point of the fixed fork the closed boom's tip rests in (north
+    // edge of the trail); its seat is at the pole's height above it.
+    boomRest: { x: 39, y: 588 },
   },
 
   // Named safe nodes for fallbacks (migration, stuck units, departures).

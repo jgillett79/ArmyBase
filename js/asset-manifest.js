@@ -152,16 +152,14 @@ const ASSET_MANIFEST = {
         status: 'candidate', framesPerDirection: 6, directions: ['down', 'up', 'right'], strideWorld: 22,
         drawn: {
           down: {
-            // v2: Codex's paint-over of the rig template (art/production/
-            // TERRAIN_AND_WALK_HANDOFF.md). Its foot track is MEASURED from the
-            // pixels (tools/measure-foot-track.cjs), not rendered: planted feet
-            // move 24, 22 | 25, 18 source px per frame against 25 needed (up to
-            // ~1 world px of skate at frame 5->6); helmet fixed at row 30 (no
-            // bob); accent 100% on the body, identical in every frame.
-            // The rig's own v1 strip regenerates with tools/rig-soldier.cjs.
-            status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v2.webp', version: 2,
-            source: 'art/rig/soldier_walk_down_painted_candidate.png', accent: 'art/rig/soldier_walk_down_painted_candidate_accent.png',
-            gaitTrack: 'art/rig/soldier_walk_down_painted_candidate.json', alphaCleanup: true, tint: 'none',
+            // v3: Codex's corrected paint-over (art/production/ROUND2_ART_HANDOFF.md).
+            // Measured track (tools/measure-foot-track.cjs, same result as the
+            // supplied JSON): planted sole moves 25 source px every frame, no
+            // slip; trailing sole 82 px up at frame 4; helmet fixed at row 30;
+            // accent 100% on the body, identical every frame.
+            status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v3.webp', version: 3,
+            source: 'art/rig/soldier_walk_down_painted_v3.png', accent: 'art/rig/soldier_walk_down_painted_v3_accent.png',
+            gaitTrack: 'art/rig/soldier_walk_down_painted_v3.json', alphaCleanup: true, tint: 'none',
             frames: [[0, 0, 256, 384], [256, 0, 256, 384], [512, 0, 256, 384], [768, 0, 256, 384], [1024, 0, 256, 384], [1280, 0, 256, 384]],
             pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
             names: ['R contact', 'R down', 'passing', 'L contact', 'L down', 'passing'],
@@ -172,8 +170,10 @@ const ASSET_MANIFEST = {
         status: 'candidate', framesPerDirection: 2, directions: ['down', 'up', 'right'],
         drawn: {
           down: {
-            status: 'candidate', file: 'assets/units/candidates/soldier-idle-down-v1.webp', version: 1,
-            source: 'art/rig/soldier_idle_down.png', accent: 'art/rig/soldier_idle_down_accent.png', alphaCleanup: true, tint: 'none',
+            // Painted idle from the same master as walk v3 (frame 3); both boots
+            // on row 330 in both frames, ~1% chest rise for breathing.
+            status: 'candidate', file: 'assets/units/candidates/soldier-idle-down-v2.webp', version: 2,
+            source: 'art/rig/soldier_idle_down_painted_candidate.png', accent: 'art/rig/soldier_idle_down_painted_candidate_accent.png', alphaCleanup: true, tint: 'none',
             frames: [[0, 0, 256, 384], [256, 0, 256, 384]], pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
             frameMs: [900, 900],
           },
@@ -255,6 +255,9 @@ const ASSET_MANIFEST = {
     kioskFront: { file: 'assets/props/gate_kiosk_front.png', size: [180, 318], pivot: [90, 300] },
     boom: { file: 'assets/props/gate_boom_swing.png', size: [142, 46], pin: [9, 30], reachPx: 126, axisDeg: -8 },
     post: { file: 'assets/props/gate_boom_post.png', size: [51, 84], pin: [21, 21], ground: [25, 78] },
+    // Fixed fork for the closed tip (art/production/ROUND2_ART_HANDOFF.md);
+    // reviewed in capture: the closed tip rests in its seat (render-data test).
+    rest: { status: 'provisional', file: 'assets/props/gate_boom_rest_post.png', size: [50, 74], ground: [25, 70], seat: [25, 20] },
   },
 
   terrain: {
@@ -269,6 +272,12 @@ const ASSET_MANIFEST = {
     cliff_face: { status: 'candidate', file: 'assets/terrain/cliff_face_3x.png', density: 3, size: [384, 184], edgeRow: 12, role: 'cliff lip at the plateau edge, face hangs to the foot' },
     shore_edge: { status: 'candidate', file: 'assets/terrain/shore_edge_3x.png', density: 3, size: [384, 142], edgeRow: 114, role: 'land lip above water; edge row on the waterline' },
     foam_rock_drop: { status: 'candidate', file: 'assets/terrain/foam_rock_drop_3x.png', density: 3, size: [384, 82], edgeRow: 41, role: 'foam at the waterline' },
+    // Round 2 (art/production/cliff-side-and-rest-v1.json): side face for
+    // cliff edges turned from the camera, and caps for the ends of a front
+    // strip. Trial only on `trialAreas`.
+    cliff_side_face: { status: 'candidate', file: 'assets/terrain/cliff_side_face_3x.png', density: 3, size: [384, 183], edgeRow: 12, trialAreas: ['cliff_west_spur'] },
+    cliff_side_cap_left: { status: 'candidate', file: 'assets/terrain/cliff_side_cap_left_3x.png', density: 3, size: [152, 183], edgeRow: 12, overlapPx: 15 },
+    cliff_side_cap_right: { status: 'candidate', file: 'assets/terrain/cliff_side_cap_right_3x.png', density: 3, size: [152, 183], edgeRow: 12, overlapPx: 15 },
     shore_corner_west_to_south: { status: 'candidate', file: 'assets/terrain/shore_corner_west_to_south_3x.png', density: 3, size: [256, 256], corner: [128, 128], unused: true },
     shore_corner_east_to_south: { status: 'candidate', file: 'assets/terrain/shore_corner_east_to_south_3x.png', density: 3, size: [256, 256], corner: [128, 128], unused: true },
     procedural: { status: 'interim', note: 'Cliffs, water, trees, rocks and fences are drawn in js/scenery.js until the terrain kit exists.' },

@@ -52,3 +52,22 @@ Method: faces are vertical in this camera, so strips are never rotated. Each is 
 
 - Soldier labels step apart when people overlap, but in a walking pair they hop between positions from frame to frame (visible in the step strip). Label placement should be made stable before the Gate 2 clip review.
 - Headless software rendering went from 16.7 to 21.6 ms average per frame with the 3× images. Check on a real phone.
+
+## Round 2 (art/production/ROUND2_ART_HANDOFF.md)
+
+| Asset | Result | Status now |
+| --- | --- | --- |
+| Walk down v3 | Gait check passes (every pair of frames differs by ≥ 15% in the legs; the front foot alternates). Measured track: the planted sole moves **25 px every frame, with no slip**. The trailing sole is 82 px up at frame 4, which confirms that the round 1 "9 px" was my half-cell probe misreading a boot that crossed the cell centre. The accent sits 100% on the body with no drift. `validate-assets` now passes with no warnings | **candidate** (replaces v2) |
+| Painted idle down | Both boots on row 330 in both frames; accent steady | **candidate** (replaces the rig idle) |
+| Boom rest fork | At world ground (39, 588). The closed tip computes to (38.7, 571.0) and the seat to (39.0, 571.3), and a render-data test pins it within 1 world px. Closed, the pole now reads clearly as a barrier spanning post to fork; open, the fork stands empty. It keeps clear of the check-in stop | **provisional** (shown by default) |
+| Fence post | Moved from (64, 656) to (76, 682) and passes the placement validator. The gate row is no longer crowded | placement |
+| Side cliff + caps | Trial on `cliff_west_spur` only (`trialAreas`). The caps close the front strip's end neatly. Side slices drawn nearest-last each showed only their mossy lip, giving a **ladder** of stripes; drawn farthest-last they read as **one continuous shaded east wall**, which fits the upper-left light. The side is narrow and cooler in tone than the cap | **candidate** |
+
+**Continuity clip** (`tools/capture-walk-clip.cjs`, 30 s at zoom 1): two soldiers walk down the west trail, stand facing down for 3 s, then walk back up. Walk down to idle is continuous: the same soldier, feet in place, no pop, no visible upper-body shimmer. Turning to walk **up** switches to the old grey still (no helmet, a different figure) and **glides**. That's the largest remaining visual problem, and it's why the walk stays a candidate: shown by default, the painted soldier would change into the grey one every time they turn.
+
+Evidence: `docs/screenshots/2026-09-27-r2-*`:
+- `gate-sequence-1.6x`, `home-default`, `phone-default` and `phone-candidates`: 8/8 gate checks each run.
+- `spur-1x` and `spur-1.6x`.
+- `walk-v3-steps`, `walk-v3-clip-contact` and `walk-idle-sequence-1x` (frames every 0.25 s from the clip).
+
+Full regression: 17/17 browser checks. Average frame 22.6 ms (headless software rendering).

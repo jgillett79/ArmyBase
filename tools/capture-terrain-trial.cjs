@@ -12,6 +12,7 @@ const root = path.resolve(__dirname, '..');
 const outDir = path.resolve(process.argv[2] || path.join(root, 'captures', 'terrain-trial'));
 const VIEWS = [
   { name: 'north-cliff-1x', x: 700, y: 300, zoom: 1 },
+  { name: 'gate-spur-1x', x: 300, y: 480, zoom: 1 },
   { name: 'gate-spur-1.6x', x: 140, y: 480, zoom: 1.6 },
   { name: 'creek-pond-1x', x: 560, y: 700, zoom: 1 },
   { name: 'creek-1.6x', x: 420, y: 820, zoom: 1.6 },
@@ -31,8 +32,8 @@ const VIEWS = [
         for (const b of gameState.allBuildings) { if (b.buildCost) b.build(); else b.level = Math.max(b.level, 1); }
         document.getElementById('gameArea').scrollIntoView({ block: 'center' }); true`);
       if (mode === 'strips') {
-        for (let i = 0; i < 50 && await page.evaluate('terrainStripsReady()') < 3; i++) await sleep(100);
-        if (await page.evaluate('terrainStripsReady()') < 3) throw new Error('terrain strips did not load');
+        for (let i = 0; i < 50 && await page.evaluate('terrainStripsReady()') < 6; i++) await sleep(100);
+        if (await page.evaluate('terrainStripsReady()') < 6) throw new Error('terrain strips did not load');
       }
       await sleep(800);
       for (const view of VIEWS) {

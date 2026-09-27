@@ -98,6 +98,7 @@ if (checkpoint) {
   checkLayer('checkpoint kiosk front', checkpoint.kioskFront, checkpoint, { pivot: checkpoint.kioskFront.pivot });
   checkLayer('checkpoint boom', checkpoint.boom, checkpoint, { pin: checkpoint.boom.pin });
   checkLayer('checkpoint post', checkpoint.post, checkpoint, { pin: checkpoint.post.pin, ground: checkpoint.post.ground });
+  if (checkpoint.rest) checkLayer('checkpoint boom rest', checkpoint.rest, checkpoint.rest, { ground: checkpoint.rest.ground, seat: checkpoint.rest.seat });
   if (Math.abs(checkpoint.boom.reachPx / 3 - run('WORLD.checkpoint.boomLength')) > 1) fail('checkpoint boom: reach does not match WORLD.checkpoint.boomLength');
 }
 

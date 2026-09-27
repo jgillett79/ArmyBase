@@ -1,6 +1,7 @@
 // Gate checkpoint + bridge review captures, driven by the real simulation.
 //
-//   node tools/capture-gate-art.cjs [outDir]     (default: captures/gate-art/)
+//   node tools/capture-gate-art.cjs [outDir] [--candidates]   (default: captures/gate-art/)
+//   --candidates previews candidate art too (?art=candidates), e.g. the boom rest fork
 //
 // A visitor spawns outside, stops at the check-in point in front of the
 // closed boom, the boom swings open, they walk through and cross the brook
@@ -15,7 +16,9 @@ const path = require('node:path');
 const { sleep, startStaticServer, launchBrowser } = require('./lib/browser.cjs');
 
 const root = path.resolve(__dirname, '..');
-const outDir = path.resolve(process.argv[2] || path.join(root, 'captures', 'gate-art'));
+const args = process.argv.slice(2);
+const outDir = path.resolve(args.find(a => !a.startsWith('--')) || path.join(root, 'captures', 'gate-art'));
+const query = args.includes('--candidates') ? '?art=candidates' : '';
 
 const SCENE = `(() => { localStorage.clear();
   gameState = new GameState(); gameState.gameClockMs = 9 * 3600000; gameState.lastCivilianSpawn = 0;
@@ -45,7 +48,7 @@ const STATE = `({ x: Math.round(__visitor.x), y: Math.round(__visitor.y), paused
   const save = (name, b64) => { fs.writeFileSync(path.join(outDir, name), Buffer.from(b64, 'base64')); console.log(`saved ${name}`); };
   try {
     await page.send('Emulation.setDeviceMetricsOverride', { width: 1280, height: 900, deviceScaleFactor: 1, mobile: false });
-    await page.navigate(`${server.url}/index.html`, `document.readyState === 'complete' && typeof gameState !== 'undefined'`);
+    await page.navigate(`${server.url}/index.html${query}`, `document.readyState === 'complete' && typeof gameState !== 'undefined'`);
     await page.evaluate(`document.getElementById('gameArea').scrollIntoView({ block: 'center' }); true`);
     await waitFor('checkpointArtReady() && bridgeArt(WORLD.bridges[0]) !== null', 8000);
     checks.push(`${await page.evaluate('checkpointArtReady()') ? 'PASS' : 'FAIL'} checkpoint art loaded (otherwise the interim gatehouse draws)`);
@@ -60,7 +63,7 @@ const STATE = `({ x: Math.round(__visitor.x), y: Math.round(__visitor.y), paused
       return { stop: () => new Promise(ok => { r.onstop = async () => { const b = new Uint8Array(await new Blob(chunks).arrayBuffer()); let s = '';
         for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode(...b.subarray(i, i + 0x8000)); ok(btoa(s)); }; r.stop(); }) }; })(); true`);
     const moments = [
-      ['paused at the closed boom', `__visitor.checkpointUntil && __visitor.checkpointUntil - Date.now() > 1500`],
+      ['paused at the closed boom', `__visitor.checkpointUntil && __visitor.checkpointUntil - Date.now() > 1500 && boomState.angle <= -89`],
       ['boom swinging open', `boomState.angle > -70 && boomState.angle < -20`],
       ['walking through the open gate', `__visitor.x > 44 && __visitor.x < 90 && !__visitor.checkpointUntil`],
       ['on the bridge, behind the near rail', `__visitor.x > 150 && __visitor.x < 206 && Math.abs(__visitor.y - 614) < 6`],

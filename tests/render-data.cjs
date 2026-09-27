@@ -66,6 +66,13 @@ const badProps = run(`validateScenePropPlacements([
 for (const pattern of [/on a trail/, /on bridge_gate/, /blocks zone_reception entrance/, /on zone_reception/, /in water or rock/]) {
   assert.ok(badProps.some(p => pattern.test(p)), `prop validator catches ${pattern}`);
 }
+// The closed boom's tip lands in the rest fork's seat (within 1 world px).
+const tip = run('boomTip(WORLD.checkpoint.boomClosedAngle)');
+const seat = run(`({ x: WORLD.checkpoint.boomRest.x + (ASSET_MANIFEST.checkpoint.rest.seat[0] - ASSET_MANIFEST.checkpoint.rest.ground[0]) / 3,
+  y: WORLD.checkpoint.boomRest.y - (ASSET_MANIFEST.checkpoint.rest.ground[1] - ASSET_MANIFEST.checkpoint.rest.seat[1]) / 3 })`);
+assert.ok(Math.hypot(tip.x - seat.x, tip.y - seat.y) < 1, `closed boom tip (${tip.x.toFixed(1)}, ${tip.y.toFixed(1)}) rests in the fork seat (${seat.x.toFixed(1)}, ${seat.y.toFixed(1)})`);
+assert.ok(run('Math.hypot(WORLD.checkpoint.boomRest.x - WORLD.checkpoint.pause.x, WORLD.checkpoint.boomRest.y - WORLD.checkpoint.pause.y)') > 20, 'rest post clear of the check-in stop');
+
 // Bridge layering: the near rail sorts below people on the deck.
 assert.ok(run(`bridgeFrontDepth(WORLD.bridges[0]) > Math.max(WORLD.bridges[0].west[1], WORLD.bridges[0].east[1])`), 'near rail in front of the deck');
 

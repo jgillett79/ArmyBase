@@ -409,6 +409,19 @@ function updateBoom(gameState, now) {
   return boomState.angle;
 }
 
+// Closed-tip rest fork: fixed, never rotated. Optional (candidate art).
+function drawBoomRest(ctx) {
+  const rest = ASSET_MANIFEST.checkpoint.rest, at = WORLD.checkpoint.boomRest;
+  ctx.drawImage(checkpointSprite(rest), at.x - rest.ground[0] / 3, at.y - rest.ground[1] / 3, rest.size[0] / 3, rest.size[1] / 3);
+}
+
+// World point of the boom tip at an angle (pin at the post's height).
+function boomTip(angleDeg) {
+  const { post, boom } = ASSET_MANIFEST.checkpoint, hinge = WORLD.checkpoint.boomHinge, rad = angleDeg * Math.PI / 180;
+  const pin = { x: hinge.x + (post.pin[0] - post.ground[0]) / 3, y: hinge.y - (post.ground[1] - post.pin[1]) / 3 };
+  return { x: pin.x + Math.cos(rad) * boom.reachPx / 3, y: pin.y + Math.sin(rad) * boom.reachPx / 3 };
+}
+
 function drawKiosk(ctx, layerName) {
   const layer = ASSET_MANIFEST.checkpoint[layerName];
   const { kioskPivot } = WORLD.checkpoint;
@@ -450,7 +463,9 @@ function checkpointItems(gameState, now) {
     { y: Math.min(...kiosk.map(p => p[1])), draw: ctx => drawKiosk(ctx, 'kioskBack') },
     { y: Math.max(...kiosk.map(p => p[1])), draw: ctx => drawKiosk(ctx, 'kioskFront') },
     { y: boomHinge.y, draw: ctx => drawBoom(ctx, angle) },
-  ];
+  ].concat(assetInUse(ASSET_MANIFEST.checkpoint.rest, typeof ALLOW_CANDIDATE_ART !== 'undefined' && ALLOW_CANDIDATE_ART)
+    && spriteReady(checkpointSprite(ASSET_MANIFEST.checkpoint.rest))
+    ? [{ y: WORLD.checkpoint.boomRest.y, draw: drawBoomRest }] : []);
 }
 
 // Interim gate: one sprite in the gap of the west fence, until the

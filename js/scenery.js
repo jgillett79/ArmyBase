@@ -53,7 +53,7 @@ function distanceToTerrain(x, y) {
 const SCENE_PROP_PLACEMENTS = [
   { prop: 'scene_lamp', x: 100, y: 642, base: 4 },              // inside the gate
   { prop: 'scene_fence', x: 36, y: 672, base: 12, scale: 0.7 },  // gate wing, south
-  { prop: 'scene_fence_post', x: 64, y: 656, base: 4, scale: 0.7 },
+  { prop: 'scene_fence_post', x: 76, y: 682, base: 4, scale: 0.7 },  // moved off the gate row (round 2 handoff)
   { prop: 'scene_noticeboard', x: 300, y: 574, base: 8 },       // by the Entrance Hall path
   { prop: 'scene_rock_moss', x: 214, y: 580, base: 10 },        // brook bank
   { prop: 'scene_grass_flower', x: 278, y: 652, base: 6 },
@@ -351,7 +351,30 @@ function drapeStrip(ctx, strip, samples, lift = 0) {
 }
 
 function terrainStripsReady() {
-  return ['cliff_face', 'shore_edge', 'foam_rock_drop'].filter(id => terrainStrip(id)).length;
+  return ['cliff_face', 'shore_edge', 'foam_rock_drop', 'cliff_side_face', 'cliff_side_cap_left', 'cliff_side_cap_right'].filter(id => terrainStrip(id)).length;
+}
+
+// One vertical slice of a strip, `w` world px wide, its edge row on `lipY`,
+// texture starting `u` world px into the repeat.
+function drawStripSlice(ctx, strip, x, lipY, w, u) {
+  const { entry, img } = strip, d = entry.density;
+  const sw = Math.min(entry.size[0], w * d), sx = Math.min(entry.size[0] - sw, ((u * d) % entry.size[0] + entry.size[0]) % entry.size[0]);
+  ctx.drawImage(img, sx, 0, sw, entry.size[1], x, lipY - entry.edgeRow / d, w, entry.size[1] / d);
+}
+
+// Caps on both ends of a front-strip run, overlapping its join by
+// `overlapPx` (the left cap joins on its right edge, the right cap on its left).
+function drawStripCaps(ctx, samples, lift) {
+  const left = terrainStrip('cliff_side_cap_left'), right = terrainStrip('cliff_side_cap_right');
+  const ends = samples.slice().sort((a, b) => a.x - b.x);
+  const place = (cap, s, joinOnRight) => {
+    if (!cap || s.x < 6 || s.x > WORLD_W - 6) return; // runs that leave the map need no cap
+    const { entry, img } = cap, d = entry.density, w = entry.size[0] / d, overlap = entry.overlapPx / d;
+    const x = joinOnRight ? s.x - w + overlap : s.x - overlap;
+    ctx.drawImage(img, x, s.y - lift - entry.edgeRow / d, w, entry.size[1] / d);
+  };
+  place(left, ends[0], true);
+  place(right, ends[ends.length - 1], false);
 }
 
 // Cliffs and outcrops. The authored polygon is the FOOT of the rock — the
@@ -365,6 +388,7 @@ function drawRockMass(ctx, area, random) {
   const rise = cliff ? 58 : 26;
   const top = poly.map(([x, y]) => [x, y - rise]);
   const lipSamples = outlineSamples(poly, cliff ? 13 : 11);
+  lipSamples.forEach((s, i) => { s.along = i * (cliff ? 13 : 11); }); // distance along the outline
   const face = lipSamples.filter(s => s.ny > -0.2);
 
   // Plateau: warm meadow on cliffs, bare rock on outcrops, darker at the rim.
@@ -391,10 +415,23 @@ function drawRockMass(ctx, area, random) {
     .filter(c => !cliffStrip || !nearStrip(c.s))
     .sort((a, b) => a.s.y - b.s.y);
   if (cliffStrip) drapeStrip(ctx, cliffStrip, stripped, rise);
-  for (const { s, jitter, width } of columns) {
+  // Trial (ASSET_MANIFEST.terrain.cliff_side_face.trialAreas): side-facing
+  // columns become slices of the painted side strip at the same stepped
+  // positions, texture taken along the outline; caps close the ends of the
+  // front strip where it meets them.
+  const sideStrip = cliff && cliffStrip ? terrainStrip('cliff_side_face') : null;
+  const sideTrial = sideStrip && (sideStrip.entry.trialAreas || []).includes(area.id);
+  // Side slices overlap heavily along a steep side; drawn nearest-last each
+  // would show only its mossy lip (a ladder), so they go farthest-last: one
+  // lip on top, continuous rock below.
+  const sideOrder = sideTrial ? columns.slice().reverse() : columns;
+  for (const { s, jitter, width } of sideOrder) {
     const step = rise * (0.72 + jitter * 0.28); // uneven tops read as stepped rock
-    drawRockColumn(ctx, s.x, s.y - step, width * (0.8 + 0.2 * Math.max(0, s.ny)), step + 3, random);
+    const w = width * (0.8 + 0.2 * Math.max(0, s.ny));
+    if (sideTrial) drawStripSlice(ctx, sideStrip, s.x - w / 2, s.y - rise, w, s.along);
+    else drawRockColumn(ctx, s.x, s.y - step, w, step + 3, random);
   }
+  if (sideTrial && stripped.length) drawStripCaps(ctx, stripped, rise);
   for (const { s } of columns) {
     if (s.ny > 0.3 && random() < 0.55) drawBoulder(ctx, s.x + (random() - 0.5) * 14, s.y + 2 + random() * 5, 3 + random() * 5, random);
   }
