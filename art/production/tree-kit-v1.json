@@ -1,0 +1,62 @@
+{
+  "version": 1,
+  "density": 3,
+  "assets": {
+    "conifer_0": {
+      "file": "assets/trees/conifer_0.png",
+      "size": [
+        192,
+        288
+      ],
+      "pivot": [
+        96,
+        284
+      ],
+      "density": 3,
+      "status": "provisional",
+      "source": "art/production/source/tree-spruce-v1.webp"
+    },
+    "conifer_1": {
+      "file": "assets/trees/conifer_1.png",
+      "size": [
+        192,
+        288
+      ],
+      "pivot": [
+        96,
+        284
+      ],
+      "density": 3,
+      "status": "provisional",
+      "source": "art/production/source/tree-wind-pine-v1.webp"
+    },
+    "conifer_2": {
+      "file": "assets/trees/conifer_2.png",
+      "size": [
+        192,
+        288
+      ],
+      "pivot": [
+        96,
+        284
+      ],
+      "density": 3,
+      "status": "provisional",
+      "source": "art/production/source/tree-fir-v1.webp"
+    },
+    "broadleaf": {
+      "file": "assets/trees/broadleaf.png",
+      "size": [
+        192,
+        288
+      ],
+      "pivot": [
+        96,
+        284
+      ],
+      "density": 3,
+      "status": "provisional",
+      "source": "art/production/source/tree-ash-v1.webp"
+    }
+  }
+}

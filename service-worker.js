@@ -1,5 +1,5 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v12';
+const CACHE_NAME = 'command-base-v13';
 const APP_FILES = [
   "./",
   "index.html",
@@ -57,6 +57,10 @@ const APP_FILES = [
   "assets/props/scene_signpost_3x.png",
   "assets/props/scene_utility_vehicle_3x.png",
   "assets/terrain/.gitkeep",
+  "assets/trees/conifer_0.png",
+  "assets/trees/conifer_1.png",
+  "assets/trees/conifer_2.png",
+  "assets/trees/broadleaf.png",
   "assets/terrain/ground.png",
   "assets/terrain/ground_apron-v2.webp",
   "assets/terrain/ground_apron.png",

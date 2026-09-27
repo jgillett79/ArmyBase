@@ -75,6 +75,14 @@ assert.ok(run('Math.hypot(WORLD.checkpoint.boomRest.x - WORLD.checkpoint.pause.x
 
 // Bridge layering: the near rail sorts below people on the deck.
 assert.ok(run(`bridgeFrontDepth(WORLD.bridges[0]) > Math.max(WORLD.bridges[0].west[1], WORLD.bridges[0].east[1])`), 'near rail in front of the deck');
+// Moving water is evaluated separately from the cached static terrain. It
+// must advance over time without painting a current streak on the bridge.
+const brook0 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate'), 0)`);
+const brook1 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate'), 1000)`);
+assert.ok(brook0.length > 5 && brook1.length > 5, 'brook has visible current marks');
+assert.ok(brook0.some((p, i) => brook1[i] && Math.abs(p.y - brook1[i].y) > 5), 'current flows between rendered frames');
+assert.ok(run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate'), 1000).every(p =>
+  !pointInPolygon(p.x, p.y, bridgeDeckPolygon(WORLD.bridges[0])))`), 'no current paints over bridge deck');
 
 // Construction sites: an unbuilt facility can take a free zone or swap with
 // another unbuilt one; built zones and wrong types are blocked; the economy

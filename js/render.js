@@ -834,6 +834,8 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   ctx.setTransform(s, 0, 0, s, -camera.x * s, -camera.y * s);
 
   ctx.drawImage(staticLayer(gameState), 0, 0, WORLD_W, WORLD_H);
+  const bounds = camera.visibleBounds(120);
+  drawWaterCurrent(ctx, now, bounds);
   if (!checkpointArtReady()) drawGatehouse(ctx);
 
   // Facilities opened up for viewing: selected, or holding the selected soldier.
@@ -849,7 +851,6 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   for (const building of buildings) drawFacilityBack(ctx, building, revealed.has(building.id), now);
 
   // People and trees, depth-sorted by ground contact.
-  const bounds = camera.visibleBounds(120);
   const inView = (x, y) => x > bounds.minX && x < bounds.maxX && y > bounds.minY && y < bounds.maxY + 100;
   const items = [];
   for (const tree of scenery().trees) if (inView(tree.x, tree.y)) items.push({ y: tree.y, tree });

@@ -31,6 +31,14 @@
 const ASSET_MANIFEST = {
   version: 1,
 
+  trees: {
+    // Individually cropped at 3 art px/world; all share a 64 x 96 world box.
+    conifer_0: { status: 'provisional', file: 'assets/trees/conifer_0.png', size: [192, 288], pivot: [96, 284], density: 3 },
+    conifer_1: { status: 'provisional', file: 'assets/trees/conifer_1.png', size: [192, 288], pivot: [96, 284], density: 3 },
+    conifer_2: { status: 'provisional', file: 'assets/trees/conifer_2.png', size: [192, 288], pivot: [96, 284], density: 3 },
+    broadleaf: { status: 'provisional', file: 'assets/trees/broadleaf.png', size: [192, 288], pivot: [96, 284], density: 3 },
+  },
+
   // Height of a standing person in world px. Buildings are placed relative
   // to their zones, so this is what sets people-to-building proportion.
   // 60 made people twice the height of the studies' doors (reviewed at game

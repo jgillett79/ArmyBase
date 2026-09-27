@@ -190,7 +190,10 @@ function drawTree(ctx, tree) {
   const w = 64 * tree.size, h = 96 * tree.size;
   ctx.fillStyle = 'rgba(20, 30, 18, 0.28)';
   ctx.beginPath(); ctx.ellipse(tree.x + 6 * tree.size, tree.y + 2, 20 * tree.size, 7 * tree.size, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.drawImage(treeSprite(tree.kind, tree.variant), tree.x - w / 2, tree.y - h + 4, w, h);
+  const key = tree.kind === 'conifer' ? `conifer_${tree.variant % 3}` : 'broadleaf';
+  const entry = ASSET_MANIFEST.trees[key];
+  const img = entry && (FACILITY_SPRITES[entry.file] ||= loadSprite(entry.file));
+  ctx.drawImage(spriteReady(img) ? img : treeSprite(tree.kind, tree.variant), tree.x - w / 2, tree.y - h + 4, w, h);
 }
 
 // --- static layer ---------------------------------------------------------------
@@ -497,6 +500,65 @@ function drawWater(ctx, area, random) {
     ctx.strokeStyle = 'rgba(246, 252, 250, 0.7)'; ctx.lineWidth = 2;
     ctx.beginPath(); ctx.ellipse(x, y + 1, r * 1.3, r * 0.5, 0, 0, Math.PI * 2); ctx.stroke();
     drawBoulder(ctx, x, y, r, random);
+  }
+}
+
+// Current is a small, uncached overlay. The banks, bed and bridge remain on
+// the static layer; pale glints travel downstream on top of the water fill.
+// Each particle follows the water's horizontal cross-section, so the gate
+// brook bends naturally into the pond instead of scrolling a straight tile.
+function waterFlowPositions(area, now) {
+  const poly = area.polygon, box = polygonBounds(poly);
+  const width = box.maxX - box.minX, height = box.maxY - box.minY;
+  const count = Math.max(12, Math.min(70, Math.round(width * height / 1650)));
+  const fraction = n => ((Math.sin(n * 127.1 + 78.233) * 43758.5453) % 1 + 1) % 1;
+  const positions = [];
+  for (let i = 0; i < count; i++) {
+    const seed = fraction(i + area.id.length * 13.7);
+    const speed = 14 + fraction(i * 2.4 + 91) * 12;
+    const y = box.minY + (((seed + now * speed / 1000 / height) % 1) + 1) % 1 * height;
+    const crossings = [];
+    for (let j = 0; j < poly.length; j++) {
+      const a = poly[j], b = poly[(j + 1) % poly.length];
+      if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y))
+        crossings.push(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
+    }
+    crossings.sort((a, b) => a - b);
+    if (crossings.length < 2) continue;
+    let left = crossings[0], right = crossings[1];
+    for (let j = 2; j + 1 < crossings.length; j += 2) if (crossings[j + 1] - crossings[j] > right - left) {
+      left = crossings[j]; right = crossings[j + 1];
+    }
+    const inset = Math.min(4, (right - left) * 0.1);
+    const across = fraction(i * 3.7 + 34.2);
+    const x = left + inset + (right - left - inset * 2) * across;
+    const length = 5 + fraction(i * 2.9 + 54) * 8;
+    // The drawn deck sits over this section of water; leave its planks and
+    // trestles clear even though the water underneath still exists.
+    if (WORLD.bridges.some(bridge => bridge.crosses.includes(area.id) &&
+      (pointInPolygon(x, y, bridgeDeckPolygon(bridge)) || pointInPolygon(x, y + length, bridgeDeckPolygon(bridge))))) continue;
+    positions.push({ x, y, length, alpha: 0.2 + fraction(i * 8.1 + 12) * 0.2, bend: fraction(i * 5.3 + 77) * 4 - 2 });
+  }
+  return positions;
+}
+
+function drawWaterCurrent(ctx, now, visible) {
+  for (const area of WORLD.terrain) {
+    if (area.kind !== 'water') continue;
+    const box = polygonBounds(area.polygon);
+    if (visible && (box.maxX < visible.minX || box.minX > visible.maxX ||
+      box.maxY < visible.minY || box.minY > visible.maxY)) continue;
+    ctx.save();
+    traceSmoothPolygon(ctx, area.polygon); ctx.clip();
+    ctx.lineCap = 'round';
+    for (const p of waterFlowPositions(area, now)) {
+      if (visible && (p.x < visible.minX || p.x > visible.maxX || p.y < visible.minY - 14 || p.y > visible.maxY)) continue;
+      ctx.beginPath(); ctx.moveTo(p.x, p.y);
+      ctx.quadraticCurveTo(p.x + p.bend, p.y + p.length * 0.5, p.x + p.bend * 0.5, p.y + p.length);
+      ctx.strokeStyle = `rgba(30, 126, 148, ${p.alpha * 0.65})`; ctx.lineWidth = 3.5; ctx.stroke();
+      ctx.strokeStyle = `rgba(231, 248, 238, ${p.alpha})`; ctx.lineWidth = 1.1; ctx.stroke();
+    }
+    ctx.restore();
   }
 }
 
