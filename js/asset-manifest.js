@@ -202,18 +202,18 @@ const ASSET_MANIFEST = {
   props: {
     range_berm_left: { status: 'production', file: 'assets/props/range_berm_left-clean.png', source: 'assets/props/range_berm_left.png', alphaCleanup: true, size: [228, 132], pivot: [114, 128], role: 'front occluder, left firing lane' },
     range_berm_right: { status: 'production', file: 'assets/props/range_berm_right-clean.png', source: 'assets/props/range_berm_right.png', alphaCleanup: true, size: [228, 116], pivot: [114, 112], role: 'front occluder, right firing lane' },
-    // Scene props (upstream art/production/scene-props.json): cut at 1 image px
-    // per world px — soft above 1x zoom until 3x exports arrive. Placed by
-    // SCENE_PROP_PLACEMENTS in js/scenery.js.
-    scene_fence: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence-clean.png', source: 'assets/props/scene_fence.png', alphaCleanup: true, size: [80, 71], pivot: [40, 67] },
-    scene_fence_post: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence_post-clean.png', source: 'assets/props/scene_fence_post.png', alphaCleanup: true, size: [28, 77], pivot: [14, 73] },
-    scene_lamp: { status: 'provisional', inGame: true, file: 'assets/props/scene_lamp-clean.png', source: 'assets/props/scene_lamp.png', alphaCleanup: true, size: [44, 63], pivot: [22, 59] },
-    scene_noticeboard: { status: 'provisional', inGame: true, file: 'assets/props/scene_noticeboard-clean.png', source: 'assets/props/scene_noticeboard.png', alphaCleanup: true, size: [60, 54], pivot: [30, 50] },
-    scene_signpost: { status: 'provisional', inGame: true, file: 'assets/props/scene_signpost-clean.png', source: 'assets/props/scene_signpost.png', alphaCleanup: true, size: [50, 63], pivot: [25, 59] },
-    scene_grass_flower: { status: 'provisional', inGame: true, file: 'assets/props/scene_grass_flower-clean.png', source: 'assets/props/scene_grass_flower.png', alphaCleanup: true, size: [52, 35], pivot: [26, 31] },
-    scene_rocks_granite: { status: 'provisional', inGame: true, file: 'assets/props/scene_rocks_granite-clean.png', source: 'assets/props/scene_rocks_granite.png', alphaCleanup: true, size: [74, 58], pivot: [37, 54] },
-    scene_rock_moss: { status: 'provisional', inGame: true, file: 'assets/props/scene_rock_moss-clean.png', source: 'assets/props/scene_rock_moss.png', alphaCleanup: true, size: [62, 46], pivot: [31, 42] },
-    scene_utility_vehicle: { status: 'provisional', inGame: true, file: 'assets/props/scene_utility_vehicle-clean.png', source: 'assets/props/scene_utility_vehicle.png', alphaCleanup: true, size: [104, 106], pivot: [52, 102] },
+    // Scene props (upstream art/production/scene-props-3x.json): 3 image px per
+    // world px (`density`), alpha already clean. Placed by SCENE_PROP_PLACEMENTS
+    // in js/scenery.js; pivot = ground contact in image px.
+    scene_fence: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence_3x.png', density: 3, size: [240, 213], pivot: [120, 201] },
+    scene_fence_post: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence_post_3x.png', density: 3, size: [84, 231], pivot: [42, 219] },
+    scene_lamp: { status: 'provisional', inGame: true, file: 'assets/props/scene_lamp_3x.png', density: 3, size: [132, 189], pivot: [66, 177] },
+    scene_noticeboard: { status: 'provisional', inGame: true, file: 'assets/props/scene_noticeboard_3x.png', density: 3, size: [180, 163], pivot: [90, 151] },
+    scene_signpost: { status: 'provisional', inGame: true, file: 'assets/props/scene_signpost_3x.png', density: 3, size: [150, 189], pivot: [75, 177] },
+    scene_grass_flower: { status: 'provisional', inGame: true, file: 'assets/props/scene_grass_flower_3x.png', density: 3, size: [156, 104], pivot: [78, 92] },
+    scene_rocks_granite: { status: 'provisional', inGame: true, file: 'assets/props/scene_rocks_granite_3x.png', density: 3, size: [222, 175], pivot: [111, 163] },
+    scene_rock_moss: { status: 'provisional', inGame: true, file: 'assets/props/scene_rock_moss_3x.png', density: 3, size: [186, 139], pivot: [93, 127] },
+    scene_utility_vehicle: { status: 'provisional', inGame: true, file: 'assets/props/scene_utility_vehicle_3x.png', density: 3, size: [312, 318], pivot: [156, 306] },
   },
 
   // Walkable bridges (WORLD.bridges). Two same-size transparent layers: `back`
@@ -225,14 +225,29 @@ const ASSET_MANIFEST = {
   // with the same geometry. Spec: CLAUDE_IMPLEMENTATION/06_GATE0_VISUAL_CONTRACT.md.
   bridges: {
     bridge_gate: {
-      status: 'missing', source: 'art/concepts/bridge-only-study.webp',
-      reason: 'The study runs diagonally (lower-left to upper-right); the gate trail crosses the brook west-east. Needs a west-east redraw split into back/front layers.',
-      // Expected once drawn — 3 art px per world px; the canvas covers world
-      // x 122..242, y 578..650 (deck ends at [134, 613] and [222, 615]):
-      // back: { file: 'assets/bridges/bridge_gate_back.png', size: [360, 216] },
-      // front: { file: 'assets/bridges/bridge_gate_front.png', size: [360, 216] },
-      // westPivot: [36, 105], eastPivot: [300, 111],
+      status: 'provisional', version: 1, source: 'art/production/source/ (see art/production/gate-contract-art-v1.json)',
+      // 3 art px per world px; the canvas covers world x 122..242, y 578..650.
+      back: { file: 'assets/bridges/bridge_gate_back.png', size: [360, 216] },
+      front: { file: 'assets/bridges/bridge_gate_front.png', size: [360, 216] },
+      westPivot: [36, 105], eastPivot: [300, 111],
     },
+  },
+
+  // Gate checkpoint (WORLD.checkpoint). 3 art px per world px. The kiosk's
+  // ground pivot sits on WORLD.checkpoint.kioskPivot; the back layer draws
+  // behind anyone south of the kiosk's north edge, the front (counter and
+  // lower posts) at its ground line. The boom is one rigid piece rotated
+  // about its hinge pin, which is pinned with the fixed post's pin to
+  // WORLD.checkpoint.boomHinge. `axisDeg` is the measured angle of the
+  // drawn pole (it rises slightly to the right); the renderer turns that
+  // axis to exactly east (open) or north (closed). Spec and pivots:
+  // art/production/GATE_CONTRACT_HANDOFF.md.
+  checkpoint: {
+    status: 'provisional', version: 1,
+    kioskBack: { file: 'assets/props/gate_kiosk_back.png', size: [180, 318], pivot: [90, 300] },
+    kioskFront: { file: 'assets/props/gate_kiosk_front.png', size: [180, 318], pivot: [90, 300] },
+    boom: { file: 'assets/props/gate_boom_swing.png', size: [142, 46], pin: [9, 30], reachPx: 126, axisDeg: -8 },
+    post: { file: 'assets/props/gate_boom_post.png', size: [51, 84], pin: [21, 21], ground: [25, 78] },
   },
 
   terrain: {

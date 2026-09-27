@@ -576,11 +576,12 @@ class GameState {
     // it and head for the gate checkpoint first — tickCivilian() sends
     // them to a waiting chair in the Entrance Hall once they've actually
     // passed through.
-    const outside = gatePosition('gate_outside'), gate = gatePosition('gate');
+    // The check-in stop is just outside the barrier (WORLD.checkpoint.pause).
+    const outside = gatePosition('gate_outside'), stop = WORLD.checkpoint.pause;
     const civ = new Unit({ x: outside.x, y: outside.y + randRange(-12, 12), isCivilian: true });
     civ.spawnedAt = Date.now();
     civ.enteredGate = false;
-    civ.setPath([{ x: gate.x, y: gate.y, phase: 'approach' }]);
+    civ.setPath([{ x: stop.x, y: stop.y, phase: 'approach' }]);
     this.units.push(civ);
   }
 

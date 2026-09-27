@@ -94,7 +94,7 @@ function drawSceneProp(ctx, placement) {
   const prop = ASSET_MANIFEST.props[placement.prop];
   const img = FACILITY_SPRITES[prop.file] ||= loadSprite(prop.file);
   if (!spriteReady(img)) return;
-  const scale = placement.scale || 1;
+  const scale = (placement.scale || 1) / (prop.density || 1); // image px -> world px
   ctx.drawImage(img, placement.x - prop.pivot[0] * scale, placement.y - prop.pivot[1] * scale, prop.size[0] * scale, prop.size[1] * scale);
 }
 
@@ -672,7 +672,9 @@ function staticLayer(gameState) {
     if (building.isBuilt || buildingZone(building).surveyed) visible.add(building.zoneId);
   }
   const texturesReady = ['ground_grass', 'ground_apron'].filter(k => spriteReady(TERRAIN_SPRITES[k])).length;
-  const key = `${[...visible].sort().join(',')}|${[...built].sort().join(',')}|${texturesReady}`;
+  // Bridge back layers are painted in here too, so repaint once their art loads.
+  const bridgesReady = WORLD.bridges.filter(b => bridgeArt(b)).length;
+  const key = `${[...visible].sort().join(',')}|${[...built].sort().join(',')}|${texturesReady}|${bridgesReady}`;
   if (staticLayerCache.key !== key) staticLayerCache = { key, canvas: paintStaticLayer(visible, built) };
   return staticLayerCache.canvas;
 }

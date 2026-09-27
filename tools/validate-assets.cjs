@@ -73,6 +73,30 @@ checkStatus('gate', gate);
 if (!exists(gate.file)) fail(`gate: missing ${gate.file}`);
 if (gate.candidateSource && !exists(gate.candidateSource)) fail(`gate: missing ${gate.candidateSource}`);
 
+// Layered pieces pinned by pivots: bridges and the gate checkpoint.
+const layerInGame = entry => ['production', 'provisional', 'interim'].includes(entry.status);
+// A front layer on a shared canvas (a rail, a counter) is legitimately sparse.
+const checkLayer = (label, layer, entry, pivots, sparse = false) => {
+  if (!exists(layer.file)) { fail(`${label}: missing ${layer.file}`); return; }
+  for (const [name, p] of Object.entries(pivots)) insideCrop(`${label} ${name}`, [0, 0, layer.size[0], layer.size[1]], p);
+  pixelJobs.push({ label, kind: 'image', file: layer.file, width: layer.size[0], height: layer.size[1], uncached: !layerInGame(entry), minOpaque: sparse ? 0.02 : 0.1 });
+};
+for (const [id, bridge] of Object.entries(manifest.bridges || {})) {
+  checkStatus(`bridge ${id}`, bridge);
+  if (!bridge.back) continue;
+  for (const side of ['back', 'front']) checkLayer(`bridge ${id} ${side}`, bridge[side], bridge, { 'west pivot': bridge.westPivot, 'east pivot': bridge.eastPivot }, side === 'front');
+  if (bridge.back.size.join() !== bridge.front.size.join()) fail(`bridge ${id}: back and front canvases differ`);
+}
+const checkpoint = manifest.checkpoint;
+if (checkpoint) {
+  checkStatus('checkpoint', checkpoint);
+  checkLayer('checkpoint kiosk back', checkpoint.kioskBack, checkpoint, { pivot: checkpoint.kioskBack.pivot });
+  checkLayer('checkpoint kiosk front', checkpoint.kioskFront, checkpoint, { pivot: checkpoint.kioskFront.pivot });
+  checkLayer('checkpoint boom', checkpoint.boom, checkpoint, { pin: checkpoint.boom.pin });
+  checkLayer('checkpoint post', checkpoint.post, checkpoint, { pin: checkpoint.post.pin, ground: checkpoint.post.ground });
+  if (Math.abs(checkpoint.boom.reachPx / 3 - run('WORLD.checkpoint.boomLength')) > 1) fail('checkpoint boom: reach does not match WORLD.checkpoint.boomLength');
+}
+
 for (const [archetype, sets] of Object.entries(manifest.units)) {
   const { stills } = sets;
   checkStatus(`${archetype} stills`, stills);
@@ -227,7 +251,7 @@ async function checkPixels() {
       const where = `${job.label} (${job.file})`;
       if (Math.abs(r.w - job.width) > 1 || Math.abs(r.h - job.height) > 1) fail(`${where}: ${r.w}x${r.h}, manifest implies ${job.width}x${job.height}`);
       if (r.corner.some(a => a !== 0)) fail(`${where}: corners are not transparent`);
-      if (r.clear < 0.1 || r.opaque < 0.1) fail(`${where}: no genuine alpha (clear ${(r.clear * 100).toFixed(1)}%, opaque ${(r.opaque * 100).toFixed(1)}%)`);
+      if (r.clear < 0.1 || r.opaque < (job.minOpaque ?? 0.1)) fail(`${where}: no genuine alpha (clear ${(r.clear * 100).toFixed(1)}%, opaque ${(r.opaque * 100).toFixed(1)}%)`);
       // The 1-2 px anti-aliased rim is allowed (and is a large share of small 1x props); a see-through body is not.
       if (r.softInterior > 0.025) fail(`${where}: ${(r.softInterior * 100).toFixed(1)}% of the body is semi-transparent away from the edge (run tools/prepare-art.cjs)`);
       if (r.edge > 0) fail(`${where}: content touches the frame edge (${Object.entries(r.edges).map(([k, v]) => `${k}: ${v}px`).join(', ')})`);

@@ -121,7 +121,9 @@ const WORLD = {
   // raised or lowered in this top-down three-quarter camera.)
   checkpoint: {
     kiosk: [[48, 552], [92, 552], [92, 590], [48, 590]], kioskPivot: { x: 70, y: 590 },
-    pause: { x: 58, y: 611 }, guard: { x: 96, y: 598 },
+    // Visitors stop for check-in just OUTSIDE the closed boom, then walk
+    // through once it swings open.
+    pause: { x: 20, y: 611 }, guard: { x: 96, y: 598 },
     boomHinge: { x: 40, y: 632 }, boomLength: 42, boomClosedAngle: -90, boomOpenAngle: 0,
   },
 

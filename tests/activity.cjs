@@ -33,10 +33,11 @@ run(`var state = new GameState(); state.cash = 5000; state.barracks.level = 1; s
   state.lastCivilianSpawn = simNow; state.spawnCivilianIfRoom(); var visitor = state.units[0];`);
 assert.equal(run('visitor.routePhase'), 'approach');
 
-// Gate checkpoint: the visitor stops at the gate and stays put for the pause.
+// Gate checkpoint: the visitor stops just outside the barrier and stays put for the pause.
 assert.ok(run(`until(() => events(visitor, 'checkpoint').length, 20)`), 'visitor reaches the gate checkpoint');
 const atGate = run('({ x: visitor.x, y: visitor.y })');
-assert.ok(run(`Math.hypot(visitor.x - worldNodePosition('gate').x, visitor.y - worldNodePosition('gate').y) < 1`));
+assert.ok(run(`Math.hypot(visitor.x - WORLD.checkpoint.pause.x, visitor.y - WORLD.checkpoint.pause.y) < 1`));
+assert.ok(run(`visitor.x < WORLD.checkpoint.boomHinge.x`), 'the stop is outside the closed boom');
 run('advance(1.5)');
 assert.equal(run('visitor.routePhase'), 'checkpoint');
 assert.deepEqual(run('({ x: visitor.x, y: visitor.y })'), atGate, 'no movement during the checkpoint pause');

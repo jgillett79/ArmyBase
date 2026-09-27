@@ -368,7 +368,93 @@ function drawOccupancyBadge(ctx, building, count) {
   ctx.restore();
 }
 
-// Gate in the gap of the west fence (interim single sprite).
+// --- gate checkpoint -------------------------------------------------------------
+//
+// Kiosk back/front layers and one rigid boom that swings in the ground plane
+// about a fixed post (WORLD.checkpoint, ASSET_MANIFEST.checkpoint). The boom
+// is presentation only: it opens as a visitor's checkpoint pause ends or
+// while anyone walks through the gap, and closes when the gap is clear. Its
+// angle is not saved. Until the layers load, the interim gatehouse draws.
+
+const BOOM_SWING_DEG_PER_S = 110;
+const boomState = { angle: -90, lastNow: null };
+
+function checkpointSprite(layer) {
+  return FACILITY_SPRITES[layer.file] ||= loadSprite(layer.file);
+}
+
+function checkpointArtReady() {
+  const art = ASSET_MANIFEST.checkpoint;
+  return assetInUse(art) && ['kioskBack', 'kioskFront', 'boom', 'post'].every(k => spriteReady(checkpointSprite(art[k])));
+}
+
+// Should the boom be open now? Someone crossing the gap, or a visitor whose
+// check-in pause is about to end (so the arm is open when they step off).
+function boomWantsOpen(gameState, nowMs) {
+  const hinge = WORLD.checkpoint.boomHinge;
+  return gameState.units.some(u => {
+    if (u.checkpointUntil) return u.checkpointUntil - nowMs < 900;
+    const moving = u.path.length > 0;
+    return moving && Math.abs(u.x - hinge.x) < 46 && Math.abs(u.y - 611) < 30;
+  });
+}
+
+// Advances the boom toward open (0 deg, east) or closed (-90 deg, north).
+function updateBoom(gameState, now) {
+  const dt = boomState.lastNow === null ? 0 : Math.min(0.1, (now - boomState.lastNow) / 1000);
+  boomState.lastNow = now;
+  const target = boomWantsOpen(gameState, Date.now()) ? WORLD.checkpoint.boomOpenAngle : WORLD.checkpoint.boomClosedAngle;
+  const step = BOOM_SWING_DEG_PER_S * dt;
+  boomState.angle += clamp(target - boomState.angle, -step, step);
+  return boomState.angle;
+}
+
+function drawKiosk(ctx, layerName) {
+  const layer = ASSET_MANIFEST.checkpoint[layerName];
+  const { kioskPivot } = WORLD.checkpoint;
+  ctx.drawImage(checkpointSprite(layer), kioskPivot.x - layer.pivot[0] / 3, kioskPivot.y - layer.pivot[1] / 3, layer.size[0] / 3, layer.size[1] / 3);
+}
+
+// Fixed post, then the boom rotated about the shared hinge pin.
+// WORLD.checkpoint.boomHinge is the hinge's GROUND point (the post's foot);
+// the pin is drawn `height` above it, and the pole swings at that height, so
+// its ground projection spans hinge.y .. hinge.y - reach — across the trail.
+function drawBoom(ctx, angleDeg) {
+  const { post, boom } = ASSET_MANIFEST.checkpoint;
+  const hinge = WORLD.checkpoint.boomHinge;
+  const height = (post.ground[1] - post.pin[1]) / 3;
+  const pin = { x: hinge.x + (post.pin[0] - post.ground[0]) / 3, y: hinge.y - height };
+  const rad = angleDeg * Math.PI / 180, reach = boom.reachPx / 3;
+  // Ground shadow of the pole, falling lower-right like every contact shadow.
+  ctx.save();
+  ctx.strokeStyle = 'rgba(12, 18, 10, 0.3)'; ctx.lineWidth = 3.2; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(pin.x + 3, hinge.y);
+  ctx.lineTo(pin.x + 3 + Math.cos(rad) * reach, hinge.y + Math.sin(rad) * reach);
+  ctx.stroke();
+  ctx.restore();
+  ctx.drawImage(checkpointSprite(post), hinge.x - post.ground[0] / 3, hinge.y - post.ground[1] / 3, post.size[0] / 3, post.size[1] / 3);
+  ctx.save();
+  ctx.translate(pin.x, pin.y);
+  ctx.rotate((angleDeg - boom.axisDeg) * Math.PI / 180);
+  ctx.drawImage(checkpointSprite(boom), -boom.pin[0] / 3, -boom.pin[1] / 3, boom.size[0] / 3, boom.size[1] / 3);
+  ctx.restore();
+}
+
+// Depth-sorted items for the checkpoint (y = ground line of each layer).
+function checkpointItems(gameState, now) {
+  if (!checkpointArtReady()) return [];
+  const { kiosk, boomHinge } = WORLD.checkpoint;
+  const angle = updateBoom(gameState, now);
+  return [
+    { y: Math.min(...kiosk.map(p => p[1])), draw: ctx => drawKiosk(ctx, 'kioskBack') },
+    { y: Math.max(...kiosk.map(p => p[1])), draw: ctx => drawKiosk(ctx, 'kioskFront') },
+    { y: boomHinge.y, draw: ctx => drawBoom(ctx, angle) },
+  ];
+}
+
+// Interim gate: one sprite in the gap of the west fence, until the
+// checkpoint layers are loaded.
 function drawGatehouse(ctx) {
   const gate = worldNodePosition('gate');
   const w = 64, h = 128, x = gate.x - w / 2, y = gate.y - h + 36;
@@ -733,7 +819,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   ctx.setTransform(s, 0, 0, s, -camera.x * s, -camera.y * s);
 
   ctx.drawImage(staticLayer(gameState), 0, 0, WORLD_W, WORLD_H);
-  drawGatehouse(ctx);
+  if (!checkpointArtReady()) drawGatehouse(ctx);
 
   // Facilities opened up for viewing: selected, or holding the selected soldier.
   const selected = gameState.units.find(u => u.id === selectedUnitId);
@@ -753,6 +839,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   const items = [];
   for (const tree of scenery().trees) if (inView(tree.x, tree.y)) items.push({ y: tree.y, tree });
   for (const bridge of WORLD.bridges) items.push({ y: bridgeFrontDepth(bridge), bridge });
+  for (const item of checkpointItems(gameState, now)) items.push(item);
   for (const prop of SCENE_PROP_PLACEMENTS) if (inView(prop.x, prop.y)) items.push({ y: prop.y, prop });
   const hiddenCount = new Map();
   for (const unit of gameState.units) {
@@ -768,6 +855,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
     if (item.tree) drawTree(ctx, item.tree);
     else if (item.bridge) drawBridgeFront(ctx, item.bridge);
     else if (item.prop) drawSceneProp(ctx, item.prop);
+    else if (item.draw) item.draw(ctx);
     else {
       drawUnit(ctx, item.unit, item.unit.id === selectedUnitId, now);
       drawFacilityActivity(ctx, item.unit, gameState, now);
