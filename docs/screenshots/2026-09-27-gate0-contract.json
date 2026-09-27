@@ -1,0 +1,1537 @@
+{
+ "generated": "2026-09-27",
+ "worldId": "first_base_v1",
+ "world": {
+  "width": 1600,
+  "height": 960
+ },
+ "camera": {
+  "desktop": {
+   "viewW": 960,
+   "viewH": 576,
+   "zoom": 1,
+   "world": {
+    "x": 0,
+    "y": 192,
+    "w": 960,
+    "h": 576
+   }
+  },
+  "phoneHome": {
+   "viewW": 390,
+   "viewH": 552,
+   "zoom": 0.75,
+   "world": {
+    "x": 10,
+    "y": 172,
+    "w": 520,
+    "h": 736
+   }
+  },
+  "minZoomDesktop": 0.6,
+  "maxZoom": 1.6,
+  "homeCentre": {
+   "x": 430,
+   "y": 480
+  },
+  "homeCentreNarrow": {
+   "x": 270,
+   "y": 540
+  },
+  "projection": "top-down oblique: 1 world px = 1 screen px at zoom 1 on both axes; heights drawn straight up the screen; no isometric skew"
+ },
+ "scale": {
+  "unitWorldHeight": 44,
+  "exportPxPerWorld": 3,
+  "character": {
+   "sourceBox": [
+    256,
+    384
+   ],
+   "groundRow": 330,
+   "helmetRow": 30,
+   "sourcePxPerWorld": 6.818
+  },
+  "door": "about 1.3 x a person: 57 world px"
+ },
+ "gate": {
+  "nodes": {
+   "gate_outside": {
+    "x": -40,
+    "y": 610
+   },
+   "gate": {
+    "x": 40,
+    "y": 610
+   },
+   "gate_inside": {
+    "x": 120,
+    "y": 612
+   }
+  },
+  "checkpoint": {
+   "kiosk": [
+    [
+     48,
+     552
+    ],
+    [
+     92,
+     552
+    ],
+    [
+     92,
+     590
+    ],
+    [
+     48,
+     590
+    ]
+   ],
+   "kioskPivot": {
+    "x": 70,
+    "y": 590
+   },
+   "pause": {
+    "x": 58,
+    "y": 611
+   },
+   "guard": {
+    "x": 96,
+    "y": 598
+   },
+   "boomHinge": {
+    "x": 40,
+    "y": 632
+   },
+   "boomLength": 42,
+   "boomClosedAngle": -90,
+   "boomOpenAngle": 0
+  },
+  "interimSprite": "assets/buildings/gatehouse.png"
+ },
+ "bridges": [
+  {
+   "id": "bridge_gate",
+   "edge": [
+    "gate_inside",
+    "t1"
+   ],
+   "crosses": [
+    "brook_gate"
+   ],
+   "west": [
+    134,
+    613
+   ],
+   "east": [
+    222,
+    615
+   ],
+   "halfWidth": 14,
+   "deck": [
+    [
+     133.7,
+     627
+    ],
+    [
+     221.7,
+     629
+    ],
+    [
+     222.3,
+     601
+    ],
+    [
+     134.3,
+     599
+    ]
+   ],
+   "lengthWorld": 88,
+   "railHeightWorld": 18,
+   "frontDepthY": 629,
+   "waterSpan": [
+    "brook_gate"
+   ]
+  }
+ ],
+ "zones": [
+  {
+   "id": "zone_reception",
+   "label": "Gate clearing",
+   "doorSide": "south",
+   "types": [
+    "entrance_hall"
+   ],
+   "defaultBuilding": "entrance_hall",
+   "footprint": [
+    [
+     170,
+     420
+    ],
+    [
+     250,
+     402
+    ],
+    [
+     335,
+     414
+    ],
+    [
+     352,
+     478
+    ],
+    [
+     326,
+     534
+    ],
+    [
+     252,
+     548
+    ],
+    [
+     182,
+     536
+    ],
+    [
+     160,
+     478
+    ]
+   ],
+   "bounds": {
+    "minX": 160,
+    "minY": 402,
+    "maxX": 352,
+    "maxY": 548
+   },
+   "entrance": {
+    "x": 256,
+    "y": 562
+   },
+   "artAnchor": {
+    "x": 253.4,
+    "y": 542,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 211.2,
+   "artWidthExportPx": 634,
+   "slots": [
+    {
+     "id": "wait_1",
+     "x": 206,
+     "y": 512,
+     "facing": "down"
+    },
+    {
+     "id": "wait_2",
+     "x": 236,
+     "y": 518,
+     "facing": "down"
+    },
+    {
+     "id": "wait_3",
+     "x": 276,
+     "y": 518,
+     "facing": "down"
+    },
+    {
+     "id": "wait_4",
+     "x": 306,
+     "y": 512,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "entrance_hall",
+    "built": true,
+    "art": "interim",
+    "rect": {
+     "x": 114.1,
+     "y": 374.3,
+     "w": 268.1,
+     "h": 178.7
+    },
+    "slots": [
+     {
+      "id": "wait_1",
+      "x": 206,
+      "y": 512,
+      "facing": "down",
+      "activity": "wait"
+     },
+     {
+      "id": "wait_2",
+      "x": 236,
+      "y": 518,
+      "facing": "down",
+      "activity": "wait"
+     },
+     {
+      "id": "wait_3",
+      "x": 276,
+      "y": 518,
+      "facing": "down",
+      "activity": "wait"
+     },
+     {
+      "id": "wait_4",
+      "x": 306,
+      "y": 512,
+      "facing": "down",
+      "activity": "wait"
+     }
+    ]
+   }
+  },
+  {
+   "id": "zone_west_rise",
+   "label": "West rise",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "shooting_range",
+   "footprint": [
+    [
+     290,
+     238
+    ],
+    [
+     382,
+     220
+    ],
+    [
+     472,
+     236
+    ],
+    [
+     498,
+     300
+    ],
+    [
+     474,
+     362
+    ],
+    [
+     384,
+     378
+    ],
+    [
+     302,
+     362
+    ],
+    [
+     276,
+     300
+    ]
+   ],
+   "bounds": {
+    "minX": 276,
+    "minY": 220,
+    "maxX": 498,
+    "maxY": 378
+   },
+   "entrance": {
+    "x": 392,
+    "y": 392
+   },
+   "artAnchor": {
+    "x": 384.8,
+    "y": 372,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 244.2,
+   "artWidthExportPx": 733,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 340,
+     "y": 340,
+     "facing": "down"
+    },
+    {
+     "id": "s2",
+     "x": 380,
+     "y": 346,
+     "facing": "down"
+    },
+    {
+     "id": "s3",
+     "x": 420,
+     "y": 346,
+     "facing": "down"
+    },
+    {
+     "id": "s4",
+     "x": 456,
+     "y": 336,
+     "facing": "down"
+    },
+    {
+     "id": "s5",
+     "x": 360,
+     "y": 300,
+     "facing": "down"
+    },
+    {
+     "id": "s6",
+     "x": 420,
+     "y": 300,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "shooting_range",
+    "built": true,
+    "art": "provisional",
+    "rect": {
+     "x": 262.5,
+     "y": 216.9,
+     "w": 244.2,
+     "h": 157.4
+    },
+    "slots": [
+     {
+      "id": "mat_1",
+      "x": 344.4,
+      "y": 311.5,
+      "facing": "up",
+      "activity": "fire"
+     },
+     {
+      "id": "mat_2",
+      "x": 393.4,
+      "y": 330.9,
+      "facing": "up",
+      "activity": "fire"
+     }
+    ]
+   }
+  },
+  {
+   "id": "zone_north_terrace",
+   "label": "North terrace",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "mess_hall",
+   "footprint": [
+    [
+     600,
+     150
+    ],
+    [
+     700,
+     128
+    ],
+    [
+     820,
+     132
+    ],
+    [
+     882,
+     166
+    ],
+    [
+     872,
+     236
+    ],
+    [
+     782,
+     258
+    ],
+    [
+     662,
+     252
+    ],
+    [
+     602,
+     214
+    ]
+   ],
+   "bounds": {
+    "minX": 600,
+    "minY": 128,
+    "maxX": 882,
+    "maxY": 258
+   },
+   "entrance": {
+    "x": 742,
+    "y": 272
+   },
+   "artAnchor": {
+    "x": 740,
+    "y": 252,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 310.2,
+   "artWidthExportPx": 931,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 680,
+     "y": 224,
+     "facing": "up"
+    },
+    {
+     "id": "s2",
+     "x": 720,
+     "y": 228,
+     "facing": "up"
+    },
+    {
+     "id": "s3",
+     "x": 764,
+     "y": 228,
+     "facing": "up"
+    },
+    {
+     "id": "s4",
+     "x": 806,
+     "y": 222,
+     "facing": "up"
+    },
+    {
+     "id": "s5",
+     "x": 700,
+     "y": 184,
+     "facing": "up"
+    },
+    {
+     "id": "s6",
+     "x": 780,
+     "y": 184,
+     "facing": "up"
+    }
+   ],
+   "building": {
+    "type": "mess_hall",
+    "built": false,
+    "art": "provisional",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_centre_knoll",
+   "label": "Centre knoll",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "barracks",
+   "footprint": [
+    [
+     640,
+     425
+    ],
+    [
+     700,
+     400
+    ],
+    [
+     770,
+     408
+    ],
+    [
+     790,
+     455
+    ],
+    [
+     768,
+     505
+    ],
+    [
+     700,
+     520
+    ],
+    [
+     642,
+     508
+    ],
+    [
+     622,
+     465
+    ]
+   ],
+   "bounds": {
+    "minX": 622,
+    "minY": 400,
+    "maxX": 790,
+    "maxY": 520
+   },
+   "entrance": {
+    "x": 705,
+    "y": 534
+   },
+   "artAnchor": {
+    "x": 704,
+    "y": 514,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 184.8,
+   "artWidthExportPx": 554,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 668,
+     "y": 486,
+     "facing": "down"
+    },
+    {
+     "id": "s2",
+     "x": 696,
+     "y": 492,
+     "facing": "down"
+    },
+    {
+     "id": "s3",
+     "x": 724,
+     "y": 492,
+     "facing": "down"
+    },
+    {
+     "id": "s4",
+     "x": 752,
+     "y": 484,
+     "facing": "down"
+    },
+    {
+     "id": "s5",
+     "x": 680,
+     "y": 446,
+     "facing": "down"
+    },
+    {
+     "id": "s6",
+     "x": 740,
+     "y": 446,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "barracks",
+    "built": true,
+    "art": "provisional",
+    "rect": {
+     "x": 609.6,
+     "y": 417.4,
+     "w": 188.2,
+     "h": 98.6
+    },
+    "slots": [
+     {
+      "id": "bunk_1",
+      "x": 737.2,
+      "y": 476.2,
+      "facing": "down",
+      "activity": "rest"
+     },
+     {
+      "id": "bunk_2",
+      "x": 746.2,
+      "y": 479.4,
+      "facing": "down",
+      "activity": "rest"
+     },
+     {
+      "id": "bunk_3",
+      "x": 755.1,
+      "y": 476.2,
+      "facing": "down",
+      "activity": "rest"
+     },
+     {
+      "id": "bunk_4",
+      "x": 741,
+      "y": 472.4,
+      "facing": "down",
+      "activity": "rest"
+     },
+     {
+      "id": "bunk_5",
+      "x": 751.3,
+      "y": 473,
+      "facing": "down",
+      "activity": "rest"
+     },
+     {
+      "id": "bunk_6",
+      "x": 734,
+      "y": 480,
+      "facing": "down",
+      "activity": "rest"
+     }
+    ]
+   }
+  },
+  {
+   "id": "zone_knoll_east",
+   "label": "Knoll east",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "weight_room",
+   "footprint": [
+    [
+     948,
+     392
+    ],
+    [
+     1008,
+     378
+    ],
+    [
+     1066,
+     392
+    ],
+    [
+     1080,
+     445
+    ],
+    [
+     1062,
+     500
+    ],
+    [
+     1004,
+     516
+    ],
+    [
+     950,
+     502
+    ],
+    [
+     932,
+     448
+    ]
+   ],
+   "bounds": {
+    "minX": 932,
+    "minY": 378,
+    "maxX": 1080,
+    "maxY": 516
+   },
+   "entrance": {
+    "x": 1006,
+    "y": 530
+   },
+   "artAnchor": {
+    "x": 1006.3,
+    "y": 510,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 162.8,
+   "artWidthExportPx": 488,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 970,
+     "y": 480,
+     "facing": "down"
+    },
+    {
+     "id": "s2",
+     "x": 1000,
+     "y": 488,
+     "facing": "down"
+    },
+    {
+     "id": "s3",
+     "x": 1030,
+     "y": 488,
+     "facing": "down"
+    },
+    {
+     "id": "s4",
+     "x": 1058,
+     "y": 476,
+     "facing": "down"
+    },
+    {
+     "id": "s5",
+     "x": 985,
+     "y": 440,
+     "facing": "down"
+    },
+    {
+     "id": "s6",
+     "x": 1035,
+     "y": 440,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "weight_room",
+    "built": false,
+    "art": "interim",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_river_bend",
+   "label": "River bend",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "showers",
+   "footprint": [
+    [
+     1000,
+     140
+    ],
+    [
+     1110,
+     112
+    ],
+    [
+     1232,
+     122
+    ],
+    [
+     1300,
+     172
+    ],
+    [
+     1290,
+     252
+    ],
+    [
+     1200,
+     286
+    ],
+    [
+     1070,
+     282
+    ],
+    [
+     1000,
+     232
+    ]
+   ],
+   "bounds": {
+    "minX": 1000,
+    "minY": 112,
+    "maxX": 1300,
+    "maxY": 286
+   },
+   "entrance": {
+    "x": 1110,
+    "y": 298
+   },
+   "artAnchor": {
+    "x": 1150.3,
+    "y": 280,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 330,
+   "artWidthExportPx": 990,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 1060,
+     "y": 250,
+     "facing": "down"
+    },
+    {
+     "id": "s2",
+     "x": 1110,
+     "y": 256,
+     "facing": "down"
+    },
+    {
+     "id": "s3",
+     "x": 1160,
+     "y": 256,
+     "facing": "down"
+    },
+    {
+     "id": "s4",
+     "x": 1210,
+     "y": 250,
+     "facing": "down"
+    },
+    {
+     "id": "s5",
+     "x": 1100,
+     "y": 200,
+     "facing": "down"
+    },
+    {
+     "id": "s6",
+     "x": 1180,
+     "y": 200,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "showers",
+    "built": false,
+    "art": "interim",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_east_meadow",
+   "label": "East meadow",
+   "doorSide": "south",
+   "types": [
+    "barracks",
+    "mess_hall",
+    "showers",
+    "rec_room",
+    "weight_room",
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "rec_room",
+   "footprint": [
+    [
+     1140,
+     360
+    ],
+    [
+     1240,
+     348
+    ],
+    [
+     1336,
+     372
+    ],
+    [
+     1362,
+     420
+    ],
+    [
+     1336,
+     468
+    ],
+    [
+     1246,
+     484
+    ],
+    [
+     1156,
+     474
+    ],
+    [
+     1126,
+     418
+    ]
+   ],
+   "bounds": {
+    "minX": 1126,
+    "minY": 348,
+    "maxX": 1362,
+    "maxY": 484
+   },
+   "entrance": {
+    "x": 1240,
+    "y": 498
+   },
+   "artAnchor": {
+    "x": 1242.8,
+    "y": 478,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 259.6,
+   "artWidthExportPx": 779,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 1190,
+     "y": 448,
+     "facing": "down"
+    },
+    {
+     "id": "s2",
+     "x": 1226,
+     "y": 454,
+     "facing": "down"
+    },
+    {
+     "id": "s3",
+     "x": 1262,
+     "y": 454,
+     "facing": "down"
+    },
+    {
+     "id": "s4",
+     "x": 1298,
+     "y": 446,
+     "facing": "down"
+    },
+    {
+     "id": "s5",
+     "x": 1210,
+     "y": 406,
+     "facing": "down"
+    },
+    {
+     "id": "s6",
+     "x": 1280,
+     "y": 406,
+     "facing": "down"
+    }
+   ],
+   "building": {
+    "type": "rec_room",
+    "built": false,
+    "art": "interim",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_south_green",
+   "label": "South green",
+   "doorSide": "north",
+   "types": [
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": null,
+   "footprint": [
+    [
+     560,
+     640
+    ],
+    [
+     670,
+     624
+    ],
+    [
+     780,
+     636
+    ],
+    [
+     806,
+     700
+    ],
+    [
+     780,
+     770
+    ],
+    [
+     672,
+     786
+    ],
+    [
+     566,
+     774
+    ],
+    [
+     540,
+     706
+    ]
+   ],
+   "bounds": {
+    "minX": 540,
+    "minY": 624,
+    "maxX": 806,
+    "maxY": 786
+   },
+   "entrance": {
+    "x": 672,
+    "y": 610
+   },
+   "artAnchor": {
+    "x": 671.8,
+    "y": 780,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 292.6,
+   "artWidthExportPx": 878,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 604,
+     "y": 672,
+     "facing": "right"
+    },
+    {
+     "id": "s2",
+     "x": 604,
+     "y": 706,
+     "facing": "right"
+    },
+    {
+     "id": "s3",
+     "x": 640,
+     "y": 690,
+     "facing": "right"
+    },
+    {
+     "id": "s4",
+     "x": 640,
+     "y": 724,
+     "facing": "right"
+    },
+    {
+     "id": "s5",
+     "x": 604,
+     "y": 740,
+     "facing": "right"
+    },
+    {
+     "id": "s6",
+     "x": 640,
+     "y": 758,
+     "facing": "right"
+    }
+   ],
+   "building": null
+  },
+  {
+   "id": "zone_southwest_flats",
+   "label": "Southwest flats",
+   "doorSide": "north",
+   "types": [
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "obstacle_course",
+   "footprint": [
+    [
+     300,
+     672
+    ],
+    [
+     400,
+     656
+    ],
+    [
+     500,
+     668
+    ],
+    [
+     520,
+     724
+    ],
+    [
+     498,
+     784
+    ],
+    [
+     400,
+     800
+    ],
+    [
+     312,
+     788
+    ],
+    [
+     284,
+     730
+    ]
+   ],
+   "bounds": {
+    "minX": 284,
+    "minY": 656,
+    "maxX": 520,
+    "maxY": 800
+   },
+   "entrance": {
+    "x": 410,
+    "y": 640
+   },
+   "artAnchor": {
+    "x": 401.8,
+    "y": 794,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 259.6,
+   "artWidthExportPx": 779,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 340,
+     "y": 700,
+     "facing": "up"
+    },
+    {
+     "id": "s2",
+     "x": 380,
+     "y": 694,
+     "facing": "up"
+    },
+    {
+     "id": "s3",
+     "x": 424,
+     "y": 694,
+     "facing": "up"
+    },
+    {
+     "id": "s4",
+     "x": 464,
+     "y": 700,
+     "facing": "up"
+    },
+    {
+     "id": "s5",
+     "x": 360,
+     "y": 742,
+     "facing": "up"
+    },
+    {
+     "id": "s6",
+     "x": 440,
+     "y": 742,
+     "facing": "up"
+    }
+   ],
+   "building": {
+    "type": "obstacle_course",
+    "built": false,
+    "art": "interim",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_riverside",
+   "label": "Riverside",
+   "doorSide": "north",
+   "types": [
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": "drill_yard",
+   "footprint": [
+    [
+     850,
+     662
+    ],
+    [
+     960,
+     646
+    ],
+    [
+     1070,
+     660
+    ],
+    [
+     1096,
+     716
+    ],
+    [
+     1070,
+     780
+    ],
+    [
+     962,
+     796
+    ],
+    [
+     856,
+     784
+    ],
+    [
+     826,
+     722
+    ]
+   ],
+   "bounds": {
+    "minX": 826,
+    "minY": 646,
+    "maxX": 1096,
+    "maxY": 796
+   },
+   "entrance": {
+    "x": 962,
+    "y": 632
+   },
+   "artAnchor": {
+    "x": 961.3,
+    "y": 790,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 297,
+   "artWidthExportPx": 891,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 900,
+     "y": 690,
+     "facing": "up"
+    },
+    {
+     "id": "s2",
+     "x": 940,
+     "y": 684,
+     "facing": "up"
+    },
+    {
+     "id": "s3",
+     "x": 984,
+     "y": 684,
+     "facing": "up"
+    },
+    {
+     "id": "s4",
+     "x": 1026,
+     "y": 690,
+     "facing": "up"
+    },
+    {
+     "id": "s5",
+     "x": 920,
+     "y": 734,
+     "facing": "up"
+    },
+    {
+     "id": "s6",
+     "x": 1004,
+     "y": 734,
+     "facing": "up"
+    }
+   ],
+   "building": {
+    "type": "drill_yard",
+    "built": false,
+    "art": "interim",
+    "rect": null,
+    "slots": []
+   }
+  },
+  {
+   "id": "zone_ford",
+   "label": "Ford",
+   "doorSide": "north",
+   "types": [
+    "shooting_range",
+    "obstacle_course",
+    "drill_yard"
+   ],
+   "defaultBuilding": null,
+   "footprint": [
+    [
+     1130,
+     650
+    ],
+    [
+     1200,
+     640
+    ],
+    [
+     1262,
+     660
+    ],
+    [
+     1270,
+     700
+    ],
+    [
+     1240,
+     745
+    ],
+    [
+     1180,
+     752
+    ],
+    [
+     1134,
+     738
+    ],
+    [
+     1116,
+     694
+    ]
+   ],
+   "bounds": {
+    "minX": 1116,
+    "minY": 640,
+    "maxX": 1270,
+    "maxY": 752
+   },
+   "entrance": {
+    "x": 1196,
+    "y": 624
+   },
+   "artAnchor": {
+    "x": 1191.5,
+    "y": 746,
+    "note": "ground pivot of facility art (footprint centre x, bottom - 6)"
+   },
+   "artWidthWorld": 169.4,
+   "artWidthExportPx": 508,
+   "slots": [
+    {
+     "id": "s1",
+     "x": 1160,
+     "y": 680,
+     "facing": "up"
+    },
+    {
+     "id": "s2",
+     "x": 1196,
+     "y": 676,
+     "facing": "up"
+    },
+    {
+     "id": "s3",
+     "x": 1232,
+     "y": 680,
+     "facing": "up"
+    },
+    {
+     "id": "s4",
+     "x": 1150,
+     "y": 712,
+     "facing": "up"
+    },
+    {
+     "id": "s5",
+     "x": 1186,
+     "y": 716,
+     "facing": "up"
+    },
+    {
+     "id": "s6",
+     "x": 1222,
+     "y": 716,
+     "facing": "up"
+    }
+   ],
+   "building": null
+  }
+ ],
+ "props": [
+  {
+   "prop": "scene_lamp",
+   "x": 100,
+   "y": 642,
+   "base": 4,
+   "file": "assets/props/scene_lamp-clean.png"
+  },
+  {
+   "prop": "scene_fence",
+   "x": 36,
+   "y": 672,
+   "base": 12,
+   "scale": 0.7,
+   "file": "assets/props/scene_fence-clean.png"
+  },
+  {
+   "prop": "scene_fence_post",
+   "x": 64,
+   "y": 656,
+   "base": 4,
+   "scale": 0.7,
+   "file": "assets/props/scene_fence_post-clean.png"
+  },
+  {
+   "prop": "scene_noticeboard",
+   "x": 300,
+   "y": 574,
+   "base": 8,
+   "file": "assets/props/scene_noticeboard-clean.png"
+  },
+  {
+   "prop": "scene_rock_moss",
+   "x": 214,
+   "y": 580,
+   "base": 10,
+   "file": "assets/props/scene_rock_moss-clean.png"
+  },
+  {
+   "prop": "scene_grass_flower",
+   "x": 278,
+   "y": 652,
+   "base": 6,
+   "file": "assets/props/scene_grass_flower-clean.png"
+  },
+  {
+   "prop": "scene_rocks_granite",
+   "x": 236,
+   "y": 772,
+   "base": 14,
+   "file": "assets/props/scene_rocks_granite-clean.png"
+  },
+  {
+   "prop": "scene_signpost",
+   "x": 462,
+   "y": 630,
+   "base": 4,
+   "file": "assets/props/scene_signpost-clean.png"
+  },
+  {
+   "prop": "scene_utility_vehicle",
+   "x": 530,
+   "y": 528,
+   "base": 26,
+   "scale": 0.8,
+   "file": "assets/props/scene_utility_vehicle-clean.png"
+  },
+  {
+   "prop": "scene_rock_moss",
+   "x": 884,
+   "y": 542,
+   "base": 10,
+   "file": "assets/props/scene_rock_moss-clean.png"
+  },
+  {
+   "prop": "scene_lamp",
+   "x": 1122,
+   "y": 622,
+   "base": 4,
+   "file": "assets/props/scene_lamp-clean.png"
+  },
+  {
+   "prop": "scene_rocks_granite",
+   "x": 1300,
+   "y": 566,
+   "base": 14,
+   "file": "assets/props/scene_rocks_granite-clean.png"
+  }
+ ],
+ "aidStation": {
+  "x": 236,
+  "y": 690
+ },
+ "targetSceneReady": true
+}

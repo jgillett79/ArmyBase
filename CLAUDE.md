@@ -331,6 +331,16 @@ FOOT with the plateau raised above; `tools/rig-soldier.cjs` makes a
 validated 6-frame down walk (candidate); `validate-assets.cjs --gait` checks
 any strip. `tools/capture-showcase.cjs` makes the 960x576 review screen.
 
+**First-base delivery, Gates 0–1 (27 Sep)**: see
+`CLAUDE_IMPLEMENTATION/06_GATE0_VISUAL_CONTRACT.md`. A `brook_gate` inside the
+gate is crossed only by `WORLD.bridges` (validateWorld allows water under a
+path only on a spanning deck); the aid station moved east of it. Bridges
+draw as back (static layer) + front rail (depth-sorted). `WORLD.checkpoint`
+reserves the kiosk footprint and a *swinging* boom hinge. Scene props are
+placed by `SCENE_PROP_PLACEMENTS` (scenery.js, validated). Labels are drawn
+in a final pass. Loading a save moves anyone standing in terrain to the
+nearest trail node. `tools/capture-gate0.cjs` regenerates the contract.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

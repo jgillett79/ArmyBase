@@ -156,3 +156,14 @@ Anything that fails a step goes back with the validator's message quoted. That m
 - A genuine down cycle now exists as a pose template: `art/rig/soldier_walk_down.png` (six 256×384 cells) with `art/review/soldier-walk-down-rig-review.jpg` showing the phases — 1 R contact, 2 R down, 3 passing (left foot swinging under the body, highest), 4 L contact, 5 L down, 6 passing (right foot swinging). **Best next step: paint over these six poses one cell at a time**, keeping each cell's silhouette, foot positions and pivot, and only changing the rendering to the house style. That preserves the gait the validator proved.
 - Spec clarification: for a figure walking toward the camera, the forward foot is nearer the camera and sits lower on screen. Keep the **ground point under the body on row 330**, let the forward foot reach down to row 368 at most, and keep every frame's helmet top near row 30.
 - Before sending any walk strip, run the gait check (or ask Claude to): every pair of frames must differ by ≥ 12% in the legs, and the front foot must switch sides between frame 1 and frame 4.
+
+## Fourth round (27 September): Gate 0 measurements for the next exports
+
+The exact numbers are in `CLAUDE_IMPLEMENTATION/06_GATE0_VISUAL_CONTRACT.md`, measured from the running game. Its overlay is `docs/screenshots/2026-09-27-gate0-contract-960x576.jpg`. The short version:
+
+- **Export at 3 px per world px.** A person is 132 px tall. The game is top-down oblique, not isometric: ground distances are the same on both screen axes.
+- **Bridge:** redraw as a straight **west–east** crossing seen from the south; the diagonal study doesn't fit the gate trail. Deliver two layers, 360 × 216 px each: a back layer (abutments, trestles, deck, far rail) and a front layer (near rail only). Deck-end pivots at (36, 105) and (300, 111). No water.
+- **Gate:** the kiosk sits north of the trail, 180 × 318 px, pivot (90, 300), in back/front layers. The boom **swings** flat instead of lifting (lifting doesn't read from this camera): send one horizontal boom pointing right, plus a fixed hinge post, with the hinge-pin pixel in both.
+- **Facilities:** each export's pivot is at its horizontal centre on the ground line. The contract lists the door and every station as pixel offsets from that pivot for the Entrance Hall, range and Barracks. Keep stations about 90 px (30 world) apart: the provisional Barracks bunks are 9 world px apart, which piles six sleepers onto one spot.
+- **Scene props:** the nine cutouts are now in game as provisional. They are 1 px per world px, so they blur when zoomed; re-export them at 3 px/world. The fence's rail gaps are semi-transparent.
+- **Characters:** the Gate 2 sheet list and gait rules are in the contract. Paint the down walk over `art/rig/soldier_walk_down.png` first.
