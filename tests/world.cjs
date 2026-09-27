@@ -14,7 +14,10 @@ const problems = run('validateWorld()');
 assert.deepEqual([...problems], [], `world validation failed:\n${problems.join('\n')}`);
 
 // Every zone has a continuous route from the gate: consecutive points are
-// short hops along the drawn path and no hop crosses terrain or a footprint.
+// short hops along the drawn path and no hop crosses terrain or a footprint,
+// except water that a hop crosses on a bridge deck spanning it.
+run(`var hopOnDeck = (a, b, areaId) => WORLD.bridges.some(br => br.crosses.includes(areaId)
+  && pointInPolygon(a[0], a[1], bridgeDeckPolygon(br)) && pointInPolygon(b[0], b[1], bridgeDeckPolygon(br)))`);
 const zoneIds = run('WORLD.zones.map(z => z.id)');
 for (const zoneId of zoneIds) {
   const route = run(`findWorldRoute(WORLD.nodes.gate_outside.x, WORLD.nodes.gate_outside.y, doorNodeId('${zoneId}'))`);
@@ -25,7 +28,7 @@ for (const zoneId of zoneIds) {
   sandbox.__route = route;
   assert.equal(run(`(() => { for (let i = 1; i < __route.length; i++) {
     const a = [__route[i-1].x, __route[i-1].y], b = [__route[i].x, __route[i].y];
-    for (const area of WORLD.terrain) if (segmentPolygonDistance(a, b, area.polygon) < 1) return 'terrain ' + area.id;
+    for (const area of WORLD.terrain) if (segmentPolygonDistance(a, b, area.polygon) < 1 && !hopOnDeck(a, b, area.id)) return 'terrain ' + area.id;
     for (const zone of WORLD.zones) if (segmentPolygonDistance(a, b, zone.footprint) < 1) return 'zone ' + zone.id;
   } return 'clear'; })()`), 'clear', `${zoneId} route stays on open ground`);
 }
@@ -54,4 +57,21 @@ const broken = run(`(() => { const copy = JSON.parse(JSON.stringify(WORLD));
   return validateWorld(copy); })()`);
 assert.ok(broken.some(p => /overlap/.test(p)), 'overlap detected');
 assert.ok(broken.some(p => /unreachable/.test(p)), 'unreachable node detected');
+// The gate bridge: every visitor route crosses the brook, and only on the deck.
+const gateRoute = run(`findWorldRoute(WORLD.nodes.gate_outside.x, WORLD.nodes.gate_outside.y, 't2')`);
+sandbox.__route = gateRoute;
+assert.ok(run(`__route.some((p, i) => i && segmentPolygonDistance([__route[i-1].x, __route[i-1].y], [p.x, p.y],
+  WORLD.terrain.find(a => a.id === 'brook_gate').polygon) === 0)`), 'the gate trail crosses the brook');
+assert.ok(run(`__route.filter(p => pointInPolygon(p.x, p.y, WORLD.terrain.find(a => a.id === 'brook_gate').polygon))
+  .every(p => pointInPolygon(p.x, p.y, bridgeDeckPolygon(WORLD.bridges[0])))`), 'every point over the brook is on the deck');
+assert.equal(run(`WORLD.terrain.filter(a => pointInPolygon(WORLD.nodes.aid_station.x, WORLD.nodes.aid_station.y, a.polygon)).length`), 0, 'aid station on dry land');
+// The deck exception is narrow: no bridge, or a deck shifted off the trail, fails.
+const noBridge = run(`(() => { const copy = JSON.parse(JSON.stringify(WORLD)); copy.bridges = []; return validateWorld(copy); })()`);
+assert.ok(noBridge.some(p => /gate_inside-t1 crosses brook_gate/.test(p)), 'without its bridge the trail is a water crossing');
+const offDeck = run(`(() => { const copy = JSON.parse(JSON.stringify(WORLD)); copy.bridges[0].west[1] -= 40; copy.bridges[0].east[1] -= 40; return validateWorld(copy); })()`);
+assert.ok(offDeck.some(p => /crosses brook_gate/.test(p)), 'a trail beside the deck is still a water crossing');
+const wetEnd = run(`(() => { const copy = JSON.parse(JSON.stringify(WORLD)); copy.bridges[0].east = [180, 615]; return validateWorld(copy); })()`);
+assert.ok(wetEnd.some(p => /not on dry land/.test(p)), 'a deck ending in the water is rejected');
+const kioskOnTrail = run(`(() => { const copy = JSON.parse(JSON.stringify(WORLD)); copy.checkpoint.kiosk = copy.checkpoint.kiosk.map(([x, y]) => [x, y + 24]); return validateWorld(copy); })()`);
+assert.ok(kioskOnTrail.some(p => /checkpoint kiosk on path/.test(p)), 'a kiosk on the trail is rejected');
 console.log('World map tests passed');

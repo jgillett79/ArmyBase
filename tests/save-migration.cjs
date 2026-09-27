@@ -110,6 +110,13 @@ sandbox.__v1Raw = v1Raw;
 assert.equal(run('parseSaveText(__v1Raw).fromVersion'), 1);
 assert.equal(run('parseSaveText(__v1Raw).data.schema'), 2);
 
+// A v2 save made before the gate brook existed, with a soldier waiting at
+// the old aid station (now water), loads with them on dry land.
+run(`var brookSave = JSON.parse(exported); brookSave.units[0].x = 176; brookSave.units[0].y = 688;
+  var brookState = GameState.fromSaveData(parseSaveText(JSON.stringify(brookSave)).data);`);
+assert.equal(run(`(() => { const u = brookState.units.find(x => x.id === brookSave.units[0].id);
+  return WORLD.terrain.filter(a => pointInPolygon(u.x, u.y, a.polygon)).length; })()`), 0, 'no one loads standing in the brook');
+
 // Malformed backups fail with a message a player can act on.
 const importError = text => { sandbox.__text = text; return run('(() => { try { parseSaveText(__text); return null; } catch (e) { return e.message; } })()'); };
 assert.match(importError('{not json'), /not valid JSON/);

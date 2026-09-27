@@ -45,10 +45,64 @@ function distanceToTerrain(x, y) {
   return best;
 }
 
-// Free for a prop: on open ground, clear of every footprint, path and the
-// gate. `clearance` is the prop's own radius.
+// Authored placements for the prepared static props (ASSET_MANIFEST.props).
+// x/y is the ground pivot in world px; `base` is the ground-contact radius
+// that must stay clear (a lamp's pole, a vehicle's wheelbase), not the image
+// width. validateScenePropPlacements() proves none blocks a trail (built or
+// future spur), build site, slot, entrance, the bridge or the gate.
+const SCENE_PROP_PLACEMENTS = [
+  { prop: 'scene_lamp', x: 100, y: 642, base: 4 },              // inside the gate
+  { prop: 'scene_fence', x: 36, y: 672, base: 12, scale: 0.7 },  // gate wing, south
+  { prop: 'scene_fence_post', x: 64, y: 656, base: 4, scale: 0.7 },
+  { prop: 'scene_noticeboard', x: 300, y: 574, base: 8 },       // by the Entrance Hall path
+  { prop: 'scene_rock_moss', x: 214, y: 580, base: 10 },        // brook bank
+  { prop: 'scene_grass_flower', x: 278, y: 652, base: 6 },
+  { prop: 'scene_rocks_granite', x: 236, y: 772, base: 14 },
+  { prop: 'scene_signpost', x: 462, y: 630, base: 4 },          // junction t2
+  { prop: 'scene_utility_vehicle', x: 530, y: 528, base: 26, scale: 0.8 }, // parked below the knoll
+  { prop: 'scene_rock_moss', x: 884, y: 542, base: 10 },
+  { prop: 'scene_lamp', x: 1122, y: 622, base: 4 },             // junction t6
+  { prop: 'scene_rocks_granite', x: 1300, y: 566, base: 14 },   // riverside
+];
+
+// Problems with the placements; empty means every prop is clear.
+function validateScenePropPlacements(placements = SCENE_PROP_PLACEMENTS) {
+  const problems = [];
+  const edges = worldEdgeList(null);
+  const gate = WORLD.nodes.gate;
+  placements.forEach((p, i) => {
+    const label = `${p.prop} #${i} at (${p.x}, ${p.y})`;
+    if (!ASSET_MANIFEST.props[p.prop]) problems.push(`${label}: unknown prop`);
+    if (distanceToPaths(p.x, p.y, edges) < p.base + 20) problems.push(`${label}: on a trail`);
+    if (distanceToTerrain(p.x, p.y) < p.base) problems.push(`${label}: in water or rock`);
+    for (const zone of WORLD.zones) {
+      if (pointPolygonDistance(p.x, p.y, zone.footprint) < p.base + 6) problems.push(`${label}: on ${zone.id}`);
+      if (Math.hypot(p.x - zone.entrance.x, p.y - zone.entrance.y) < p.base + 30) problems.push(`${label}: blocks ${zone.id} entrance`);
+    }
+    for (const bridge of WORLD.bridges) {
+      if (pointPolygonDistance(p.x, p.y, bridgeDeckPolygon(bridge)) < p.base + 10) problems.push(`${label}: on ${bridge.id}`);
+    }
+    if (Math.hypot(p.x - gate.x, p.y - gate.y) < p.base + 36) problems.push(`${label}: blocks the gate`);
+    placements.forEach((q, j) => {
+      if (j > i && Math.hypot(p.x - q.x, p.y - q.y) < p.base + q.base + 4) problems.push(`${label}: overlaps ${q.prop} #${j}`);
+    });
+  });
+  return problems;
+}
+
+function drawSceneProp(ctx, placement) {
+  const prop = ASSET_MANIFEST.props[placement.prop];
+  const img = FACILITY_SPRITES[prop.file] ||= loadSprite(prop.file);
+  if (!spriteReady(img)) return;
+  const scale = placement.scale || 1;
+  ctx.drawImage(img, placement.x - prop.pivot[0] * scale, placement.y - prop.pivot[1] * scale, prop.size[0] * scale, prop.size[1] * scale);
+}
+
+// Free for a prop: on open ground, clear of every footprint, path, placed
+// scene prop and the gate. `clearance` is the prop's own radius.
 function isOpenGround(x, y, clearance, edges) {
   if (x < 8 || y < 8 || x > WORLD_W - 8 || y > WORLD_H - 8) return false;
+  if (SCENE_PROP_PLACEMENTS.some(p => Math.hypot(x - p.x, y - p.y) < clearance + p.base + 10)) return false;
   if (distanceToTerrain(x, y) < clearance * 0.4) return false;
   for (const zone of WORLD.zones) if (pointPolygonDistance(x, y, zone.footprint) < clearance + 18) return false;
   if (distanceToPaths(x, y, edges) < clearance + 26) return false;
@@ -332,8 +386,11 @@ function drawWater(ctx, area, random) {
   ctx.restore();
 
   // Banks. Land-above edges (outward normal pointing up the screen) show a
-  // rock drop into the water; the rest get pebbles half in the water.
+  // rock drop into the water; the rest get pebbles half in the water. Where
+  // this water runs into another (brook into pond) there is no bank.
+  const otherWater = WORLD.terrain.filter(a => a.kind === 'water' && a !== area);
   for (const s of samples) {
+    if (otherWater.some(a => pointInPolygon(s.x + s.nx * 6, s.y + s.ny * 6, a.polygon))) continue;
     if (s.ny < -0.2 && random() < 0.75) {
       const height = 12 + random() * 14;
       drawRockColumn(ctx, s.x, s.y - 1, 12 + random() * 8, height, random);
@@ -461,7 +518,15 @@ function paintStaticLayer(visibleZones, builtZones) {
   for (const zone of WORLD.zones) if (visibleZones.has(zone.id)) drawClearing(ctx, zone, builtZones.has(zone.id));
 
   const edges = worldEdgeList(visibleZones).filter(edge => edge.to !== 'aid_station');
+  // Trails stop at bridge decks; the deck is drawn over the water instead.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, WORLD_W, WORLD_H);
+  for (const bridge of WORLD.bridges) bridgeDeckPolygon(bridge).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
+  ctx.clip('evenodd');
   drawPathEdges(ctx, edges, random);
+  ctx.restore();
+  for (const bridge of WORLD.bridges) drawBridgeBack(ctx, bridge);
 
   const { rocks, tufts } = scenery();
   for (const tuft of tufts) {
@@ -481,6 +546,119 @@ function paintStaticLayer(visibleZones, builtZones) {
   }
   drawFenceLines(ctx);
   return canvas;
+}
+
+// --- bridges ---------------------------------------------------------------------
+//
+// A bridge is two layers around the people on it. The BACK layer — abutments,
+// shadow and trestles in the water, the plank deck and the far (north) rail —
+// is painted into the static layer, so anyone on the deck stands on it. The
+// FRONT layer — the near (south) rail — is a depth-sorted item at the deck's
+// south edge (bridgeFrontDepth), so it covers the legs of people on the deck
+// and is itself covered by anyone walking south of it. Art listed in
+// ASSET_MANIFEST.bridges replaces the procedural drawing once it is in use;
+// its two deck-end pivots are pinned to the bridge's west/east points.
+
+const BRIDGE_RAIL_H = 18; // world px; a person is 44
+
+function bridgeArt(bridge) {
+  const art = ASSET_MANIFEST.bridges[bridge.id];
+  if (!assetInUse(art) || !art.back || !art.front) return null;
+  const back = FACILITY_SPRITES[art.back.file] ||= loadSprite(art.back.file);
+  const front = FACILITY_SPRITES[art.front.file] ||= loadSprite(art.front.file);
+  return spriteReady(back) && spriteReady(front) ? { art, back, front } : null;
+}
+
+// Source px -> world: the deck-end pivots land on the bridge's west/east
+// points (uniform scale, no rotation — decks run west-east).
+function bridgeArtRect(art, bridge, layer) {
+  const scale = (bridge.east[0] - bridge.west[0]) / (art.eastPivot[0] - art.westPivot[0]);
+  return { x: bridge.west[0] - art.westPivot[0] * scale, y: bridge.west[1] - art.westPivot[1] * scale,
+    w: layer.size[0] * scale, h: layer.size[1] * scale };
+}
+
+function bridgeFrontDepth(bridge) {
+  return Math.max(bridge.west[1], bridge.east[1]) + bridge.halfWidth;
+}
+
+// y of the deck's north (side -1), centre (0) or south (+1) edge at x.
+function bridgeEdgeY(bridge, x, side) {
+  const t = (x - bridge.west[0]) / (bridge.east[0] - bridge.west[0]);
+  return bridge.west[1] + (bridge.east[1] - bridge.west[1]) * t + side * bridge.halfWidth;
+}
+
+function drawRail(ctx, bridge, side) {
+  const [x0] = bridge.west, [x1] = bridge.east;
+  const posts = Math.max(2, Math.round((x1 - x0) / 20));
+  const railAt = (x, drop) => bridgeEdgeY(bridge, x, side) - BRIDGE_RAIL_H + drop;
+  for (const drop of [3, BRIDGE_RAIL_H * 0.55]) {
+    ctx.beginPath(); ctx.moveTo(x0 + 2, railAt(x0 + 2, drop)); ctx.lineTo(x1 - 2, railAt(x1 - 2, drop));
+    ctx.strokeStyle = '#2e2216'; ctx.lineWidth = 4.6; ctx.stroke();
+    ctx.strokeStyle = side > 0 ? '#b88649' : '#9a6d3b'; ctx.lineWidth = 2.6; ctx.stroke();
+  }
+  for (let i = 0; i <= posts; i++) {
+    const x = x0 + 2 + (x1 - x0 - 4) * i / posts, y = bridgeEdgeY(bridge, x, side);
+    ctx.fillStyle = '#2e2216'; ctx.fillRect(x - 2.8, y - BRIDGE_RAIL_H - 1, 5.6, BRIDGE_RAIL_H + 3);
+    ctx.fillStyle = side > 0 ? '#c4914f' : '#a2733f'; ctx.fillRect(x - 1.8, y - BRIDGE_RAIL_H, 2.4, BRIDGE_RAIL_H + 1);
+    ctx.fillStyle = '#7a5530'; ctx.fillRect(x + 0.6, y - BRIDGE_RAIL_H, 1.2, BRIDGE_RAIL_H + 1);
+  }
+}
+
+function drawBridgeBack(ctx, bridge) {
+  const found = bridgeArt(bridge);
+  if (found) {
+    const r = bridgeArtRect(found.art, bridge, found.art.back);
+    ctx.drawImage(found.back, r.x, r.y, r.w, r.h);
+    return;
+  }
+  const random = seededRandom(SCENERY_SEED + 31);
+  const [x0] = bridge.west, [x1] = bridge.east;
+  const deck = bridgeDeckPolygon(bridge);
+  const traceDeck = (dx = 0, dy = 0) => { ctx.beginPath(); deck.forEach(([x, y], i) => i ? ctx.lineTo(x + dx, y + dy) : ctx.moveTo(x + dx, y + dy)); ctx.closePath(); };
+  const water = WORLD.terrain.filter(a => bridge.crosses.includes(a.id));
+  const overWater = x => water.some(a => pointInPolygon(x, bridgeEdgeY(bridge, x, 0), a.polygon));
+  // Shadow on the water, then trestle legs with foam where the deck spans it.
+  traceDeck(5, 9); ctx.fillStyle = 'rgba(16, 34, 38, 0.45)'; ctx.fill();
+  for (let x = x0 + 12; x < x1 - 8; x += 16) {
+    if (!overWater(x)) continue;
+    const y = bridgeEdgeY(bridge, x, 1);
+    ctx.fillStyle = '#3a2a1a'; ctx.fillRect(x - 3, y, 6, 12);
+    ctx.fillStyle = '#6e4d2c'; ctx.fillRect(x - 2, y, 2.5, 11);
+    ctx.strokeStyle = 'rgba(246, 252, 250, 0.8)'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(x, y + 12, 6, 1.8, 0, 0, Math.PI * 2); ctx.stroke();
+  }
+  // Stone abutments under each landing.
+  for (const [ex, ey] of [bridge.west, bridge.east]) {
+    for (let k = 0; k < 7; k++) {
+      drawBoulder(ctx, ex + (random() - 0.5) * 18, ey + 6 + (random() - 0.2) * bridge.halfWidth * 1.6, 4 + random() * 3, random);
+    }
+  }
+  // South fascia (the deck's visible thickness), planks, outline, far rail.
+  ctx.fillStyle = '#4a3320';
+  ctx.beginPath(); ctx.moveTo(deck[3][0], deck[3][1]); ctx.lineTo(deck[2][0], deck[2][1]);
+  ctx.lineTo(deck[2][0], deck[2][1] + 5); ctx.lineTo(deck[3][0], deck[3][1] + 5); ctx.closePath(); ctx.fill();
+  traceDeck(); ctx.fillStyle = '#b48650'; ctx.fill();
+  ctx.save(); traceDeck(); ctx.clip();
+  for (let x = x0; x < x1; x += 5.5) {
+    const top = bridgeEdgeY(bridge, x, -1) - 1, depth = bridge.halfWidth * 2 + 2;
+    ctx.fillStyle = random() < 0.5 ? 'rgba(232, 196, 136, 0.25)' : 'rgba(120, 82, 46, 0.22)';
+    ctx.fillRect(x, top, 5, depth);
+    ctx.fillStyle = 'rgba(64, 42, 22, 0.55)'; ctx.fillRect(x, top, 0.9, depth);
+  }
+  ctx.restore();
+  traceDeck(); ctx.strokeStyle = '#2e2216'; ctx.lineWidth = 1.6; ctx.stroke();
+  drawRail(ctx, bridge, -1);
+}
+
+// Near rail, drawn in the depth-sorted pass (see renderFrame).
+function drawBridgeFront(ctx, bridge) {
+  const found = bridgeArt(bridge);
+  if (found) {
+    const r = bridgeArtRect(found.art, bridge, found.art.front);
+    ctx.drawImage(found.front, r.x, r.y, r.w, r.h);
+    return;
+  }
+  drawRail(ctx, bridge, 1);
 }
 
 let staticLayerCache = { key: null, canvas: null };

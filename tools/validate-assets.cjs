@@ -138,7 +138,7 @@ for (const [id, prop] of Object.entries(manifest.props || {})) {
   checkStatus(`prop ${id}`, prop);
   if (!exists(prop.file)) { fail(`prop ${id}: missing ${prop.file}`); continue; }
   insideCrop(`prop ${id} pivot`, [0, 0, prop.size[0], prop.size[1]], prop.pivot);
-  pixelJobs.push({ label: `prop ${id}`, kind: 'image', file: prop.file, width: prop.size[0], height: prop.size[1], uncached: true });
+  pixelJobs.push({ label: `prop ${id}`, kind: 'image', file: prop.file, width: prop.size[0], height: prop.size[1], uncached: !prop.inGame });
 }
 for (const entry of Object.values(manifest.terrain)) if (entry.file && !exists(entry.file)) fail(`terrain missing: ${entry.file}`);
 
@@ -216,13 +216,20 @@ async function checkPixels() {
               if (side) { edge++; const key = (frames > 1 ? 'frame ' + (f + 1) + ' ' : '') + side; edges[key] = (edges[key] || 0) + 1; } } }
           const corner = [[0, 0], [c.width - 1, 0], [0, c.height - 1], [c.width - 1, c.height - 1]].map(([x, y]) => d[(y * c.width + x) * 4 + 3]);
           const total = c.width * c.height;
-          resolve({ w: c.width, h: c.height, clear: clear / total, opaque: opaque / total, soft: soft / total, edge, edges, corner, feet }); };
+          // Soft pixels more than 2 px from any clear pixel: see-through body, not the anti-aliased rim.
+          const A = (x, y) => x < 0 || y < 0 || x >= c.width || y >= c.height ? 0 : d[(y * c.width + x) * 4 + 3];
+          let interior = 0;
+          for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) { const a = A(x, y); if (a === 0 || a === 255) continue;
+            let rim = false; for (let dy = -2; dy <= 2 && !rim; dy++) for (let dx = -2; dx <= 2; dx++) if (A(x + dx, y + dy) === 0) { rim = true; break; }
+            if (!rim) interior++; }
+          resolve({ w: c.width, h: c.height, clear: clear / total, opaque: opaque / total, soft: soft / total, softInterior: interior / Math.max(1, total - clear), edge, edges, corner, feet }); };
         img.src = '/${job.file}'; })`);
       const where = `${job.label} (${job.file})`;
       if (Math.abs(r.w - job.width) > 1 || Math.abs(r.h - job.height) > 1) fail(`${where}: ${r.w}x${r.h}, manifest implies ${job.width}x${job.height}`);
       if (r.corner.some(a => a !== 0)) fail(`${where}: corners are not transparent`);
       if (r.clear < 0.1 || r.opaque < 0.1) fail(`${where}: no genuine alpha (clear ${(r.clear * 100).toFixed(1)}%, opaque ${(r.opaque * 100).toFixed(1)}%)`);
-      if (r.soft > 0.06) fail(`${where}: ${(r.soft * 100).toFixed(1)}% semi-transparent pixels (run tools/prepare-art.cjs)`);
+      // The 1-2 px anti-aliased rim is allowed (and is a large share of small 1x props); a see-through body is not.
+      if (r.softInterior > 0.025) fail(`${where}: ${(r.softInterior * 100).toFixed(1)}% of the body is semi-transparent away from the edge (run tools/prepare-art.cjs)`);
       if (r.edge > 0) fail(`${where}: content touches the frame edge (${Object.entries(r.edges).map(([k, v]) => `${k}: ${v}px`).join(', ')})`);
       if (job.gait) {
         const stats = await page.evaluate(`gaitStats('/${job.gait.source}', ${job.gait.frames})`);
@@ -234,7 +241,7 @@ async function checkPixels() {
         if (spread > 3) fail(`${where}: feet rows vary by ${spread}px across frames (${r.feet})`);
         if (r.feet.some(row => Math.abs(row - job.pivotRow) > 4)) fail(`${where}: feet rows ${r.feet} are off the pivot row ${job.pivotRow}`);
       }
-      ok(`${where}: ${r.w}x${r.h}, ${(r.opaque * 100).toFixed(0)}% opaque / ${(r.soft * 100).toFixed(1)}% soft, corners clear${job.kind === 'strip' ? `, feet rows ${r.feet}` : ''}`);
+      ok(`${where}: ${r.w}x${r.h}, ${(r.opaque * 100).toFixed(0)}% opaque / ${(r.soft * 100).toFixed(1)}% soft (${(r.softInterior * 100).toFixed(1)}% inside the body), corners clear${job.kind === 'strip' ? `, feet rows ${r.feet}` : ''}`);
     }
     if (page.problems.length) fail(`browser errors: ${page.problems.join('; ')}`);
   } finally {

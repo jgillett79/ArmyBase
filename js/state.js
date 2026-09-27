@@ -896,6 +896,12 @@ class GameState {
       if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {
         u.status = UNIT_STATUS.IDLE;
       }
+      // The map can change under a save (the gate brook covers the old aid
+      // station): anyone saved standing in water or rock steps to the
+      // nearest trail node before routing.
+      if (WORLD.terrain.some(area => pointInPolygon(u.x, u.y, area.polygon))) {
+        Object.assign(u, worldNodePosition(nearestTrunkNode(u.x, u.y)));
+      }
       state.routeForStatus(u); // fresh route on load rather than resuming a stale one
       return u;
     });

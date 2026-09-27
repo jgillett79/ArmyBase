@@ -202,6 +202,37 @@ const ASSET_MANIFEST = {
   props: {
     range_berm_left: { status: 'production', file: 'assets/props/range_berm_left-clean.png', source: 'assets/props/range_berm_left.png', alphaCleanup: true, size: [228, 132], pivot: [114, 128], role: 'front occluder, left firing lane' },
     range_berm_right: { status: 'production', file: 'assets/props/range_berm_right-clean.png', source: 'assets/props/range_berm_right.png', alphaCleanup: true, size: [228, 116], pivot: [114, 112], role: 'front occluder, right firing lane' },
+    // Scene props (upstream art/production/scene-props.json): cut at 1 image px
+    // per world px — soft above 1x zoom until 3x exports arrive. Placed by
+    // SCENE_PROP_PLACEMENTS in js/scenery.js.
+    scene_fence: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence-clean.png', source: 'assets/props/scene_fence.png', alphaCleanup: true, size: [80, 71], pivot: [40, 67] },
+    scene_fence_post: { status: 'provisional', inGame: true, file: 'assets/props/scene_fence_post-clean.png', source: 'assets/props/scene_fence_post.png', alphaCleanup: true, size: [28, 77], pivot: [14, 73] },
+    scene_lamp: { status: 'provisional', inGame: true, file: 'assets/props/scene_lamp-clean.png', source: 'assets/props/scene_lamp.png', alphaCleanup: true, size: [44, 63], pivot: [22, 59] },
+    scene_noticeboard: { status: 'provisional', inGame: true, file: 'assets/props/scene_noticeboard-clean.png', source: 'assets/props/scene_noticeboard.png', alphaCleanup: true, size: [60, 54], pivot: [30, 50] },
+    scene_signpost: { status: 'provisional', inGame: true, file: 'assets/props/scene_signpost-clean.png', source: 'assets/props/scene_signpost.png', alphaCleanup: true, size: [50, 63], pivot: [25, 59] },
+    scene_grass_flower: { status: 'provisional', inGame: true, file: 'assets/props/scene_grass_flower-clean.png', source: 'assets/props/scene_grass_flower.png', alphaCleanup: true, size: [52, 35], pivot: [26, 31] },
+    scene_rocks_granite: { status: 'provisional', inGame: true, file: 'assets/props/scene_rocks_granite-clean.png', source: 'assets/props/scene_rocks_granite.png', alphaCleanup: true, size: [74, 58], pivot: [37, 54] },
+    scene_rock_moss: { status: 'provisional', inGame: true, file: 'assets/props/scene_rock_moss-clean.png', source: 'assets/props/scene_rock_moss.png', alphaCleanup: true, size: [62, 46], pivot: [31, 42] },
+    scene_utility_vehicle: { status: 'provisional', inGame: true, file: 'assets/props/scene_utility_vehicle-clean.png', source: 'assets/props/scene_utility_vehicle.png', alphaCleanup: true, size: [104, 106], pivot: [52, 102] },
+  },
+
+  // Walkable bridges (WORLD.bridges). Two same-size transparent layers: `back`
+  // (abutments, trestles, shadow-free deck, far rail) under people, `front`
+  // (near rail only) over them. westPivot/eastPivot are the deck
+  // centreline's end points in the layer's pixels; the renderer pins them to
+  // the bridge's world west/east points, so the art needs no other
+  // placement data. Until delivered, js/scenery.js draws an interim bridge
+  // with the same geometry. Spec: CLAUDE_IMPLEMENTATION/06_GATE0_VISUAL_CONTRACT.md.
+  bridges: {
+    bridge_gate: {
+      status: 'missing', source: 'art/concepts/bridge-only-study.webp',
+      reason: 'The study runs diagonally (lower-left to upper-right); the gate trail crosses the brook west-east. Needs a west-east redraw split into back/front layers.',
+      // Expected once drawn — 3 art px per world px; the canvas covers world
+      // x 122..242, y 578..650 (deck ends at [134, 613] and [222, 615]):
+      // back: { file: 'assets/bridges/bridge_gate_back.png', size: [360, 216] },
+      // front: { file: 'assets/bridges/bridge_gate_front.png', size: [360, 216] },
+      // westPivot: [36, 105], eastPivot: [300, 111],
+    },
   },
 
   terrain: {

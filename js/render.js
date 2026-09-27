@@ -475,31 +475,57 @@ function drawUnit(ctx, unit, isSelected, now = performance.now()) {
     ctx.setLineDash([]);
   }
 
-  // Labels keep a constant screen size at any zoom. Soldiers always show a
-  // name (that's the point); visitors show their outfit marker.
+  ctx.restore();
+}
+
+// Labels, drawn after everything else so trees and building fronts never
+// hide them, at a constant screen size at any zoom. Soldiers always show a
+// name (that's the point) plus status and energy; visitors show their
+// outfit marker. When people stand close, a label that would overlap one
+// already placed steps up (names) or down (status) instead of printing over
+// it — two soldiers side by side at a range mat stay readable.
+function drawUnitLabels(ctx, units, selectedUnitId) {
+  ctx.save();
   ctx.font = `${px(11)}px monospace`;
   ctx.textAlign = 'center';
-  if (!unit.isCivilian) {
+  const textW = text => text.length * px(6.6); // 11px monospace advance
+  const placed = [];
+  const place = (x, y, w, h, step) => {
+    for (let k = 0; k < 4; k++) {
+      const box = { x0: x - w / 2, x1: x + w / 2, y0: y + k * step - h, y1: y + k * step };
+      if (!placed.some(b => box.x0 < b.x1 && b.x0 < box.x1 && box.y0 < b.y1 && b.y0 < box.y1)) { placed.push(box); return k * step; }
+    }
+    return 0;
+  };
+  // Selected first, then nearest the camera, so they keep the natural spot.
+  const ordered = units.slice().sort((a, b) => (b.id === selectedUnitId) - (a.id === selectedUnitId) || b.y - a.y);
+  for (const unit of ordered) {
+    const top = unit.y - UNIT_H, bottom = unit.y;
+    ctx.globalAlpha = unit.status === UNIT_STATUS.CIVILIAN_LEAVING ? 0.6 : 1;
+    if (unit.isCivilian) {
+      const marker = outfitMarker(unit.outfit);
+      if (marker) ctx.fillText(marker, unit.x, top - px(2) + place(unit.x, top - px(2), px(12), px(11), -px(12)));
+      continue;
+    }
+    const name = unit.name.split(' ')[0], status = statusLabel(unit);
+    const nameDy = place(unit.x, top - px(4), textW(name) + px(4), px(11), -px(12));
+    const statusDy = place(unit.x, bottom + px(18), Math.max(textW(status), px(24)) + px(4), px(17), px(17));
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)';
     ctx.shadowBlur = 3;
     ctx.fillStyle = '#ece6d2';
-    ctx.fillText(unit.name.split(' ')[0], unit.x, top - px(4));
-    ctx.fillText(statusLabel(unit), unit.x, bottom + px(12));
+    ctx.fillText(name, unit.x, top - px(4) + nameDy);
+    ctx.fillText(status, unit.x, bottom + px(12) + statusDy);
     ctx.restore();
     // Energy bar: low energy is what sends people to hospital.
     const barW = px(24), barH = px(3);
-    const bx = unit.x - barW / 2, by = bottom + px(15);
+    const bx = unit.x - barW / 2, by = bottom + px(15) + statusDy;
     ctx.fillStyle = 'rgba(0,0,0,0.45)';
     ctx.fillRect(bx, by, barW, barH);
     const pct = unit.energy / unit.maxEnergy;
     ctx.fillStyle = pct < 0.25 ? '#b4444a' : '#7fae4a';
     ctx.fillRect(bx, by, barW * pct, barH);
-  } else {
-    const marker = outfitMarker(unit.outfit);
-    if (marker) ctx.fillText(marker, unit.x, top - px(2));
   }
-  ctx.textAlign = 'left';
   ctx.restore();
 }
 
@@ -726,6 +752,8 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   const inView = (x, y) => x > bounds.minX && x < bounds.maxX && y > bounds.minY && y < bounds.maxY + 100;
   const items = [];
   for (const tree of scenery().trees) if (inView(tree.x, tree.y)) items.push({ y: tree.y, tree });
+  for (const bridge of WORLD.bridges) items.push({ y: bridgeFrontDepth(bridge), bridge });
+  for (const prop of SCENE_PROP_PLACEMENTS) if (inView(prop.x, prop.y)) items.push({ y: prop.y, prop });
   const hiddenCount = new Map();
   for (const unit of gameState.units) {
     if (!isUnitVisible(unit, gameState, revealed)) {
@@ -738,6 +766,8 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   items.sort((a, b) => a.y - b.y);
   for (const item of items) {
     if (item.tree) drawTree(ctx, item.tree);
+    else if (item.bridge) drawBridgeFront(ctx, item.bridge);
+    else if (item.prop) drawSceneProp(ctx, item.prop);
     else {
       drawUnit(ctx, item.unit, item.unit.id === selectedUnitId, now);
       drawFacilityActivity(ctx, item.unit, gameState, now);
@@ -745,6 +775,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   }
 
   for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id), now);
+  drawUnitLabels(ctx, items.filter(item => item.unit).map(item => item.unit), selectedUnitId);
   for (const [buildingId, count] of hiddenCount) drawOccupancyBadge(ctx, gameState.buildingByAnyId(buildingId), count);
   if (view.buildMode) drawBuildOverlay(ctx, gameState, view.buildMode, now);
   if (view.debug) drawDebugOverlay(ctx, gameState);

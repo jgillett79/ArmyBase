@@ -52,6 +52,23 @@ assert.equal(run(`__trees.filter(t => WORLD.zones.some(z => pointPolygonDistance
 assert.equal(run(`__trees.filter(t => distanceToPaths(t.x, t.y, worldEdgeList(null)) < 30).length`), 0, 'no tree on a path or entrance spur');
 assert.equal(run(`__trees.filter(t => WORLD.terrain.some(a => pointInPolygon(t.x, t.y, a.polygon))).length`), 0, 'no tree in water or on cliffs');
 
+// Scene props: all nine prepared sprites are placed, none blocks a trail,
+// site, entrance, the bridge or the gate, and trees keep off them.
+assert.deepEqual([...run('validateScenePropPlacements()')], [], 'scene props are clear');
+assert.equal(run('new Set(SCENE_PROP_PLACEMENTS.map(p => p.prop)).size'), 9, 'every prepared prop is placed');
+assert.equal(run(`__trees.filter(t => SCENE_PROP_PLACEMENTS.some(p => Math.hypot(t.x - p.x, t.y - p.y) < p.base + 16)).length`), 0, 'no tree on a prop');
+const badProps = run(`validateScenePropPlacements([
+  { prop: 'scene_lamp', x: 340, y: 614, base: 4 },
+  { prop: 'scene_lamp', x: 178, y: 614, base: 4 },
+  { prop: 'scene_lamp', x: 256, y: 570, base: 4 },
+  { prop: 'scene_rocks_granite', x: 250, y: 470, base: 14 },
+  { prop: 'scene_rocks_granite', x: 176, y: 720, base: 14 }])`);
+for (const pattern of [/on a trail/, /on bridge_gate/, /blocks zone_reception entrance/, /on zone_reception/, /in water or rock/]) {
+  assert.ok(badProps.some(p => pattern.test(p)), `prop validator catches ${pattern}`);
+}
+// Bridge layering: the near rail sorts below people on the deck.
+assert.ok(run(`bridgeFrontDepth(WORLD.bridges[0]) > Math.max(WORLD.bridges[0].west[1], WORLD.bridges[0].east[1])`), 'near rail in front of the deck');
+
 // Construction sites: an unbuilt facility can take a free zone or swap with
 // another unbuilt one; built zones and wrong types are blocked; the economy
 // check is unchanged.

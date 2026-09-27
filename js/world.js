@@ -41,11 +41,19 @@ const WORLD = {
   terrain: [
     { id: 'cliff_north', kind: 'cliff', polygon: [[0, 0], [1330, 0], [1300, 48], [1190, 72], [1050, 60], [910, 84], [770, 66], [630, 92], [490, 74], [350, 106], [230, 98], [130, 150], [64, 236], [0, 262]] },
     // Western spur: the gate sits in a rocky notch between it and rock_west.
-    { id: 'cliff_west_spur', kind: 'cliff', polygon: [[0, 250], [70, 236], [132, 256], [150, 330], [128, 410], [140, 470], [118, 540], [70, 568], [0, 572]] },
+    // Its foot stops at y 548 near the gate so the checkpoint kiosk fits
+    // between cliff and trail (WORLD.checkpoint).
+    { id: 'cliff_west_spur', kind: 'cliff', polygon: [[0, 250], [70, 236], [132, 256], [150, 330], [128, 410], [140, 470], [118, 526], [84, 540], [0, 548]] },
     { id: 'rock_west', kind: 'rock', polygon: [[0, 705], [58, 694], [112, 742], [96, 828], [40, 852], [0, 860]] },
     { id: 'pond_southwest', kind: 'water', polygon: [[120, 860], [210, 830], [310, 845], [340, 900], [300, 950], [190, 955], [120, 920]] },
     // Creek from the pond to the river: the base's southern edge.
     { id: 'creek_south', kind: 'water', polygon: [[332, 866], [460, 872], [600, 860], [760, 868], [900, 858], [1020, 866], [1116, 878], [1124, 906], [1020, 896], [900, 890], [760, 900], [600, 892], [460, 902], [336, 912]] },
+    // Gate brook: a spring from the cliff spur's foot down to the pond, just
+    // inside the gate. It exists so the default 960 x 576 frame shows water
+    // and a walkable bridge beside the gate and Entrance Hall — the river is
+    // 1300 world px east and can't share that frame. Crossed only by
+    // WORLD.bridges.bridge_gate on the gate trail.
+    { id: 'brook_gate', kind: 'water', polygon: [[98, 532], [122, 562], [148, 598], [158, 622], [160, 652], [152, 690], [148, 730], [148, 770], [152, 810], [160, 852], [198, 840], [186, 800], [182, 760], [186, 720], [198, 680], [206, 642], [202, 606], [180, 576], [150, 540], [116, 516]] },
     { id: 'rock_knoll', kind: 'rock', polygon: [[822, 432], [864, 414], [906, 436], [900, 482], [852, 494], [816, 470]] },
     { id: 'river', kind: 'water', polygon: [[1330, 0], [1460, 0], [1482, 140], [1522, 300], [1522, 500], [1472, 660], [1372, 800], [1262, 900], [1202, 960], [1062, 960], [1122, 900], [1222, 820], [1322, 700], [1392, 560], [1420, 420], [1400, 262], [1352, 120]] },
     { id: 'far_bank', kind: 'cliff', polygon: [[1460, 0], [1600, 0], [1600, 960], [1202, 960], [1262, 900], [1372, 800], [1472, 660], [1522, 500], [1522, 300], [1482, 140]] },
@@ -56,7 +64,7 @@ const WORLD = {
     gate_outside: { x: -40, y: 610 },
     gate: { x: 40, y: 610 },          // checkpoint in the gap of the west fence
     gate_inside: { x: 120, y: 612 },
-    aid_station: { x: 176, y: 688 },  // hospital fallback: where recovering soldiers wait
+    aid_station: { x: 236, y: 690 },  // hospital fallback: where recovering soldiers wait (east of the brook)
     t1: { x: 250, y: 615 },
     t2: { x: 430, y: 600 },
     t3: { x: 590, y: 575 },
@@ -76,7 +84,8 @@ const WORLD = {
   edges: [
     { from: 'gate_outside', to: 'gate' },
     { from: 'gate', to: 'gate_inside' },
-    { from: 'gate_inside', to: 't1', via: [[186, 620]] },
+    // Runs straight over the gate bridge deck (see bridges below).
+    { from: 'gate_inside', to: 't1', via: [[134, 613], [222, 615]] },
     { from: 't1', to: 'aid_station' },
     { from: 't1', to: 't2', via: [[340, 614]] },
     { from: 't2', to: 't3', via: [[512, 594]] },
@@ -93,6 +102,28 @@ const WORLD = {
     { from: 'n4', to: 'n5', via: [[1094, 396]] },
     { from: 'n5', to: 't6', via: [[1104, 526]] },
   ],
+
+  // Walkable crossings. A path may pass over the water areas in `crosses`
+  // only where it runs along the deck: from `west` to `east` (world px,
+  // deck centreline ends, both on dry land) and within `halfWidth` of that
+  // line. validateWorld() enforces this; render/scenery draw the deck under
+  // people and the near (south) rail in front of them.
+  bridges: [
+    { id: 'bridge_gate', edge: ['gate_inside', 't1'], crosses: ['brook_gate'], west: [134, 613], east: [222, 615], halfWidth: 14 },
+  ],
+
+  // Gate checkpoint (presentation anchors for the kiosk and boom art; the
+  // simulation's checkpoint stop is still the `gate` node). The kiosk stands
+  // north of the trail with its service window facing the trail and the
+  // camera. The boom SWINGS in the ground plane from a hinge south of the
+  // trail: closed it points north across the trail, open it lies east
+  // along the trail edge. (A boom that lifts vertically would look the same
+  // raised or lowered in this top-down three-quarter camera.)
+  checkpoint: {
+    kiosk: [[48, 552], [92, 552], [92, 590], [48, 590]], kioskPivot: { x: 70, y: 590 },
+    pause: { x: 58, y: 611 }, guard: { x: 96, y: 598 },
+    boomHinge: { x: 40, y: 632 }, boomLength: 42, boomClosedAngle: -90, boomOpenAngle: 0,
+  },
 
   // Named safe nodes for fallbacks (migration, stuck units, departures).
   safeNodes: { gate: 'gate_inside', waiting: 'door:zone_reception', hospital: 'aid_station' },
@@ -335,6 +366,22 @@ function polygonBounds(polygon) {
 function polygonCentroid(polygon) {
   const sum = polygon.reduce((acc, p) => [acc[0] + p[0], acc[1] + p[1]], [0, 0]);
   return { x: sum[0] / polygon.length, y: sum[1] / polygon.length };
+}
+
+// ---------------------------------------------------------------------------
+// Bridges
+// ---------------------------------------------------------------------------
+
+// The deck as a polygon: the west-east centreline widened by halfWidth.
+function bridgeDeckPolygon(bridge) {
+  const [wx, wy] = bridge.west, [ex, ey] = bridge.east;
+  const length = Math.hypot(ex - wx, ey - wy);
+  const nx = -(ey - wy) / length * bridge.halfWidth, ny = (ex - wx) / length * bridge.halfWidth;
+  return [[wx + nx, wy + ny], [ex + nx, ey + ny], [ex - nx, ey - ny], [wx - nx, wy - ny]];
+}
+
+function bridgesOnEdge(from, to, world = WORLD) {
+  return (world.bridges || []).filter(b => (b.edge[0] === from && b.edge[1] === to) || (b.edge[0] === to && b.edge[1] === from));
 }
 
 // ---------------------------------------------------------------------------
@@ -590,12 +637,36 @@ function validateWorld(world = WORLD) {
     }
   }
 
+  // Bridges: both deck ends on dry land, the deck really spans each water
+  // area it claims, it belongs to a trail edge and keeps off build sites.
+  for (const bridge of world.bridges || []) {
+    const deck = bridgeDeckPolygon(bridge);
+    if (!world.edges.some(e => bridgesOnEdge(e.from, e.to, world).includes(bridge))) errors.push(`${bridge.id}: not on a trail edge`);
+    for (const end of [bridge.west, bridge.east]) {
+      for (const area of world.terrain) {
+        if (pointPolygonDistance(end[0], end[1], area.polygon) < PATH_CLEARANCE) errors.push(`${bridge.id}: deck end [${end}] is not on dry land (${area.id})`);
+      }
+    }
+    for (const id of bridge.crosses) {
+      const area = world.terrain.find(a => a.id === id);
+      if (!area || area.kind !== 'water') errors.push(`${bridge.id}: crosses unknown water ${id}`);
+      else if (segmentPolygonDistance(bridge.west, bridge.east, area.polygon) > 0) errors.push(`${bridge.id}: deck does not span ${id}`);
+    }
+    for (const zone of world.zones) {
+      if (polygonDistance(deck, zone.footprint) < ZONE_CLEARANCE) errors.push(`${bridge.id}: too close to ${zone.id}`);
+    }
+  }
+
   const edges = worldEdgeList(null, world);
   for (const edge of edges) {
     for (const id of [edge.from, edge.to]) if (!worldNodePosition(id, world)) errors.push(`edge references unknown node ${id}`);
+    const decks = bridgesOnEdge(edge.from, edge.to, world).map(b => ({ polygon: bridgeDeckPolygon(b), crosses: b.crosses }));
     for (let k = 1; k < edge.points.length; k++) {
       const a = [edge.points[k - 1].x, edge.points[k - 1].y], b = [edge.points[k].x, edge.points[k].y];
+      // A segment lying on a bridge deck may pass over the water it spans.
+      const onDeck = decks.filter(d => pointInPolygon(a[0], a[1], d.polygon) && pointInPolygon(b[0], b[1], d.polygon));
       for (const area of world.terrain) {
+        if (onDeck.some(d => d.crosses.includes(area.id))) continue;
         if (segmentPolygonDistance(a, b, area.polygon) < PATH_CLEARANCE) errors.push(`path ${edge.from}-${edge.to} crosses ${area.id}`);
       }
       for (const zone of world.zones) {
@@ -617,6 +688,17 @@ function validateWorld(world = WORLD) {
   for (const id of Object.keys(world.nodes)) if (!seen.has(id)) errors.push(`node ${id} unreachable from the gate`);
   for (const zone of world.zones) if (!seen.has(doorNodeId(zone.id))) errors.push(`${zone.id} unreachable from the gate`);
   for (const [role, id] of Object.entries(world.safeNodes)) if (!seen.has(id)) errors.push(`safe ${role} node ${id} unreachable`);
+
+  // The kiosk stands on dry ground beside (not on) the trail, off every site.
+  if (world.checkpoint) {
+    const { kiosk } = world.checkpoint;
+    for (const area of world.terrain) if (polygonDistance(kiosk, area.polygon) < 4) errors.push(`checkpoint kiosk too close to ${area.id}`);
+    for (const zone of world.zones) if (polygonDistance(kiosk, zone.footprint) < ZONE_CLEARANCE) errors.push(`checkpoint kiosk too close to ${zone.id}`);
+    for (const edge of edges) for (let k = 1; k < edge.points.length; k++) {
+      const a = [edge.points[k - 1].x, edge.points[k - 1].y], b = [edge.points[k].x, edge.points[k].y];
+      if (segmentPolygonDistance(a, b, kiosk) < 17) { errors.push(`checkpoint kiosk on path ${edge.from}-${edge.to}`); break; }
+    }
+  }
 
   // Placements: each default is legal, and no two buildings share a zone.
   const used = new Map();

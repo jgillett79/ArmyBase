@@ -1,5 +1,5 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v8';
+const CACHE_NAME = 'command-base-v9';
 const APP_FILES = [
   "./",
   "index.html",
@@ -40,6 +40,15 @@ const APP_FILES = [
   "assets/illustrations/base-sunrise.webp",
   "assets/illustrations/icon-192.png",
   "assets/illustrations/icon-512.png",
+  "assets/props/scene_fence-clean.png",
+  "assets/props/scene_fence_post-clean.png",
+  "assets/props/scene_grass_flower-clean.png",
+  "assets/props/scene_lamp-clean.png",
+  "assets/props/scene_noticeboard-clean.png",
+  "assets/props/scene_rock_moss-clean.png",
+  "assets/props/scene_rocks_granite-clean.png",
+  "assets/props/scene_signpost-clean.png",
+  "assets/props/scene_utility_vehicle-clean.png",
   "assets/terrain/.gitkeep",
   "assets/terrain/ground.png",
   "assets/terrain/ground_apron-v2.webp",
