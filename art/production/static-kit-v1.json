@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "camera": "three-quarter south",
+  "light": "upper-left",
+  "density": "2 image pixels per world pixel at default zoom",
+  "assets": [
+    {
+      "id": "range_target",
+      "source": "art/production/source/range-target-v1.webp",
+      "path": "assets/props/range_target.png",
+      "pixelSize": [
+        106,
+        132
+      ],
+      "defaultWorldSize": [
+        53.0,
+        66.0
+      ],
+      "pivotPx": [
+        53,
+        128
+      ],
+      "role": "ground",
+      "status": "prepared; game integration and screenshot approval pending"
+    },
+    {
+      "id": "lift_barbell",
+      "source": "art/production/source/lift-barbell-v1.webp",
+      "path": "assets/props/lift_barbell.png",
+      "pixelSize": [
+        172,
+        73
+      ],
+      "defaultWorldSize": [
+        86.0,
+        36.5
+      ],
+      "pivotPx": [
+        86,
+        36
+      ],
+      "role": "centre",
+      "status": "prepared; game integration and screenshot approval pending"
+    },
+    {
+      "id": "rec_bench",
+      "source": "art/production/source/rec-bench-v1.webp",
+      "path": "assets/props/rec_bench.png",
+      "pixelSize": [
+        180,
+        128
+      ],
+      "defaultWorldSize": [
+        90.0,
+        64.0
+      ],
+      "pivotPx": [
+        90,
+        124
+      ],
+      "role": "ground",
+      "status": "prepared; game integration and screenshot approval pending"
+    },
+    {
+      "id": "gate_boom",
+      "source": "art/production/source/gate-boom-v1.webp",
+      "path": "assets/props/gate_boom.png",
+      "pixelSize": [
+        184,
+        49
+      ],
+      "defaultWorldSize": [
+        92.0,
+        24.5
+      ],
+      "pivotPx": [
+        5,
+        34
+      ],
+      "role": "hinge",
+      "status": "prepared; game integration and screenshot approval pending"
+    }
+  ]
+}
