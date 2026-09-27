@@ -1,0 +1,63 @@
+{
+  "density": 3,
+  "camera": "top-down oblique",
+  "assets": [
+    {
+      "id": "side_face",
+      "file": "assets/terrain/cliff_side_face_3x.png",
+      "size": [
+        384,
+        183
+      ],
+      "tileWorldLength": 128,
+      "edgeRowPx": 12,
+      "horizontallySeamless": true,
+      "status": "trial; map contour review pending"
+    },
+    {
+      "id": "left_cap",
+      "file": "assets/terrain/cliff_side_cap_left_3x.png",
+      "size": [
+        152,
+        183
+      ],
+      "edgeRowPx": 12,
+      "joinEdge": "right",
+      "overlapPx": 15,
+      "status": "trial; join review pending"
+    },
+    {
+      "id": "right_cap",
+      "file": "assets/terrain/cliff_side_cap_right_3x.png",
+      "size": [
+        152,
+        183
+      ],
+      "edgeRowPx": 12,
+      "joinEdge": "left",
+      "overlapPx": 15,
+      "status": "trial; join review pending"
+    },
+    {
+      "id": "boom_rest",
+      "file": "assets/props/gate_boom_rest_post.png",
+      "size": [
+        50,
+        74
+      ],
+      "groundPivotPx": [
+        25,
+        70
+      ],
+      "forkSeatPx": [
+        25,
+        20
+      ],
+      "proposedWorldGround": [
+        40,
+        594
+      ],
+      "status": "prepared; closed-tip placement check pending"
+    }
+  ]
+}

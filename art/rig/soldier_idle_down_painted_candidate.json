@@ -1,0 +1,24 @@
+{
+  "cell": [
+    256,
+    384
+  ],
+  "pivot": [
+    128,
+    330
+  ],
+  "frames": 2,
+  "feetLowestRow": [
+    [
+      330,
+      330
+    ],
+    [
+      330,
+      330
+    ]
+  ],
+  "source": "art/rig/soldier_idle_down_painted_candidate.png",
+  "accent": "art/rig/soldier_idle_down_painted_candidate_accent.png",
+  "status": "candidate; in-game continuity review pending"
+}

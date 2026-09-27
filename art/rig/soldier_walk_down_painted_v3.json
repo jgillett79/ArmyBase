@@ -1,0 +1,100 @@
+{
+ "cell": [
+  256,
+  384
+ ],
+ "pivot": [
+  128,
+  330
+ ],
+ "strideWorld": 22,
+ "pxPerWorld": 6.818181818181818,
+ "frames": 6,
+ "measured": true,
+ "source": "art/rig/soldier_walk_down_painted_v3.png",
+ "helmetTop": [
+  30,
+  30,
+  30,
+  30,
+  30,
+  30
+ ],
+ "track": [
+  {
+   "left": {
+    "x": 103.5,
+    "y": 370.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128.0,
+    "y": 320.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 108.5,
+    "y": 345.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128.0,
+    "y": 339.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 106.5,
+    "y": 320.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128.0,
+    "y": 312.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 127.0,
+    "y": 288.5,
+    "planted": false
+   },
+   "right": {
+    "x": 159.5,
+    "y": 370.5,
+    "planted": true
+   }
+  },
+  {
+   "left": {
+    "x": 112.0,
+    "y": 308.5,
+    "planted": false
+   },
+   "right": {
+    "x": 156.5,
+    "y": 345.5,
+    "planted": true
+   }
+  },
+  {
+   "left": {
+    "x": 104.5,
+    "y": 312.5,
+    "planted": false
+   },
+   "right": {
+    "x": 156.5,
+    "y": 320.5,
+    "planted": true
+   }
+  }
+ ],
+ "accent": {
+  "file": "art/rig/soldier_walk_down_painted_v3_accent.png"
+ }
+}
