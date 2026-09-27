@@ -1,5 +1,7 @@
 # Command Base implementation briefs for Claude
 
+**Current handoff, 27 September 2026:** briefs 01–04 are already implemented on `main`. Their original branch/PR instructions below are historical. Start new work from [`FIRST_BASE_DELIVERY_PLAN.md`](../FIRST_BASE_DELIVERY_PLAN.md) and [`art/FIRST_BASE_ASSET_LIST.md`](../art/FIRST_BASE_ASSET_LIST.md), then read [`05_VISIBLE_FACILITY_ACTIONS.md`](05_VISIBLE_FACILITY_ACTIONS.md) for real facility use. Pull latest `main` before integrating new art. Codex is preparing art while Claude owns runtime code and `js/asset-manifest.js`.
+
 Read `DESIGN.md` (especially **Target: a terrain-shaped, inhabited base**), `GOLDEN_SLICE.md`, `js/state.js`, `js/render.js`, `js/unit.js`, `js/main.js`, and the current smoke tests before coding. Look at `art/concepts/` for visual intent. The concept images are not finished game sprites.
 
 Work **in order**, one PR per brief against `command-base-beta-import` (or a successor integration branch). The briefs depend on the previous one. Do not run them as competing whole-project rewrites. Make focused commits, list files changed and commands run, and include a screenshot/short screen recording when the change affects the canvas. Do not push directly to `main`.
