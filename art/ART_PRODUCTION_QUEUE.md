@@ -8,6 +8,7 @@ This set is available on `main` for inspection; adding source art to Git does no
 | River crossing | `art/explorations/bridge-crossing-study.webp` and `art/concepts/bridge-only-study.webp` | Scene + isolated bridge studies | Fit isolated bridge to two bank anchors, separate its rails for unit occlusion, and add a valid graph crossing if walkable. Never stack the scene-study water over rendered river. |
 | Weight room | `art/concepts/weight-room-study.webp` | Building study | Four visible equipment slots; split back/floor, canopy and foreground walls; footprint and entrance review. |
 | Obstacle course | `art/concepts/obstacle-course-study.webp` | Outdoor station study | Four visible distinct obstacles; separate front vault wall, crop ground footprint, map activity anchors. |
+| Obstacle course interaction | `CLAUDE_IMPLEMENTATION/05_VISIBLE_FACILITY_ACTIONS.md` | **Not yet implemented** | A real ascent/crest/descent on the cargo net, separate front/back occlusion, coordinated character frames and stable reservations. |
 | Drill yard | `art/concepts/drill-yard-study.webp` | Outdoor station study | Dummy and ring slots; separate front fence, fit irregular footprint. |
 | Showers | `art/concepts/showers-study.webp` | Cutaway study | Four stalls; split back/floor, roof and front partitions, confirm privacy/visibility at game size. |
 | Rec room | `art/concepts/rec-room-study.webp` | Cutaway study | Two table groups; split rear, roof and front rail, review seating anchors. |
