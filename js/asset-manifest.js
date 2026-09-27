@@ -152,9 +152,16 @@ const ASSET_MANIFEST = {
         status: 'candidate', framesPerDirection: 6, directions: ['down', 'up', 'right'], strideWorld: 22,
         drawn: {
           down: {
-            status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v1.webp', version: 1,
-            source: 'art/rig/soldier_walk_down.png', accent: 'art/rig/soldier_walk_down_accent.png',
-            gaitTrack: 'art/rig/soldier_walk_down.json', alphaCleanup: true, tint: 'none',
+            // v2: Codex's paint-over of the rig template (art/production/
+            // TERRAIN_AND_WALK_HANDOFF.md). Its foot track is MEASURED from the
+            // pixels (tools/measure-foot-track.cjs), not rendered: planted feet
+            // move 24, 22 | 25, 18 source px per frame against 25 needed (up to
+            // ~1 world px of skate at frame 5->6); helmet fixed at row 30 (no
+            // bob); accent 100% on the body, identical in every frame.
+            // The rig's own v1 strip regenerates with tools/rig-soldier.cjs.
+            status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v2.webp', version: 2,
+            source: 'art/rig/soldier_walk_down_painted_candidate.png', accent: 'art/rig/soldier_walk_down_painted_candidate_accent.png',
+            gaitTrack: 'art/rig/soldier_walk_down_painted_candidate.json', alphaCleanup: true, tint: 'none',
             frames: [[0, 0, 256, 384], [256, 0, 256, 384], [512, 0, 256, 384], [768, 0, 256, 384], [1024, 0, 256, 384], [1280, 0, 256, 384]],
             pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
             names: ['R contact', 'R down', 'passing', 'L contact', 'L down', 'passing'],
@@ -253,6 +260,17 @@ const ASSET_MANIFEST = {
   terrain: {
     ground_grass: { status: 'interim', file: 'assets/terrain/ground_grass-v2.webp', tile: true },
     ground_apron: { status: 'interim', file: 'assets/terrain/ground_apron-v2.webp', tile: true },
+    // Edge strips (art/production/terrain-strips-v1.json): 3 px per world px,
+    // horizontally seamless every 128 world px, `edgeRow` = the image row that
+    // sits on the contour. A TRIAL: candidates, shown only with
+    // ?art=candidates, draped column by column along camera-facing cliff feet
+    // and the north banks of water (js/scenery.js). The corner pieces aren't
+    // used: draping follows the curves continuously.
+    cliff_face: { status: 'candidate', file: 'assets/terrain/cliff_face_3x.png', density: 3, size: [384, 184], edgeRow: 12, role: 'cliff lip at the plateau edge, face hangs to the foot' },
+    shore_edge: { status: 'candidate', file: 'assets/terrain/shore_edge_3x.png', density: 3, size: [384, 142], edgeRow: 114, role: 'land lip above water; edge row on the waterline' },
+    foam_rock_drop: { status: 'candidate', file: 'assets/terrain/foam_rock_drop_3x.png', density: 3, size: [384, 82], edgeRow: 41, role: 'foam at the waterline' },
+    shore_corner_west_to_south: { status: 'candidate', file: 'assets/terrain/shore_corner_west_to_south_3x.png', density: 3, size: [256, 256], corner: [128, 128], unused: true },
+    shore_corner_east_to_south: { status: 'candidate', file: 'assets/terrain/shore_corner_east_to_south_3x.png', density: 3, size: [256, 256], corner: [128, 128], unused: true },
     procedural: { status: 'interim', note: 'Cliffs, water, trees, rocks and fences are drawn in js/scenery.js until the terrain kit exists.' },
   },
 };

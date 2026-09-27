@@ -53,8 +53,8 @@ Claude's Gate 0 deliverable from `FIRST_BASE_DELIVERY_PLAN.md`: the current game
 ## Gate checkpoint (`WORLD.checkpoint`)
 
 - **Kiosk footprint** x 48–92, y 552–590, north of the trail, with its service window facing south toward the trail and the camera. Ground pivot (70, 590). Suggested canvas: world x 40–100, y 490–596, which is **180 × 318 px** with the pivot at (90, 300). Deliver two layers on the same canvas, `gate_kiosk_back.png` and `gate_kiosk_front.png`; the front holds only what a guard stands behind.
-- **Boom: swings in the ground plane.** The hinge is south of the trail at **(40, 632)**, and the boom is 42 world px long. Closed, it points north across the trail (to (40, 590)); open, it lies east along the trail edge (to (82, 632)). Deliver `gate_boom.png` drawn **horizontal, pointing right**, at waist height (about 16 world px up), plus `gate_boom_post.png` (the fixed hinge post, never redrawn). Give the hinge-pin pixel in both. The game rotates the boom about the pin, and a thin striped pole stays correct under that rotation.
-- **People anchors:** the visitor pauses at (58, 611) on the trail and the guard stands at (96, 598) at the trail's north edge. The visitor/guard greeting poses face each other left and right.
+- **Boom: swings in the ground plane.** The hinge's **ground point** (the post's foot) is south of the trail at **(40, 632)**; the pin is at the post's height above it, and the boom is 42 world px long. Closed, it points north across the trail (to (40, 590)); open, it lies east along the trail edge (to (82, 632)). Deliver `gate_boom.png` drawn **horizontal, pointing right**, at waist height (about 16 world px up), plus `gate_boom_post.png` (the fixed hinge post, never redrawn). Give the hinge-pin pixel in both. The game rotates the boom about the pin, and a thin striped pole stays correct under that rotation.
+- **People anchors:** the visitor pauses at (20, 611), outside the closed boom (changed during integration; see `07_GATE_ART_REVIEW.md`), and the guard stands at (96, 598) at the trail's north edge. The visitor/guard greeting poses face each other left and right.
 
 ## Facilities in the target scene
 

@@ -1,0 +1,8 @@
+PASS checkpoint art loaded (otherwise the interim gatehouse draws)
+PASS bridge art loaded (otherwise the procedural bridge draws)
+PASS paused at the closed boom: visitor (19, 611), boom -90 deg
+PASS boom swinging open: visitor (19, 611), boom -59 deg
+PASS walking through the open gate: visitor (47, 610), boom 0 deg
+PASS on the bridge, behind the near rail: visitor (152, 613), boom -90 deg
+PASS boom closes again once the gap is clear
+PASS phone: visitor on the bridge

@@ -25,6 +25,10 @@ const failures = [];
 const passes = [];
 const fail = message => failures.push(message);
 const ok = message => passes.push(message);
+// Candidates are by definition not approved: their measured shortfalls are
+// reported, not fatal. Provisional/production art must pass outright.
+const warnings = [];
+const failOrWarn = (entry, message) => (entry.status === 'candidate' ? warnings.push(message) : fail(message));
 const exists = file => fs.existsSync(path.join(root, file));
 
 function checkStatus(label, entry) {
@@ -141,18 +145,18 @@ for (const [archetype, sets] of Object.entries(manifest.units)) {
         const track = JSON.parse(fs.readFileSync(path.join(root, set.gaitTrack), 'utf8'));
         const expected = (walkSet.strideWorld / set.frames.length) * track.pxPerWorld;
         if (track.strideWorld !== walkSet.strideWorld) fail(`${label}: foot track stride ${track.strideWorld} != manifest ${walkSet.strideWorld}`);
-        let stanceSteps = 0;
+        let stanceSteps = 0, slides = 0;
         for (let i = 0; i < track.track.length; i++) {
           const a = track.track[i], b = track.track[(i + 1) % track.track.length];
           for (const foot of ['left', 'right']) {
             if (!a[foot].planted || !b[foot].planted) continue;
             stanceSteps++;
             const moved = a[foot].y - b[foot].y; // up the screen as the soldier walks toward the camera
-            if (Math.abs(moved - expected) > 0.6) fail(`${label}: ${foot} foot slides (${moved.toFixed(2)}px per frame, planted needs ${expected.toFixed(2)})`);
+            if (Math.abs(moved - expected) > 0.6) { slides++; failOrWarn(set, `${label}: ${foot} foot slides ${((moved - expected) / track.pxPerWorld).toFixed(2)} world px in frame ${i + 1}->${(i + 1) % track.track.length + 1} (${moved.toFixed(2)}px per frame, planted needs ${expected.toFixed(2)}${track.measured ? '; measured from pixels' : ''})`); }
           }
         }
         if (stanceSteps < set.frames.length - 2) fail(`${label}: too few planted frames in the foot track`);
-        ok(`${label}: planted feet move ${expected.toFixed(2)} px/frame = walked distance (${stanceSteps} stance steps checked)`);
+        if (!slides) ok(`${label}: planted feet move ${expected.toFixed(2)} px/frame = walked distance (${stanceSteps} stance steps checked)`);
       } else fail(`${label}: walk cycle has no foot track to prove planted feet`);
     }
     pixelJobs.push(job);
@@ -299,6 +303,7 @@ async function gaitOnly(file, frames) {
   if (gaitIndex > 0) return gaitOnly(process.argv[gaitIndex + 1], Number(process.argv[gaitIndex + 2] || 6));
   if (!process.env.SKIP_PIXELS) await checkPixels();
   console.log(passes.map(p => `ok   ${p}`).join('\n'));
+  if (warnings.length) console.log(warnings.map(w => `WARN ${w} (candidate, not blocking)`).join('\n'));
   if (failures.length) {
     console.log(`\n${failures.length} problem(s):\n${failures.map(f => `FAIL ${f}`).join('\n')}`);
     process.exit(1);

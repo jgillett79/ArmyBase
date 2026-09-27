@@ -1,0 +1,150 @@
+{
+ "cell": [
+  256,
+  384
+ ],
+ "pivot": [
+  128,
+  330
+ ],
+ "strideWorld": 22,
+ "pxPerWorld": 6.818181818181818,
+ "frames": 6,
+ "measured": true,
+ "source": "art/rig/soldier_walk_down_painted_candidate.png",
+ "helmetTop": [
+  30,
+  30,
+  30,
+  30,
+  30,
+  30
+ ],
+ "track": [
+  {
+   "left": {
+    "x": 103.5,
+    "y": 370.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128,
+    "y": 320.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 108.5,
+    "y": 346.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128.5,
+    "y": 339.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 106.5,
+    "y": 324.5,
+    "planted": true
+   },
+   "right": {
+    "x": 128,
+    "y": 315.5,
+    "planted": false
+   }
+  },
+  {
+   "left": {
+    "x": 127,
+    "y": 361.5,
+    "planted": false
+   },
+   "right": {
+    "x": 151.5,
+    "y": 370.5,
+    "planted": true
+   }
+  },
+  {
+   "left": {
+    "x": 127,
+    "y": 340.5,
+    "planted": false
+   },
+   "right": {
+    "x": 144.5,
+    "y": 345.5,
+    "planted": true
+   }
+  },
+  {
+   "left": {
+    "x": 127,
+    "y": 321.5,
+    "planted": false
+   },
+   "right": {
+    "x": 147,
+    "y": 327.5,
+    "planted": true
+   }
+  }
+ ],
+ "accent": {
+  "file": "art/rig/soldier_walk_down_painted_candidate_accent.png",
+  "perFrame": [
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   },
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   },
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   },
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   },
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   },
+   {
+    "pixels": 538,
+    "onBody": 1,
+    "centroid": [
+     138.3,
+     75.5
+    ]
+   }
+  ]
+ }
+}

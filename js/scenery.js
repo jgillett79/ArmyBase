@@ -314,6 +314,46 @@ function drawBush(ctx, x, y, r, random) {
   ctx.beginPath(); ctx.arc(x - r * 0.4, y - r * 0.9, r * 0.35, 0, Math.PI * 2); ctx.fill();
 }
 
+// --- terrain strip trial -------------------------------------------------------
+//
+// Candidate edge strips (ASSET_MANIFEST.terrain.cliff_face etc., shown only
+// with ?art=candidates). Faces are vertical in this camera, so a strip is
+// never rotated: it is draped one narrow column at a time along the
+// contour, each column's edge row on the contour point, its texture taken
+// from world x so the 128-world-px repeat stays seamless. Only edges the
+// strip was drawn for (camera-facing, gentle slope) use it; the rest keep
+// the procedural drawing.
+
+const STRIP_COLUMN_WORLD = 2;
+
+function terrainStrip(id) {
+  const entry = ASSET_MANIFEST.terrain[id];
+  const allow = typeof ALLOW_CANDIDATE_ART !== 'undefined' && ALLOW_CANDIDATE_ART;
+  if (!entry || !entry.file || !assetInUse(entry, allow)) return null;
+  const img = FACILITY_SPRITES[entry.file] ||= loadSprite(entry.file);
+  return spriteReady(img) ? { entry, img } : null;
+}
+
+// Camera-facing (outward normal down the screen) or, with `sign` -1, the
+// land-above side of water; gentle enough that columns don't smear.
+function stripSamples(polygon, sign) {
+  return outlineSamples(polygon, 1.5).filter(s => s.ny * sign > 0.8); // within ~37 deg of horizontal: steeper banks smear (river trial)
+}
+
+function drapeStrip(ctx, strip, samples, lift = 0) {
+  const { entry, img } = strip;
+  const d = entry.density, colPx = STRIP_COLUMN_WORLD * d;
+  for (const s of samples.slice().sort((a, b) => a.y - b.y)) {
+    const u = Math.min(entry.size[0] - colPx, (((s.x * d) % entry.size[0]) + entry.size[0]) % entry.size[0]);
+    ctx.drawImage(img, u, 0, colPx, entry.size[1],
+      s.x - STRIP_COLUMN_WORLD / 2, s.y - lift - entry.edgeRow / d, STRIP_COLUMN_WORLD + 0.4, entry.size[1] / d);
+  }
+}
+
+function terrainStripsReady() {
+  return ['cliff_face', 'shore_edge', 'foam_rock_drop'].filter(id => terrainStrip(id)).length;
+}
+
 // Cliffs and outcrops. The authored polygon is the FOOT of the rock — the
 // ground it excludes — so faces never spill onto paths or build zones. The
 // plateau is the same outline raised by `rise`; every side not facing away
@@ -343,8 +383,14 @@ function drawRockMass(ctx, area, random) {
   // Faces: columns from the plateau rim down to the foot, sorted so nearer
   // (lower) columns overlap farther ones. Side-facing edges show narrower,
   // shorter steps.
+  // Trial: a cliff's camera-facing foot takes the cliff_face strip instead.
+  const cliffStrip = cliff ? terrainStrip('cliff_face') : null;
+  const stripped = cliffStrip ? stripSamples(poly, 1) : [];
+  const nearStrip = s => stripped.some(t => Math.abs(t.x - s.x) < 3 && Math.abs(t.y - s.y) < 3);
   const columns = face.map(s => ({ s, jitter: random(), width: (cliff ? 24 : 16) + random() * 10 }))
+    .filter(c => !cliffStrip || !nearStrip(c.s))
     .sort((a, b) => a.s.y - b.s.y);
+  if (cliffStrip) drapeStrip(ctx, cliffStrip, stripped, rise);
   for (const { s, jitter, width } of columns) {
     const step = rise * (0.72 + jitter * 0.28); // uneven tops read as stepped rock
     drawRockColumn(ctx, s.x, s.y - step, width * (0.8 + 0.2 * Math.max(0, s.ny)), step + 3, random);
@@ -389,8 +435,14 @@ function drawWater(ctx, area, random) {
   // rock drop into the water; the rest get pebbles half in the water. Where
   // this water runs into another (brook into pond) there is no bank.
   const otherWater = WORLD.terrain.filter(a => a.kind === 'water' && a !== area);
+  const joinsWater = s => otherWater.some(a => pointInPolygon(s.x + s.nx * 6, s.y + s.ny * 6, a.polygon));
+  // Trial: north banks (land above the water) take the shore and foam strips.
+  const shore = terrainStrip('shore_edge'), foam = terrainStrip('foam_rock_drop');
+  const banked = shore && foam ? stripSamples(poly, -1).filter(s => !joinsWater(s)) : [];
+  if (banked.length) { drapeStrip(ctx, shore, banked); drapeStrip(ctx, foam, banked); }
+  const nearBank = s => banked.some(t => Math.abs(t.x - s.x) < 5 && Math.abs(t.y - s.y) < 5);
   for (const s of samples) {
-    if (otherWater.some(a => pointInPolygon(s.x + s.nx * 6, s.y + s.ny * 6, a.polygon))) continue;
+    if (joinsWater(s) || (banked.length && nearBank(s))) continue;
     if (s.ny < -0.2 && random() < 0.75) {
       const height = 12 + random() * 14;
       drawRockColumn(ctx, s.x, s.y - 1, 12 + random() * 8, height, random);
@@ -674,7 +726,7 @@ function staticLayer(gameState) {
   const texturesReady = ['ground_grass', 'ground_apron'].filter(k => spriteReady(TERRAIN_SPRITES[k])).length;
   // Bridge back layers are painted in here too, so repaint once their art loads.
   const bridgesReady = WORLD.bridges.filter(b => bridgeArt(b)).length;
-  const key = `${[...visible].sort().join(',')}|${[...built].sort().join(',')}|${texturesReady}|${bridgesReady}`;
+  const key = `${[...visible].sort().join(',')}|${[...built].sort().join(',')}|${texturesReady}|${bridgesReady}|${terrainStripsReady()}`;
   if (staticLayerCache.key !== key) staticLayerCache = { key, canvas: paintStaticLayer(visible, built) };
   return staticLayerCache.canvas;
 }

@@ -341,6 +341,14 @@ placed by `SCENE_PROP_PLACEMENTS` (scenery.js, validated). Labels are drawn
 in a final pass. Loading a save moves anyone standing in terrain to the
 nearest trail node. `tools/capture-gate0.cjs` regenerates the contract.
 
+**Gate art round (27 Sep)**: see `CLAUDE_IMPLEMENTATION/07_GATE_ART_REVIEW.md`.
+Bridge/kiosk/boom/3x props are provisional art in `ASSET_MANIFEST.bridges`,
+`.checkpoint`, `.props`. `WORLD.checkpoint.boomHinge` is the post's GROUND
+point; the boom swings (presentation only) in render.js. Visitors check in
+at `WORLD.checkpoint.pause`, outside the barrier. Terrain strips and the
+painted down-walk are candidates (`?art=candidates`); validate-assets
+reports candidate shortfalls as WARN, not failures.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet
