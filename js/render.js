@@ -196,7 +196,20 @@ function facilityDrawable(building, zoneId = building.zoneId) {
   }
   const bounds = polygonBounds(zone.footprint);
   const centre = polygonCentroid(zone.footprint);
-  const w = (bounds.maxX - bounds.minX) * 0.92, h = w / 1.5;
+  const fileName = ASSET_MANIFEST.facilities[building.type].crop
+    ? ASSET_MANIFEST.fallbackFacilityFiles[building.type] : ASSET_MANIFEST.facilities[building.type].file;
+  const content = ASSET_MANIFEST.contentBounds[fileName];
+  const targetW = (bounds.maxX - bounds.minX) * 1.08; // overhangs the site a little, like the anchored art
+  if (content) {
+    // Fit the building itself (not its padded canvas) to the site, grounded
+    // on the footprint's lower edge; never taller than 1.3x the site depth.
+    const [imgW, imgH, x0, y0, x1, y1] = content;
+    const scale = Math.min(targetW / (x1 - x0), (bounds.maxY - bounds.minY) * 1.3 / (y1 - y0));
+    const bottom = bounds.maxY - 4;
+    return { img: sprites.fallback, art: null, transform: null,
+      rect: { x: centre.x - ((x0 + x1) / 2) * scale, y: bottom - y1 * scale, w: imgW * scale, h: imgH * scale } };
+  }
+  const w = targetW, h = w / 1.5;
   return { img: sprites.fallback, rect: { x: centre.x - w / 2, y: bounds.maxY - h - 6, w, h }, art: null, transform: null };
 }
 

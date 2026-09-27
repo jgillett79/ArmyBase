@@ -149,3 +149,10 @@ These arrived while the pipeline was being built. They move in the right directi
 4. Then an in-game capture: `node tools/browser-capture.cjs <url> captures --clip`.
 
 Anything that fails a step goes back with the validator's message quoted. That message is the most useful feedback to pass on.
+
+## Third round (27 September): what a walk cycle needs, measured
+
+- `soldier-down-walk-rejected.webp` scored with `node tools/validate-assets.cjs --gait art/explorations/soldier-down-walk-rejected.webp 6`: **fails**. The front foot never alternates (left/right foot offset 0.000 of body height) — all six figures have the same leg positions and differ only by redraw noise. The three-quarter camera and kit were an improvement.
+- A genuine down cycle now exists as a pose template: `art/rig/soldier_walk_down.png` (six 256×384 cells) with `art/review/soldier-walk-down-rig-review.jpg` showing the phases — 1 R contact, 2 R down, 3 passing (left foot swinging under the body, highest), 4 L contact, 5 L down, 6 passing (right foot swinging). **Best next step: paint over these six poses one cell at a time**, keeping each cell's silhouette, foot positions and pivot, and only changing the rendering to the house style. That preserves the gait the validator proved.
+- Spec clarification: for a figure walking toward the camera, the forward foot is nearer the camera and sits lower on screen. Keep the **ground point under the body on row 330**, let the forward foot reach down to row 368 at most, and keep every frame's helmet top near row 30.
+- Before sending any walk strip, run the gait check (or ask Claude to): every pair of frames must differ by ≥ 12% in the legs, and the front foot must switch sides between frame 1 and frame 4.

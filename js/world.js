@@ -40,8 +40,12 @@ const WORLD = {
   // Terrain exclusions: nothing may be built on or walk through these.
   terrain: [
     { id: 'cliff_north', kind: 'cliff', polygon: [[0, 0], [1330, 0], [1300, 48], [1190, 72], [1050, 60], [910, 84], [770, 66], [630, 92], [490, 74], [350, 106], [230, 98], [130, 150], [64, 236], [0, 262]] },
+    // Western spur: the gate sits in a rocky notch between it and rock_west.
+    { id: 'cliff_west_spur', kind: 'cliff', polygon: [[0, 250], [70, 236], [132, 256], [150, 330], [128, 410], [140, 470], [118, 540], [70, 568], [0, 572]] },
     { id: 'rock_west', kind: 'rock', polygon: [[0, 705], [58, 694], [112, 742], [96, 828], [40, 852], [0, 860]] },
     { id: 'pond_southwest', kind: 'water', polygon: [[120, 860], [210, 830], [310, 845], [340, 900], [300, 950], [190, 955], [120, 920]] },
+    // Creek from the pond to the river: the base's southern edge.
+    { id: 'creek_south', kind: 'water', polygon: [[332, 866], [460, 872], [600, 860], [760, 868], [900, 858], [1020, 866], [1116, 878], [1124, 906], [1020, 896], [900, 890], [760, 900], [600, 892], [460, 902], [336, 912]] },
     { id: 'rock_knoll', kind: 'rock', polygon: [[822, 432], [864, 414], [906, 436], [900, 482], [852, 494], [816, 470]] },
     { id: 'river', kind: 'water', polygon: [[1330, 0], [1460, 0], [1482, 140], [1522, 300], [1522, 500], [1472, 660], [1372, 800], [1262, 900], [1202, 960], [1062, 960], [1122, 900], [1222, 820], [1322, 700], [1392, 560], [1420, 420], [1400, 262], [1352, 120]] },
     { id: 'far_bank', kind: 'cliff', polygon: [[1460, 0], [1600, 0], [1600, 960], [1202, 960], [1262, 900], [1372, 800], [1472, 660], [1522, 500], [1522, 300], [1482, 140]] },
@@ -252,9 +256,8 @@ const WORLD = {
 
   // Decorative fence lines along the open boundary; the single gap is the gate.
   fences: [
-    [[4, 262], [8, 420], [6, 580]],
+    [[4, 574], [6, 584]],
     [[6, 640], [8, 700]],
-    [[330, 902], [520, 930], [760, 924], [980, 934], [1098, 914]],
   ],
 };
 
@@ -362,18 +365,46 @@ function worldNodePosition(nodeId, world = WORLD) {
 // included (null = every zone, used by validation).
 // ---------------------------------------------------------------------------
 
+// Centripetal-free (uniform) Catmull-Rom through an edge's authored points,
+// sampled every ~12 world px. Walking and drawing both use these samples, so
+// people follow the same curve the path is painted on. Endpoints (nodes and
+// entrances) are kept exactly.
+function smoothEdgePoints(control) {
+  if (control.length < 3) return control;
+  const out = [control[0]];
+  for (let i = 0; i < control.length - 1; i++) {
+    const p0 = control[Math.max(0, i - 1)], p1 = control[i], p2 = control[i + 1], p3 = control[Math.min(control.length - 1, i + 2)];
+    const steps = Math.max(2, Math.ceil(Math.hypot(p2.x - p1.x, p2.y - p1.y) / 12));
+    for (let s = 1; s <= steps; s++) {
+      const t = s / steps, t2 = t * t, t3 = t2 * t;
+      out.push({
+        x: 0.5 * (2 * p1.x + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * (2 * p1.y + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      });
+    }
+  }
+  return out;
+}
+
+const edgeListCache = new Map();
+
 function worldEdgeList(zoneIds = null, world = WORLD) {
+  const key = world === WORLD ? (zoneIds ? [...zoneIds].sort().join(',') : '*') : null;
+  if (key !== null && edgeListCache.has(key)) return edgeListCache.get(key);
   const edges = world.edges.map(edge => ({ ...edge, kind: 'trail', zoneId: null }));
   for (const zone of world.zones) {
     if (zoneIds && !zoneIds.has(zone.id)) continue;
     edges.push({ from: zone.accessNode, to: doorNodeId(zone.id), via: zone.spurVia || [], kind: 'spur', zoneId: zone.id });
   }
-  return edges.map(edge => {
-    const points = [worldNodePosition(edge.from, world), ...(edge.via || []).map(pt), worldNodePosition(edge.to, world)];
+  const result = edges.map(edge => {
+    const control = [worldNodePosition(edge.from, world), ...(edge.via || []).map(pt), worldNodePosition(edge.to, world)];
+    const points = smoothEdgePoints(control);
     let length = 0;
     for (let i = 1; i < points.length; i++) length += Math.hypot(points[i].x - points[i - 1].x, points[i].y - points[i - 1].y);
     return { ...edge, points, length };
   });
+  if (key !== null) edgeListCache.set(key, result);
+  return result;
 }
 
 function buildAdjacency(edges) {

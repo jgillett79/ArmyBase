@@ -46,21 +46,22 @@ function unitFramePose(unit, now) {
       return { strip, entry, index, count, tinted: false };
     }
   }
-  // Walk frames: one full cycle per strideWorld px travelled, per direction
-  // strip (`file` pattern with {direction}); 'left' mirrors 'right'.
-  const walk = sets.walk;
+  // Walk: one cycle per strideWorld px travelled, from the direction's drawn
+  // strip ('left' mirrors 'right' only when a right strip exists). Idle:
+  // looping frames while standing. Directions not drawn yet keep the still.
   const moving = unit.path.length > 0 || Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y) > 1;
-  if (moving && walk.file) {
-    const direction = unit.facing === 'left' ? 'right' : unit.facing;
-    const entry = { ...walk, file: walk.file.replace('{direction}', direction) };
-    const strip = frameStrip(entry);
-    if (strip) {
-      const count = walk.framesPerDirection;
-      const index = Math.floor((unit.walkDistance / walk.strideWorld) * count) % count;
-      return { strip, entry, index, count, tinted: true, mirror: unit.facing === 'left' };
-    }
+  const direction = unit.facing === 'left' ? 'right' : unit.facing;
+  const set = moving ? sets.walk : sets.idle;
+  const entry = set && set.drawn && set.drawn[direction];
+  const strip = frameStrip(entry);
+  if (strip) {
+    const count = entry.frames.length;
+    const index = moving
+      ? Math.floor((unit.walkDistance / set.strideWorld) * count) % count
+      : loopFrame(entry.frameMs, now, unit.colorSeed * 53);
+    return { strip, entry, index, count, tinted: entry.tint === 'hue', mirror: unit.facing === 'left' };
   }
-  return null; // sets still 'missing' fall back to the directional still
+  return null;
 }
 
 // Draws a strip frame with its pivot on the person's feet, scaled so the

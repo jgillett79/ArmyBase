@@ -33,7 +33,9 @@ for (const zoneId of zoneIds) {
 // Routing from mid-edge picks the cheaper direction instead of backtracking.
 const mid = run(`pointAlongEdge(worldEdgeList().find(e => e.from === 't1' && e.to === 't2'), 0.9)`);
 const toT2 = run(`findWorldRoute(${mid.x}, ${mid.y}, 't2')`);
-assert.ok(toT2.length <= 3, 'a unit near t2 walks forward to it');
+const walked = toT2.reduce((sum, p, i) => i ? sum + Math.hypot(p.x - toT2[i - 1].x, p.y - toT2[i - 1].y) : 0, 0);
+const edgeLength = run(`worldEdgeList().find(e => e.from === 't1' && e.to === 't2').length`);
+assert.ok(walked < edgeLength * 0.15, 'a unit near t2 walks forward to it');
 
 // Unbuilt spurs are omitted when routing is limited to specific zones.
 assert.equal(run(`findWorldRoute(40, 610, doorNodeId('zone_ford'), new Set(['zone_reception']))`), null);
