@@ -1,0 +1,72 @@
+{
+  "contract": "CLAUDE_IMPLEMENTATION/06_GATE0_VISUAL_CONTRACT.md",
+  "density": 3,
+  "camera": "top-down oblique; straight verticals",
+  "bridge": {
+    "back": "assets/bridges/bridge_gate_back.png",
+    "front": "assets/bridges/bridge_gate_front.png",
+    "size": [
+      360,
+      216
+    ],
+    "westPivot": [
+      36,
+      105
+    ],
+    "eastPivot": [
+      300,
+      111
+    ]
+  },
+  "kiosk": {
+    "back": "assets/props/gate_kiosk_back.png",
+    "front": "assets/props/gate_kiosk_front.png",
+    "size": [
+      180,
+      318
+    ],
+    "groundPivot": [
+      90,
+      300
+    ],
+    "worldGround": [
+      70,
+      590
+    ]
+  },
+  "boom": {
+    "file": "assets/props/gate_boom_swing.png",
+    "size": [
+      142,
+      46
+    ],
+    "hingePinPx": [
+      9,
+      30
+    ],
+    "reachPx": 126,
+    "worldHinge": [
+      40,
+      632
+    ]
+  },
+  "post": {
+    "file": "assets/props/gate_boom_post.png",
+    "size": [
+      51,
+      84
+    ],
+    "hingePinPx": [
+      21,
+      21
+    ],
+    "groundPx": [
+      25,
+      78
+    ],
+    "worldHinge": [
+      40,
+      632
+    ]
+  }
+}

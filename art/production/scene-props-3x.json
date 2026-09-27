@@ -1,0 +1,168 @@
+{
+  "density": 3,
+  "version": 1,
+  "assets": [
+    {
+      "id": "fence",
+      "path": "assets/props/scene_fence_3x.png",
+      "source": "art/concepts/props-structures-study.webp",
+      "size": [
+        240,
+        213
+      ],
+      "pivot": [
+        120,
+        201
+      ],
+      "worldSize": [
+        80.0,
+        71.0
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "fence_post",
+      "path": "assets/props/scene_fence_post_3x.png",
+      "source": "art/concepts/props-structures-study.webp",
+      "size": [
+        84,
+        231
+      ],
+      "pivot": [
+        42,
+        219
+      ],
+      "worldSize": [
+        28.0,
+        77.0
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "lamp",
+      "path": "assets/props/scene_lamp_3x.png",
+      "source": "art/concepts/props-structures-study.webp",
+      "size": [
+        132,
+        189
+      ],
+      "pivot": [
+        66,
+        177
+      ],
+      "worldSize": [
+        44.0,
+        63.0
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "noticeboard",
+      "path": "assets/props/scene_noticeboard_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        180,
+        163
+      ],
+      "pivot": [
+        90,
+        151
+      ],
+      "worldSize": [
+        60.0,
+        54.333333333333336
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "signpost",
+      "path": "assets/props/scene_signpost_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        150,
+        189
+      ],
+      "pivot": [
+        75,
+        177
+      ],
+      "worldSize": [
+        50.0,
+        63.0
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "grass_flower",
+      "path": "assets/props/scene_grass_flower_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        156,
+        104
+      ],
+      "pivot": [
+        78,
+        92
+      ],
+      "worldSize": [
+        52.0,
+        34.666666666666664
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "rocks_granite",
+      "path": "assets/props/scene_rocks_granite_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        222,
+        175
+      ],
+      "pivot": [
+        111,
+        163
+      ],
+      "worldSize": [
+        74.0,
+        58.333333333333336
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "rock_moss",
+      "path": "assets/props/scene_rock_moss_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        186,
+        139
+      ],
+      "pivot": [
+        93,
+        127
+      ],
+      "worldSize": [
+        62.0,
+        46.333333333333336
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    },
+    {
+      "id": "utility_vehicle",
+      "path": "assets/props/scene_utility_vehicle_3x.png",
+      "source": "art/concepts/props-landscape-study.webp",
+      "size": [
+        312,
+        318
+      ],
+      "pivot": [
+        156,
+        306
+      ],
+      "worldSize": [
+        104.0,
+        106.0
+      ],
+      "status": "prepared; existing placements still use 1x files"
+    }
+  ]
+}
