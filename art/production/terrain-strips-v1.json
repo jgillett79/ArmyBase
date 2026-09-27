@@ -1,0 +1,71 @@
+{
+  "camera": "top-down oblique",
+  "density": 3,
+  "tileWorldLength": 128,
+  "assets": [
+    {
+      "id": "shore_edge",
+      "file": "assets/terrain/shore_edge_3x.png",
+      "size": [
+        384,
+        142
+      ],
+      "edgeRowPx": 114,
+      "density": 3,
+      "horizontallySeamless": true,
+      "status": "prepared; route-fitting screenshot approval pending"
+    },
+    {
+      "id": "foam_rock_drop",
+      "file": "assets/terrain/foam_rock_drop_3x.png",
+      "size": [
+        384,
+        82
+      ],
+      "edgeRowPx": 41,
+      "density": 3,
+      "horizontallySeamless": true,
+      "status": "prepared; route-fitting screenshot approval pending"
+    },
+    {
+      "id": "cliff_face",
+      "file": "assets/terrain/cliff_face_3x.png",
+      "size": [
+        384,
+        184
+      ],
+      "edgeRowPx": 12,
+      "density": 3,
+      "horizontallySeamless": true,
+      "status": "prepared; route-fitting screenshot approval pending"
+    },
+    {
+      "id": "west_to_south",
+      "file": "assets/terrain/shore_corner_west_to_south_3x.png",
+      "size": [
+        256,
+        256
+      ],
+      "cornerPointPx": [
+        128,
+        128
+      ],
+      "density": 3,
+      "status": "prepared corner study; route-fitting review pending"
+    },
+    {
+      "id": "east_to_south",
+      "file": "assets/terrain/shore_corner_east_to_south_3x.png",
+      "size": [
+        256,
+        256
+      ],
+      "cornerPointPx": [
+        128,
+        128
+      ],
+      "density": 3,
+      "status": "prepared corner study; route-fitting review pending"
+    }
+  ]
+}
