@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "camera": "three-quarter south",
+  "light": "upper-left",
+  "density": "2 image pixels per world pixel at default zoom",
+  "assets": [
+    {
+      "id": "supply_wood_crates",
+      "source": "art/production/source/supply-wood-crates-v1.webp",
+      "path": "assets/props/supply_wood_crates.png",
+      "pixelSize": [
+        136,
+        127
+      ],
+      "defaultWorldSize": [
+        68.0,
+        63.5
+      ],
+      "pivotPx": [
+        68,
+        123
+      ],
+      "role": "ground",
+      "status": "prepared; game placement and screenshot approval pending"
+    },
+    {
+      "id": "supply_canvas_boxes",
+      "source": "art/production/source/supply-canvas-boxes-v1.webp",
+      "path": "assets/props/supply_canvas_boxes.png",
+      "pixelSize": [
+        144,
+        127
+      ],
+      "defaultWorldSize": [
+        72.0,
+        63.5
+      ],
+      "pivotPx": [
+        72,
+        123
+      ],
+      "role": "ground",
+      "status": "prepared; game placement and screenshot approval pending"
+    }
+  ]
+}
