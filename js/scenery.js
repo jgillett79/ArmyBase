@@ -510,18 +510,21 @@ function drawWater(ctx, area, random) {
 function waterFlowPositions(area, now) {
   const poly = area.polygon, box = polygonBounds(poly);
   const width = box.maxX - box.minX, height = box.maxY - box.minY;
+  const horizontal = width > height * 1.5;
   const count = Math.max(12, Math.min(70, Math.round(width * height / 1650)));
   const fraction = n => ((Math.sin(n * 127.1 + 78.233) * 43758.5453) % 1 + 1) % 1;
   const positions = [];
   for (let i = 0; i < count; i++) {
     const seed = fraction(i + area.id.length * 13.7);
     const speed = 14 + fraction(i * 2.4 + 91) * 12;
-    const y = box.minY + (((seed + now * speed / 1000 / height) % 1) + 1) % 1 * height;
+    const travel = (((seed + now * speed / 1000 / (horizontal ? width : height)) % 1) + 1) % 1;
+    const coordinate = (horizontal ? box.minX : box.minY) + travel * (horizontal ? width : height);
     const crossings = [];
     for (let j = 0; j < poly.length; j++) {
       const a = poly[j], b = poly[(j + 1) % poly.length];
-      if ((a[1] <= y && b[1] > y) || (b[1] <= y && a[1] > y))
-        crossings.push(a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1]));
+      const axis = horizontal ? 0 : 1, cross = horizontal ? 1 : 0;
+      if ((a[axis] <= coordinate && b[axis] > coordinate) || (b[axis] <= coordinate && a[axis] > coordinate))
+        crossings.push(a[cross] + (coordinate - a[axis]) * (b[cross] - a[cross]) / (b[axis] - a[axis]));
     }
     crossings.sort((a, b) => a - b);
     if (crossings.length < 2) continue;
@@ -531,13 +534,14 @@ function waterFlowPositions(area, now) {
     }
     const inset = Math.min(4, (right - left) * 0.1);
     const across = fraction(i * 3.7 + 34.2);
-    const x = left + inset + (right - left - inset * 2) * across;
+    const transverse = left + inset + (right - left - inset * 2) * across;
+    const x = horizontal ? coordinate : transverse, y = horizontal ? transverse : coordinate;
     const length = 5 + fraction(i * 2.9 + 54) * 8;
     // The drawn deck sits over this section of water; leave its planks and
     // trestles clear even though the water underneath still exists.
     if (WORLD.bridges.some(bridge => bridge.crosses.includes(area.id) &&
-      (pointInPolygon(x, y, bridgeDeckPolygon(bridge)) || pointInPolygon(x, y + length, bridgeDeckPolygon(bridge))))) continue;
-    positions.push({ x, y, length, alpha: 0.2 + fraction(i * 8.1 + 12) * 0.2, bend: fraction(i * 5.3 + 77) * 4 - 2 });
+      (pointInPolygon(x, y, bridgeDeckPolygon(bridge)) || pointInPolygon(x + (horizontal ? length : 0), y + (horizontal ? 0 : length), bridgeDeckPolygon(bridge))))) continue;
+    positions.push({ x, y, horizontal, length, alpha: 0.2 + fraction(i * 8.1 + 12) * 0.2, bend: fraction(i * 5.3 + 77) * 4 - 2 });
   }
   return positions;
 }
@@ -554,7 +558,8 @@ function drawWaterCurrent(ctx, now, visible) {
     for (const p of waterFlowPositions(area, now)) {
       if (visible && (p.x < visible.minX || p.x > visible.maxX || p.y < visible.minY - 14 || p.y > visible.maxY)) continue;
       ctx.beginPath(); ctx.moveTo(p.x, p.y);
-      ctx.quadraticCurveTo(p.x + p.bend, p.y + p.length * 0.5, p.x + p.bend * 0.5, p.y + p.length);
+      if (p.horizontal) ctx.quadraticCurveTo(p.x + p.length * 0.5, p.y + p.bend, p.x + p.length, p.y + p.bend * 0.5);
+      else ctx.quadraticCurveTo(p.x + p.bend, p.y + p.length * 0.5, p.x + p.bend * 0.5, p.y + p.length);
       ctx.strokeStyle = `rgba(30, 126, 148, ${p.alpha * 0.65})`; ctx.lineWidth = 3.5; ctx.stroke();
       ctx.strokeStyle = `rgba(231, 248, 238, ${p.alpha})`; ctx.lineWidth = 1.1; ctx.stroke();
     }

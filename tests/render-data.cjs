@@ -81,6 +81,10 @@ const brook0 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_g
 const brook1 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate'), 1000)`);
 assert.ok(brook0.length > 5 && brook1.length > 5, 'brook has visible current marks');
 assert.ok(brook0.some((p, i) => brook1[i] && Math.abs(p.y - brook1[i].y) > 5), 'current flows between rendered frames');
+const creek0 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'creek_south'), 0)`);
+const creek1 = run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'creek_south'), 1000)`);
+assert.ok(creek0.length > 5 && creek0.every(p => p.horizontal), 'east-west creek uses horizontal current');
+assert.ok(creek0.some((p, i) => creek1[i] && Math.abs(p.x - creek1[i].x) > 5), 'creek current advances along its banks');
 assert.ok(run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate'), 1000).every(p =>
   !pointInPolygon(p.x, p.y, bridgeDeckPolygon(WORLD.bridges[0])))`), 'no current paints over bridge deck');
 
