@@ -25,6 +25,12 @@ At the end of an unscripted first ten-minute playtest, a new player should be ab
 2. Show a compact individual event on meaningful change: `accuracy 48 → 55`, `qualified for Local Patrol`, `returned with 70 cash`, `level 2`. Keep the full stats in the detailed profile. Avoid repetitive popups for every training tick.
 3. Keep character identity across save/load, clothes, field view, portrait, mission report and hospital. No permadeath. Give the first soldier a memorable earned tag or one-sentence service record after the patrol; this is a presentation feature, not a new RPG tree.
 
+### Player customization: deliberately small first slice
+
+Allow the player to rename a soldier (already present), choose or edit a short optional callsign, and choose one of 3–4 **visible identity accent colours** for the helmet band/shoulder patch. Persist these choices per soldier and show them on the card, in the in-world sprite and in the mission report using the existing accent mask pipeline where approved. The portrait currently has no accent mask: display its chosen colour as a consistent UI badge beside the portrait until an accurate mask is supplied. Use one shared palette and do not tint skin, kit, shadows or the whole body. Provide a `Randomise` control for callsign/accent and reasonable defaults; customization should be optional and should never block the first patrol. Reuse the existing name-edit UI rather than opening a full character creator on admission.
+
+Do not offer selectable face, body, hair or uniform parts until each option has matching down/up/right walk and idle, portrait and activity art. Avoid implying that a portrait choice changes the in-world character when it does not. Later equipment may change abilities and cosmetic kit together, but its effects require a separate balance and asset brief. Add a save migration for callsign/accent and verify edits survive reload and appear consistently in the roster, map and debrief.
+
 ## Deliverable C: training leads to a choice
 
 1. The objective and mission card should explain the relevant stat threshold and show progress (`Accuracy 48 / 55`), estimated training time and where to train. The first patrol may have an onboarding readiness threshold even though the current tier technically allows level 1 and any stats; make the value meaningful and visible. Do not quietly change later tier formulas or add multiple currencies.
