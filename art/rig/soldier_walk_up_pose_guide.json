@@ -1,0 +1,86 @@
+{
+  "status": "pose guide only; paint with the approved soldier master",
+  "cell": [
+    256,
+    384
+  ],
+  "pivot": [
+    128,
+    330
+  ],
+  "strideWorld": 22,
+  "footTrack": [
+    {
+      "right": {
+        "x": 147,
+        "y": 367,
+        "planted": true
+      },
+      "left": {
+        "x": 109,
+        "y": 293,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 342,
+        "planted": true
+      },
+      "left": {
+        "x": 109,
+        "y": 298,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 317,
+        "planted": true
+      },
+      "left": {
+        "x": 109,
+        "y": 282,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 293,
+        "planted": false
+      },
+      "left": {
+        "x": 109,
+        "y": 367,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 298,
+        "planted": false
+      },
+      "left": {
+        "x": 109,
+        "y": 342,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 282,
+        "planted": false
+      },
+      "left": {
+        "x": 109,
+        "y": 317,
+        "planted": true
+      }
+    }
+  ]
+}
