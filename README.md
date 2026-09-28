@@ -449,7 +449,8 @@ gate, admit them, build the range, train them to a visible +3 accuracy
 target (a labelled "range drill" makes that fit the first day), send them
 on a one-time 75-second introductory patrol (guaranteed return), read
 their individual debrief, and spend the earnings on the next facility.
-Any soldier can get an optional callsign and accent colour. There is one soldier card (portrait, earned role, activity,
+Any soldier can get an optional callsign and accent colour. A slow first
+session is covered by one starter field meal before the Mess Hall exists. There is one soldier card (portrait, earned role, activity,
 recommendation, XP, service record, mission history) reachable from the
 map and the roster. Missions say what they are for, and anyone who can't
 go says why. Busy soldiers are recalled explicitly. Failed missions mean a

@@ -77,10 +77,12 @@ const FACILITY_ACTIVITIES = {
 //   introReportId    its mission-log entry (the debrief, `seen` inside it)
 //   done             the player built something after the debrief
 //   dismissed        "Skip guidance" — hides the card, changes nothing else
+//   fieldMealUsed    the one starter field meal was eaten (mission.js)
 // Old saves get a chapter in save.js: an established base starts done.
 // ---------------------------------------------------------------------------
 function freshChapter() {
-  return { firstSoldierId: null, targetAccuracy: null, introDispatched: false, introReportId: null, done: false, dismissed: false };
+  return { firstSoldierId: null, targetAccuracy: null, introDispatched: false, introReportId: null, done: false, dismissed: false,
+    fieldMealUsed: false };
 }
 
 const CIVILIAN_CHECKPOINT_MS = 2500; // real ms a visitor pauses at the gate before admission
@@ -903,6 +905,24 @@ class GameState {
     return this.guidanceActive && ['meet', 'admit', 'build_range', 'train', 'patrol', 'away'].includes(this.chapterStage().id);
   }
 
+  // The starter field meal (mission.js STARTER_FIELD_MEAL): once, for the
+  // first soldier, when they reach the hunger point with no Mess Hall and
+  // enough food in stock. Returns true on the tick it happens.
+  starterFieldMealDue(unit) {
+    return unit.id === this.chapter.firstSoldierId && !this.chapter.fieldMealUsed && !this.messHall.isBuilt
+      && unit.energy <= ENERGY_CRITICAL && this.food >= STARTER_FIELD_MEAL.food;
+  }
+
+  maybeStarterFieldMeal(unit) {
+    if (!this.starterFieldMealDue(unit)) return false;
+    this.chapter.fieldMealUsed = true;
+    this.food -= STARTER_FIELD_MEAL.food;
+    unit.energy = Math.min(unit.maxEnergy, unit.energy + STARTER_FIELD_MEAL.energy);
+    this.logActivity(unit, 'field_meal', { food: STARTER_FIELD_MEAL.food });
+    this.pushEvent(unit, `${unit.fieldName} ate a starter field meal from your food stores (−${STARTER_FIELD_MEAL.food} food, +${STARTER_FIELD_MEAL.energy} energy). It only happens once — a Mess Hall feeds soldiers every day.`);
+    return true;
+  }
+
   // Skip guidance hides the card; it never skips rewards or state.
   dismissGuidance() { this.chapter.dismissed = true; }
   resumeGuidance() { this.chapter.dismissed = false; }
@@ -1059,6 +1079,7 @@ class GameState {
         if (this.isUsingFacility(unit, building)) unit.applyTrainingGain(gameHours, building.trains, drill);
       }
 
+      this.maybeStarterFieldMeal(unit);
       if (unit.energy <= 0) {
         this.collapse(unit, nowMs);
       }

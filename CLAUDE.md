@@ -372,7 +372,12 @@ and slow players to the first session. Customization is deliberately
 small: optional `callsign` + one of four `ACCENT_COLOURS` per soldier
 (unit.js), drawn only through approved accent masks, otherwise as a
 badge/map pip — never a whole-body tint. The first soldier wears body
-variant 1, the only one with a (candidate) portrait. Mission-log entries are the debriefs
+variant 1, the only one with a (candidate) portrait. Before a Mess Hall
+exists, the first soldier gets ONE `STARTER_FIELD_MEAL` from food stock at
+the hunger point (`chapter.fieldMealUsed`, saved) — it is what lets a
+slow first session reach the patrol without a collapse; don't turn it into
+a repeatable food source, that is the Mess Hall's job. Merged to main
+28 Sep; the walk release gate is still blocked on art. Mission-log entries are the debriefs
 (`seen: false` until read). Save stays schema 2 with optional additions;
 saves without `chapter` get one from `chapterForSave()` (an established
 base starts done). The directional-walk release gate (`walkReleaseGate()`)

@@ -118,7 +118,7 @@ function chapterForSave(data) {
 
 function validateChapter(chapter, errors) {
   if (typeof chapter !== 'object' || chapter === null || Array.isArray(chapter)) { errors.push('The first-soldier chapter is not a valid record.'); return; }
-  for (const key of ['introDispatched', 'done', 'dismissed']) {
+  for (const key of ['introDispatched', 'done', 'dismissed', 'fieldMealUsed']) {
     if (chapter[key] !== undefined && typeof chapter[key] !== 'boolean') errors.push(`Chapter ${key} is not true/false.`);
   }
   if (chapter.firstSoldierId != null && typeof chapter.firstSoldierId !== 'string') errors.push('Chapter soldier id is invalid.');

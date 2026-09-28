@@ -127,6 +127,7 @@ let selectedSquadIds = new Set();
 let lastFrameTime = performance.now();
 let lastSaveTime = Date.now();
 let lastRosterTime = 0;
+let fieldMealSaved = gameState.chapter.fieldMealUsed;
 
 const RECRUIT_COST = 50;
 const SAVE_INTERVAL_MS = 10000;
@@ -679,9 +680,11 @@ function surfaceDebriefs() {
 const eventFeedEl = document.getElementById('eventFeed');
 const EVENT_SHOW_MS = 6000;
 let lastEventShown = null;
+// Longer lines (the starter field meal's explanation) stay up long enough to read.
+const eventShowMs = event => Math.max(EVENT_SHOW_MS, event.text.length * 90);
 
 function renderEventFeed(nowMs) {
-  const shown = gameState.events.filter(e => nowMs - e.at < EVENT_SHOW_MS).slice(-3);
+  const shown = gameState.events.filter(e => nowMs - e.at < eventShowMs(e)).slice(-3);
   const key = shown.map(e => e.id).join('|');
   if (key === lastEventShown) return;
   lastEventShown = key;
@@ -785,6 +788,9 @@ function buildingEffectText(key) {
   const building = gameState[key];
   if (key === 'barracks' && building.isBuilt) return `Room for 5 more soldiers (now ${gameState.unitCap}).`;
   if (building.capacity !== undefined && building.isBuilt) return `2 more training places (now ${building.capacity}).`;
+  if (key === 'messHall' && gameState.chapter.fieldMealUsed) {
+    return 'Daily meals from your food stock. The starter field meal was a one-off — without a Mess Hall, hungry soldiers collapse.';
+  }
   return BUILDING_EFFECTS[key];
 }
 
@@ -1101,7 +1107,11 @@ function refreshObjective() {
   if (guideFocus.elementId) document.getElementById(guideFocus.elementId)?.classList.add('guide-target');
   document.getElementById('objectiveStep').textContent = `STEP ${objective.step} OF 6`;
   document.getElementById('objectiveTitle').textContent = objective.title;
-  document.getElementById('objectiveDetail').textContent = objective.detail;
+  // Until the Mess Hall exists, say why the soldier ate and what comes next.
+  const stageId = gameState.chapterStage().id;
+  const mealNote = gameState.chapter.fieldMealUsed && !gameState.messHall.isBuilt && ['train', 'patrol', 'away', 'debrief'].includes(stageId)
+    ? ' Your soldier has eaten the one starter field meal from your food stores; patrol earnings will pay for a Mess Hall so they can eat every day.' : '';
+  document.getElementById('objectiveDetail').textContent = objective.detail + mealNote;
   const progressEl = document.getElementById('objectiveProgress');
   progressEl.classList.toggle('hidden', !objective.progress);
   if (objective.progress) {
@@ -1172,6 +1182,8 @@ function frame(now) {
   renderFrame(ctx, gameState, selectedUnitId, { camera, dpr: devicePixelScale, now: performance.now(),
     buildMode, debug: debugScene, revealedBuildingId, guide: guideFocus });
 
+  // The starter meal is once-only: store the flag the moment it is used.
+  if (gameState.chapter.fieldMealUsed && !fieldMealSaved) { gameState.save(); fieldMealSaved = true; }
   if (Date.now() - lastSaveTime > SAVE_INTERVAL_MS) {
     document.getElementById('saveNotice').classList.toggle('hidden', gameState.save());
     lastSaveTime = Date.now();

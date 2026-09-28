@@ -105,6 +105,16 @@ const INTRO_READINESS_GAIN = 3; // accuracy points, e.g. 48 -> 51
 // purpose: prompt and slow players both dispatch inside the first session
 // without a collapse or a missed training window.
 const FIRST_SOLDIER_DRILL = { multiplier: 3, from: 6, to: 22 };
+
+// STARTER FIELD MEAL — once per game, for the first soldier only, before a
+// Mess Hall exists. Without a Mess Hall nothing restores energy, so a slow
+// first session (a minute per step) ran the first soldier out of energy on
+// day 2 before the patrol (tests/pacing.cjs). When their energy reaches
+// the hunger point (ENERGY_CRITICAL) they eat one meal from the existing
+// food stock instead. `chapter.fieldMealUsed` is saved, so it never
+// repeats — the Mess Hall stays the way soldiers are fed every day.
+// Placeholder numbers.
+const STARTER_FIELD_MEAL = { food: 10, energy: 60 };
 const INTRO_PATROL = {
   id: 'intro_patrol',
   name: 'Local Patrol',

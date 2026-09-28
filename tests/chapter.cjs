@@ -256,6 +256,39 @@ run(`var noFields = c.serialize(); delete noFields.units[0].callsign; delete noF
 assert.equal(run('normalizeSaveData(noFields).data.units[0].callsign'), null, 'pre-customization v2 saves migrate');
 
 // ---------------------------------------------------------------------------
+// 8c. The starter field meal: once, first soldier, no Mess Hall, from stock.
+run(`var f = new GameState(); var fv = new Unit({ x: 100, y: 100, isCivilian: true }); f.units.push(fv); f.recruit(fv.id);
+  fv.outfit = 'uniform'; fv.status = 'idle'; f.routeForStatus(fv); f.gameClockMs = 10 * 3600000;
+  var fo = new Unit({ x: 100, y: 100, isCivilian: false }); fo.outfit = 'uniform'; f.units.push(fo);
+  fo.energy = ENERGY_CRITICAL; f.tick(0.05, Date.now());`);
+assert.equal(run('f.chapter.fieldMealUsed'), false, 'other soldiers never get the starter meal');
+run(`fv.energy = ENERGY_CRITICAL + 1; var food0 = f.food; f.tick(0.05, Date.now());`);
+assert.equal(run('f.chapter.fieldMealUsed'), false, 'not before the hunger point');
+run(`fv.energy = ENERGY_CRITICAL; f.tick(0.05, Date.now());`);
+assert.equal(run('f.chapter.fieldMealUsed'), true, 'eaten at the hunger point');
+assert.ok(Math.abs(run('food0 - f.food') - run('STARTER_FIELD_MEAL.food')) < 0.01, 'paid from the existing food stock');
+assert.ok(run('fv.energy') >= run('ENERGY_CRITICAL + STARTER_FIELD_MEAL.energy') - 1, 'energy restored');
+const mealEvent = run(`(f.events.find(e => e.text.includes('starter field meal')) || {}).text`);
+assert.match(mealEvent, /only happens once/);
+assert.match(mealEvent, /Mess Hall feeds soldiers every day/);
+run(`f.save(); var f2 = GameState.load(); var fv2 = f2.firstSoldier; fv2.energy = ENERGY_CRITICAL; var food2 = f2.food; f2.tick(0.05, Date.now());`);
+assert.equal(run('f2.chapter.fieldMealUsed'), true, 'the once-only flag survives reload');
+assert.ok(run('f2.food') >= run('food2') - 0.01, 'no second meal after reload');
+assert.equal(run(`f2.activityLog.filter(e => e.event === 'field_meal').length`), 0);
+// Not once the Mess Hall exists, nor without enough food.
+run(`var g = new GameState(); var gv = new Unit({ x: 100, y: 100, isCivilian: true }); g.units.push(gv); g.recruit(gv.id);
+  gv.outfit = 'uniform'; gv.status = 'idle'; g.messHall.level = 1; gv.energy = ENERGY_CRITICAL;`);
+assert.equal(run('g.starterFieldMealDue(gv)'), false, 'the Mess Hall replaces it');
+run('g.messHall.level = 0; g.food = STARTER_FIELD_MEAL.food - 1;');
+assert.equal(run('g.starterFieldMealDue(gv)'), false, 'needs food in stock');
+run('g.food = STARTER_FIELD_MEAL.food;');
+assert.equal(run('g.starterFieldMealDue(gv)'), true);
+// Saves from before the meal existed get it; a malformed flag is refused.
+run(`var preMeal = g.serialize(); delete preMeal.chapter.fieldMealUsed; var restored = GameState.fromSaveData(normalizeSaveData(preMeal).data);`);
+assert.equal(run('restored.chapter.fieldMealUsed'), false);
+assert.throws(() => run(`var badMeal = g.serialize(); badMeal.chapter.fieldMealUsed = 'yes'; normalizeSaveData(badMeal);`), /fieldMealUsed/);
+
+// ---------------------------------------------------------------------------
 // 9. Movement continuity: the first soldier's route gate -> range -> gate ->
 //    back in, sampled at 30 fps for at least 30 s. Every frame moves no
 //    further than the walking speed allows (no pops), stays on the authored

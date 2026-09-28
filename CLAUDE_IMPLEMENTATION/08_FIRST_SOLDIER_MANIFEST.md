@@ -1,8 +1,21 @@
 # Brief 08 manifest — first soldier chapter
 
-Branch `brief-08-first-soldier`. It implements [08_FIRST_SOLDIER_CHAPTER.md](08_FIRST_SOLDIER_CHAPTER.md), including its *Player customization* section. Round 2 (28 September): `main` at `eda0f9b` was merged in.
+Branch `brief-08-first-soldier`. It implements [08_FIRST_SOLDIER_CHAPTER.md](08_FIRST_SOLDIER_CHAPTER.md), including its *Player customization* section. Round 2 (28 September): `main` at `eda0f9b` was merged in. Round 3 (28 September): the playable chapter was **merged to `main`**. Grounded walking stays behind its release gate, **blocked on art**.
 
-**Status:** deliverables A–D and the customization slice work in gameplay. All eight test suites, asset validation and real-time browser playthroughs pass: desktop, portrait phone (touch), and desktop with candidate art. **Deliverable E (grounded directional walking) is still blocked on art.** The movement passes its checks in code, but walk and idle art facing up and sideways isn't approved, so by default soldiers still glide as still sprites. **Not done:** a playtest with someone unfamiliar with the code. It needs a person; the script is in section 7.
+**Status:** deliverables A–D, the customization slice and the starter field meal work in gameplay. All eight test suites, asset validation and real-time browser playthroughs pass: desktop, portrait phone (touch), and desktop with candidate art. **Deliverable E (grounded directional walking) is still blocked on art.** The movement passes its checks in code, but walk and idle art facing up and sideways isn't approved, so by default soldiers still glide as still sprites. **Not done:** a playtest with someone unfamiliar with the code. It needs a person; the script is in section 7.
+
+## 0a. Round 3 changes (merged to `main`)
+
+Jason approved the range drill, the four accents and the first soldier wearing body variant 1. Round 3 adds one thing:
+
+- **Starter field meal** (`STARTER_FIELD_MEAL` in `mission.js`; `starterFieldMealDue()` and `maybeStarterFieldMeal()` in `state.js`). Once per game, for the first soldier only, while there is no Mess Hall. When their energy reaches the hunger point (20) and there are at least 10 food in stock, they eat one meal from that stock: −10 food, +60 energy.
+  - **Once-only:** `chapter.fieldMealUsed` is saved, and the page stores it the moment it's set. Older saves get `false`, and a non-boolean value is a readable validation error.
+  - **Toast:** *"Aisha "Kestrel" ate a starter field meal from your food stores (−10 food, +60 energy). It only happens once — a Mess Hall feeds soldiers every day."* Longer toasts now stay up long enough to read.
+  - **Objective card:** until the Mess Hall exists, it adds: *"Your soldier has eaten the one starter field meal from your food stores; patrol earnings will pay for a Mess Hall so they can eat every day."*
+  - **Mess Hall description:** after the meal, the build button and the debrief's "next" line read *"Daily meals from your food stock. The starter field meal was a one-off — without a Mess Hall, hungry soldiers collapse."*
+- **The 60-seconds-per-step player is no longer a known limit.** Five seeded sessions each eat exactly one meal, at about 358 s. Each survives two save → JSON → load round trips: one right after the meal and one at dispatch. No soldier collapses at any point. The patrol leaves by about 405 s and the chapter completes by about 660 s (section 4).
+- `tools/capture-field-meal.cjs` checks the meal in the real page on desktop and phone: toast and objective text, the stored flag, and no second meal after a reload at the hunger point.
+- The grounded-walking release gate is **still blocked on art** (section 5). Merging the playable chapter does not change that.
 
 ## 0. Round 2 changes
 
@@ -56,7 +69,10 @@ node tests/activity.cjs tests/smoke.cjs tests/save-migration.cjs tests/render-da
 node tools/validate-assets.cjs
 node tools/capture-first-session.cjs desktop | phone | desktop --candidates
 node tools/capture-accent-closeup.cjs
+node tools/capture-field-meal.cjs    # round 3: meal text, stored flag, no second meal after reload
 ```
+
+Round 3 re-run on the merge commit: all eight suites pass, assets are valid, and both device playthroughs pass. First patrol at 82 s on desktop and 82 s on phone (both recalled from a meal break); chapter complete at 168 s and 169 s. The field-meal check passes on both. Step logs: `docs/brief08-first-session-*.txt`, `docs/brief08-field-meal.txt`.
 
 **Pacing (`tests/pacing.cjs`).** A scripted player acts N real seconds after each new step and plays fresh, seeded games in simulated real time, with visitors spawning as in the browser. Five seeds per reaction time. It asserts:
 - the first patrol leaves by the limit shown;
@@ -71,9 +87,16 @@ node tools/capture-accent-closeup.cjs
 | 10 s | 95–107 s | 180 s | 200–212 s | none | 0 s |
 | 20 s | 135–152 s | 240 s | 270–287 s | none | 0 s |
 | 30 s | 178–189 s | 300 s | 343–354 s | none | 0 s |
-| 60 s (known limit) | 716–719 s | — | 972–974 s | once each, 5 min | 100 s |
+| 60 s (round 3, with the starter field meal) | 401–405 s | 480 s | 656–660 s | none | 100 s (asleep) |
 
-The 60-second player is reported rather than hidden. They assign the soldier near 22:00 game time, so the soldier sleeps first. Day 2 then begins with nothing that restores energy, because there is no Mess Hall yet, and the soldier collapses before becoming patrol-ready. The test asserts only that the collapse lasts at most 5 minutes and that they still finish. Fixing this needs a decision (section 8 C). The drill can't solve it: it's hunger, not training time.
+The 60-second player assigns the soldier near 22:00 game time, so the soldier sleeps until the drill resumes at 06:00. That is the 100 s in the last column, and it is expected. Day 2 used to begin with nothing that restores energy, and the soldier collapsed before becoming patrol-ready (round 2: collapse at about 417 s, patrol about 717 s). The starter field meal now carries them. The test asserts:
+- exactly one meal across two reloads;
+- the saved flag;
+- no collapse before the patrol leaves (there was none at all);
+- the patrol leaves by 480 s;
+- the chapter completes by 720 s.
+
+The 3–30 s players never reach the hunger point before the Mess Hall, so they never see the meal. The test asserts they get at most one.
 
 **`tests/chapter.cjs`** covers everything from round 1, plus:
 - the drill: +3 target; training at 18:00 when the normal schedule says free time; 3 × 0.5 accuracy per game hour; other soldiers keep their schedule and never train outside the blocks; the drill ends at the target;
@@ -111,7 +134,7 @@ Screenshots: `docs/screenshots/2026-09-28-chapter-r2-*.jpg`. Step logs: `docs/br
 
 1. **The range drill** (3×, 06:00–22:00, first soldier, until +3). It is a named special case rather than a change to training rates or the schedule. The multiplier and hours are placeholders tuned against `tests/pacing.cjs`.
 2. **Neglect recovery is 5 minutes** (was 23 hours), to keep CLAUDE.md's "never harsher than mission failure" rule. Options are in section 8 C.
-3. **Very slow first sessions still collapse once** (the 60 s row above), again because nothing restores energy before the Mess Hall. The same options apply.
+3. **Very slow first sessions:** resolved in round 3 by the once-only starter field meal. The numbers (10 food, +60 energy, triggered at energy 20) are placeholders. Neglect after that meal still leads to the 5-minute recovery until a Mess Hall exists.
 4. **The first soldier wears body variant 1.** This follows the portrait handoff's suggestion, so card, map and report share one face. Everyone admitted later keeps a random body.
 5. **The accent palette** is signal red, sky blue, gold and white. Randomise always changes the accent and prefers a callsign nobody on the roster uses. Callsigns are at most 12 characters, and a card shows `Omar "Kestrel"`.
 6. **Where the accent shows by default.** Only as a map pip and badges, because the default stills have no approved mask. The painted walk/idle masks colour the helmet band and shoulder patch in candidate view only, until that art is approved.
@@ -151,7 +174,7 @@ A +3 target with a labelled first-soldier range drill (closest to the A2 option 
 - **C1. Equal and short** (current, 5 min).
 - **C2.** 5 min until the Mess Hall exists, then 30 min.
 - **C3. Prevent instead of punish**: a soldier at energy 20 with no Mess Hall uses a free ration (B1). The first session never shows the aid station.
-- ★ **C2 now, C3 with B1**. C3 would also fix the 60 s pacing row.
+- ★ **C2 now, C3 with B1**. Round 3 built a narrow C3: one starter field meal from existing food stock, for the first soldier, before the Mess Hall. A general ration item (B1) is still its own brief.
 
 ### D. Character-led ideas
 
@@ -163,5 +186,5 @@ A +3 target with a labelled first-soldier range drill (closest to the A2 option 
 
 ## 9. Observations outside the brief
 
-- In one round 1 desktop screenshot, a visitor crossing the gate bridge was hidden while their highlight ring still showed. That suggests the bridge front rail's depth order. It is not reproduced since.
+- **Bridge occlusion (reproduced in round 3).** A person on the gate bridge is mostly hidden: only the head shows above the rail, while the name label and highlight ring draw normally (`docs/screenshots/2026-09-28-chapter-r3-field-meal-phone.jpg`). That suggests the bridge front rail's depth order. It is outside brief 08 and not changed here.
 - The hero banner still says "Recruit your people"; the chapter uses "meet" and "admit". That copy is left for Jason.
