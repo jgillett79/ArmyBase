@@ -6,6 +6,8 @@ This document describes the **current playable build**. `README.md` records the 
 
 A small roster of up to 20 soldiers matters as individuals. Players recruit visitors at the gate, name soldiers, train them, send squads on timed missions, and build a home for the people who return. There is no permanent death: a failed mission or neglect sends a soldier to hospital for 23 real hours, without losing their identity, equipment, or stats.
 
+**Next design milestone:** make the first soldier's story the entry point. [Brief 08](CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_CHAPTER.md) defines a guided recruit → train → introductory patrol → individual debrief sequence, soldier identity card and a grounded-walk release gate. Its proposed short early recovery supersedes the 23-hour default for early mission failures once implemented; the paragraph above describes the current build. Keep later base expansion subordinate to the first soldier's understandable progression.
+
 ## First public release scope
 
 One base, with a complete recruit → train → mission → upgrade loop. Players can recruit and name soldiers, assign one of four training facilities, manage food/needs, dispatch four tiers of missions, earn XP and rewards, and return to a saved base. Missions are independent rolls per soldier; mixed outcomes are possible. The first patrol returns in three real minutes, then missions scale to 30 minutes, 2 hours and 4 hours. Completing all eight facilities and recruiting 20 soldiers marks the outpost complete. These pacing and reward numbers are **provisional** and need real player testing.
