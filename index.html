@@ -21,9 +21,9 @@
     </div>
   </section>
 
-  <div class="section-heading"><div><p class="eyebrow">YOUR OUTPOST</p><h2>Base operations</h2></div><p>Tap a visitor to recruit them, or select a soldier to see their story.</p></div>
+  <div class="section-heading"><div><p class="eyebrow">YOUR OUTPOST</p><h2>Base operations</h2></div><p>Meet visitors at the gate, or select a soldier to see their story.</p></div>
   <p id="saveNotice" class="save-notice hidden" role="alert">This browser cannot save progress right now. Check that storage is enabled before you close the game.</p>
-  <details class="guide" open>
+  <details class="guide">
     <summary>How to play <span>Four steps to build your squad</span></summary>
     <ol>
       <li><strong>Welcome a visitor</strong><span>Tap someone at the gate or in the roster below. Each recruit costs $50.</span></li>
@@ -42,58 +42,83 @@
       <span class="hud-label">Roster</span>
       <span id="rosterValue">0 / 5</span>
     </div>
-    <div class="hud-block">
-      <span class="hud-label">Food</span>
-      <span id="foodValue">0</span>
-      <button id="buyFoodBtn">Buy 20 ($30)</button>
-    </div>
-    <div class="hud-block">
-      <span class="hud-label">Lumber</span>
-      <span id="lumberValue">0</span>
-    </div>
-    <div class="hud-block">
-      <span class="hud-label">Steel</span>
-      <span id="steelValue">0</span>
-    </div>
-    <div class="hud-block">
-      <span class="hud-label">Gems</span>
-      <span id="gemsValue">0</span>
-    </div>
+    <!-- Supplies and mission materials: folded under "More" during the first
+         soldier chapter (main.js opens it for good once the first patrol returns). -->
+    <details id="hudMore" class="hud-more">
+      <summary>More</summary>
+      <div class="hud-more-body">
+        <div class="hud-block">
+          <span class="hud-label">Food</span>
+          <span id="foodValue">0</span>
+          <button id="buyFoodBtn">Buy 20 ($30)</button>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Lumber</span>
+          <span id="lumberValue">0</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Steel</span>
+          <span id="steelValue">0</span>
+        </div>
+        <div class="hud-block">
+          <span class="hud-label">Gems</span>
+          <span id="gemsValue">0</span>
+        </div>
+      </div>
+    </details>
     <div class="hud-block mission-action">
       <button id="openMissionsBtn">Missions</button>
     </div>
   </header>
-  <div class="base-progress"><span id="baseProgress">Facilities 0/8 · Soldiers 0/20</span><strong id="baseMilestone" class="hidden">Outpost complete — your squad built this together.</strong></div>
+  <div class="base-progress"><span id="baseProgress">Facilities 0/8 · Soldiers 0/20</span><button id="resumeGuideBtn" type="button" class="link-button hidden">Show guidance</button><strong id="baseMilestone" class="hidden">Outpost complete — your squad built this together.</strong></div>
 
   <details id="construction" class="construction">
     <summary>Build & upgrade <span>Shape your base with new facilities</span></summary>
+    <!-- Each button says what the facility does for people (main.js
+         BUILDING_EFFECTS). During the first soldier chapter only the
+         suggested one shows until "All buildings" is pressed. -->
     <div class="construction-grid">
-    <div class="hud-block">
-      <button id="buildBarracksBtn">Barracks (<span id="barracksCost">100</span>)</button>
+    <div class="hud-block" data-key="barracks">
+      <button id="buildBarracksBtn"><span class="build-name">Barracks (<span id="barracksCost">100</span>)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildRangeBtn">Shooting Range (<span id="rangeCost">80</span>)</button>
+    <div class="hud-block" data-key="shootingRange">
+      <button id="buildRangeBtn"><span class="build-name">Shooting Range (<span id="rangeCost">80</span>)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildWeightRoomBtn">Weight Room (<span id="weightRoomCost">80</span>)</button>
+    <div class="hud-block" data-key="weightRoom">
+      <button id="buildWeightRoomBtn"><span class="build-name">Weight Room (<span id="weightRoomCost">80</span>)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildObstacleCourseBtn">Obstacle Course (<span id="obstacleCourseCost">80</span>)</button>
+    <div class="hud-block" data-key="obstacleCourse">
+      <button id="buildObstacleCourseBtn"><span class="build-name">Obstacle Course (<span id="obstacleCourseCost">80</span>)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildDrillYardBtn">Drill Yard (<span id="drillYardCost">100</span>)</button>
+    <div class="hud-block" data-key="drillYard">
+      <button id="buildDrillYardBtn"><span class="build-name">Drill Yard (<span id="drillYardCost">100</span>)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildMessHallBtn">Mess Hall (120)</button>
+    <div class="hud-block" data-key="messHall">
+      <button id="buildMessHallBtn"><span class="build-name">Mess Hall (120)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildShowersBtn">Showers (100)</button>
+    <div class="hud-block" data-key="showers">
+      <button id="buildShowersBtn"><span class="build-name">Showers (100)</span><small class="build-effect"></small></button>
     </div>
-    <div class="hud-block">
-      <button id="buildRecRoomBtn">Rec Room (100)</button>
+    <div class="hud-block" data-key="recRoom">
+      <button id="buildRecRoomBtn"><span class="build-name">Rec Room (100)</span><small class="build-effect"></small></button>
     </div>
     </div>
+    <button id="showAllBuildingsBtn" type="button" class="link-button show-all-buildings">All buildings</button>
   </details>
+
+  <!-- First soldier chapter: one instruction, its progress and one action. -->
+  <section id="objectiveCard" class="objective hidden" aria-live="polite">
+    <div class="objective-main">
+      <p class="eyebrow" id="objectiveStep">STEP 1 OF 6</p>
+      <h3 id="objectiveTitle"></h3>
+      <p id="objectiveDetail"></p>
+      <div id="objectiveProgress" class="objective-progress hidden"><div class="bar"><div id="objectiveProgressFill" class="bar-fill"></div></div><span id="objectiveProgressText"></span></div>
+    </div>
+    <div class="objective-actions">
+      <button id="objectiveActionBtn" type="button"></button>
+      <button id="skipGuideBtn" type="button" class="link-button">Skip guidance</button>
+    </div>
+  </section>
 
   <main id="gameArea">
     <canvas id="gameCanvas" width="960" height="576" aria-label="Base map. Drag to pan, pinch or scroll to zoom. Use the roster below to select soldiers and visitors."></canvas>
@@ -102,6 +127,7 @@
       <button id="zoomOutBtn" type="button" aria-label="Zoom out">&minus;</button>
       <button id="homeViewBtn" type="button" aria-label="Back to the gate">&#8962;</button>
     </div>
+    <div id="eventFeed" class="event-feed" aria-live="polite"></div>
     <div id="buildBar" class="build-bar hidden" role="status" aria-live="polite">
       <span id="buildBarText"></span>
       <button id="buildConfirmBtn" type="button">Build here</button>
@@ -119,18 +145,32 @@
     </div>
   </section>
 
-  <!-- Unit profile panel -->
+  <!-- The soldier card: the one place a soldier is shown, from the roster or the map. -->
   <div id="profilePanel" class="hidden">
-    <div class="profile-header">
-      <input id="profileName" type="text" maxlength="18">
-      <button id="closeProfile">&times;</button>
+    <div class="profile-header soldier-card-header">
+      <button id="profilePortraitBtn" type="button" class="portrait-button" aria-label="Show this soldier on the map"><canvas id="profilePortrait" class="portrait" width="72" height="72"></canvas></button>
+      <div class="soldier-card-id">
+        <input id="profileName" type="text" maxlength="18" aria-label="Soldier name">
+        <span id="profileRole" class="soldier-role"></span>
+      </div>
+      <button id="closeProfile" aria-label="Close">&times;</button>
     </div>
+    <p id="profileActivity" class="soldier-activity"></p>
+    <p id="profileRecommendation" class="soldier-recommendation"></p>
+    <div class="soldier-key-stats">
+      <div class="profile-row"><span id="profileKeyLabel">Accuracy</span><div class="bar"><div id="profileKeyBar" class="bar-fill"></div></div><span id="profileKeyText"></span></div>
+      <div class="profile-row"><span>XP</span><div class="bar"><div id="profileXpBar" class="bar-fill"></div></div><span id="profileXpText"></span></div>
+    </div>
+    <div id="profileService" class="soldier-service hidden"><strong id="profileServiceTag"></strong><span id="profileServiceRecord"></span></div>
+    <div class="soldier-history"><span class="hud-label">Missions</span><div id="profileHistory"></div></div>
+    <div class="profile-actions">
+      <button id="locateSoldierBtn" type="button">Show on map</button>
+      <button id="profileAssignRangeBtn" type="button" class="hidden">Train at the range</button>
+    </div>
+    <details id="profileDetails" class="profile-details">
+      <summary>Full profile</summary>
     <div class="profile-body">
       <div class="profile-row"><span>Level</span><span id="profileLevel"></span></div>
-      <div class="profile-row">
-        <span>XP</span>
-        <div class="bar"><div id="profileXpBar" class="bar-fill"></div></div>
-      </div>
       <div class="profile-row"><span>Status</span><span id="profileStatus"></span></div>
       <div class="profile-row">
         <span>Energy</span>
@@ -167,15 +207,35 @@
       </div>
     </div>
     <div class="profile-actions">
-      <button id="recallBtn">Recall to Idle</button>
+      <button id="recallBtn">Stop training</button>
     </div>
+    </details>
   </div>
 
-  <!-- Recruit confirm popup -->
+  <!-- Visitor card: meet, then admit -->
   <div id="recruitPopup" class="hidden">
+    <canvas id="recruitPortrait" class="portrait" width="72" height="72"></canvas>
     <p id="recruitText"></p>
-    <button id="recruitConfirm">Recruit</button>
-    <button id="recruitCancel">Ignore</button>
+    <button id="recruitConfirm">Admit</button>
+    <button id="recruitCancel">Not now</button>
+  </div>
+
+  <!-- Individual mission debrief, shown once per return -->
+  <div id="debriefPanel" class="hidden" role="dialog" aria-labelledby="debriefTitle">
+    <div class="soldier-card-header">
+      <canvas id="debriefPortrait" class="portrait" width="72" height="72"></canvas>
+      <div class="soldier-card-id">
+        <p class="eyebrow" id="debriefEyebrow">MISSION REPORT</p>
+        <h3 id="debriefTitle"></h3>
+      </div>
+    </div>
+    <ul id="debriefLines" class="debrief-lines"></ul>
+    <p id="debriefRecord" class="soldier-service hidden"></p>
+    <div id="debriefNext" class="debrief-next hidden"><span class="hud-label">Next for your base</span><p id="debriefNextText"></p></div>
+    <div class="profile-actions">
+      <button id="debriefBuildBtn" type="button" class="primary hidden"></button>
+      <button id="debriefContinueBtn" type="button">Continue</button>
+    </div>
   </div>
 
   <!-- Missions panel -->

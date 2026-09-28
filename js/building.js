@@ -4,6 +4,13 @@
 // TrainingBuilding base below — see its comment for why that stopped being
 // a premature abstraction once Phase 2 added three more of them.
 
+// Player-facing facility names by type (map labels, UI, event text).
+const BUILDING_LABELS = {
+  entrance_hall: 'Entrance Hall', barracks: 'Barracks', shooting_range: 'Shooting Range',
+  mess_hall: 'Mess Hall', weight_room: 'Weight Room', obstacle_course: 'Obstacle Course',
+  drill_yard: 'Combat Drill Yard', showers: 'Showers', rec_room: 'Rec Room',
+};
+
 const BARRACKS_MAX_LEVEL = 3;
 const BARRACKS_CAP_PER_LEVEL = 5;
 const BASE_UNIT_CAP = 5; // cap with zero barracks built

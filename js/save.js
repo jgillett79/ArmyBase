@@ -7,6 +7,14 @@
 //      (barracksLevel, ...), unit x/y in the retired 960 x 576 grid layout.
 //   v2 ('armybase_save_v2'): { schema: 2, worldId, buildings: { id: { level,
 //      zoneId } }, units, ... }. Unit x/y are world coordinates (world.js).
+//   v2 + brief 08 (same key and schema number — every addition is optional,
+//      so an older build still loads these saves and ignores the extras):
+//      `chapter` (the first soldier chapter, see state.js freshChapter()),
+//      per-unit `trained`, `serviceTag`, `serviceRecord`, `hospitalReason`,
+//      and mission-log entries with id/unitId/cash/resource/levelFrom/
+//      levelTo/seen (the soldier's debrief). A save without `chapter` gets
+//      one from chapterForSave(): an established base starts with the
+//      chapter done and guidance dismissed, a brand-new one starts fresh.
 //
 // Safety rules
 //   - The v1 key is never modified or removed. Migration writes a new v2 key;
@@ -94,6 +102,36 @@ function migrateV1ToV2(v1) {
   };
 }
 
+// The chapter for a save made before brief 08. Anyone who already has a
+// soldier, a mission behind them or a building of their own is not a new
+// player: they are never pushed back into onboarding and get no intro patrol.
+function chapterForSave(data) {
+  const established = (Array.isArray(data.units) && data.units.length > 0)
+    || (Array.isArray(data.missionLog) && data.missionLog.length > 0)
+    || Object.entries(data.buildings || {}).some(([id, b]) => id !== 'entrance_hall' && b && b.level > 0);
+  return established
+    ? { firstSoldierId: null, targetAccuracy: null, introDispatched: true, introReportId: null, done: true, dismissed: true, legacy: true }
+    : { firstSoldierId: null, targetAccuracy: null, introDispatched: false, introReportId: null, done: false, dismissed: false };
+}
+
+function validateChapter(chapter, errors) {
+  if (typeof chapter !== 'object' || chapter === null || Array.isArray(chapter)) { errors.push('The first-soldier chapter is not a valid record.'); return; }
+  for (const key of ['introDispatched', 'done', 'dismissed']) {
+    if (chapter[key] !== undefined && typeof chapter[key] !== 'boolean') errors.push(`Chapter ${key} is not true/false.`);
+  }
+  if (chapter.firstSoldierId != null && typeof chapter.firstSoldierId !== 'string') errors.push('Chapter soldier id is invalid.');
+  if (chapter.targetAccuracy != null && !Number.isFinite(chapter.targetAccuracy)) errors.push('Chapter target is not a number.');
+}
+
+// A chapter following a soldier who isn't on the roster (only possible in
+// an edited backup) would strand the guide; close it rather than refuse
+// the whole save.
+function repairChapter(data) {
+  const { chapter } = data;
+  if (!chapter.firstSoldierId || chapter.done || data.units.some(u => u.id === chapter.firstSoldierId)) return data;
+  return { ...data, chapter: { ...chapter, done: true, dismissed: true } };
+}
+
 // Problems that make data unsafe to load, as sentences a player can act on.
 function validateSaveData(data) {
   const errors = [];
@@ -122,6 +160,9 @@ function validateSaveData(data) {
       else usedZones.set(zone.id, id);
     }
   }
+
+  if (data.chapter !== undefined) validateChapter(data.chapter, errors);
+  if (data.missionLog !== undefined && !Array.isArray(data.missionLog)) errors.push('The mission log is not a list.');
 
   if (!Array.isArray(data.units)) errors.push('The soldier list is missing.');
   else {
@@ -159,13 +200,14 @@ function normalizeSaveData(data) {
   const version = saveVersionOf(data);
   if (version === null) throw new SaveFormatError('This is not a Command Base save or backup.');
   if (version > SAVE_SCHEMA_VERSION) throw new SaveFormatError('This backup was made by a newer version of Command Base.');
-  const current = version === 1 ? migrateV1ToV2(data) : data;
+  const migrated = version === 1 ? migrateV1ToV2(data) : data;
+  const current = migrated.chapter === undefined ? { ...migrated, chapter: chapterForSave(migrated) } : migrated;
   const errors = validateSaveData(current);
   if (errors.length) {
     const more = errors.length > 3 ? ` (and ${errors.length - 3} more problems)` : '';
     throw new SaveFormatError(`This backup can't be restored: ${errors.slice(0, 3).join(' ')}${more}`);
   }
-  return { data: current, migrated: version !== SAVE_SCHEMA_VERSION, fromVersion: version };
+  return { data: repairChapter(current), migrated: version !== SAVE_SCHEMA_VERSION, fromVersion: version };
 }
 
 function parseSaveText(raw) {

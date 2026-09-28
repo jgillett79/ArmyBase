@@ -299,6 +299,23 @@ function assetInUse(entry, allowCandidates = false) {
   return entry.status === 'candidate' && allowCandidates;
 }
 
+// Brief 08 release gate: grounded soldier movement ships only when every
+// direction has an approved (production or provisional) walk AND idle set.
+// `left` may mirror `right`. Until then the chapter is reported blocked on
+// art and the game keeps its still sprites. Returns { ready, blockers[] }.
+function walkReleaseGate() {
+  const soldier = ASSET_MANIFEST.units.soldier;
+  const approved = entry => !!entry && (entry.status === 'production' || entry.status === 'provisional');
+  const blockers = [];
+  for (const kind of ['walk', 'idle']) {
+    for (const direction of soldier[kind].directions) {
+      const entry = soldier[kind].drawn && soldier[kind].drawn[direction];
+      if (!approved(entry)) blockers.push(`${kind} ${direction}: ${entry ? entry.status : 'missing'}`);
+    }
+  }
+  return { ready: blockers.length === 0, blockers };
+}
+
 // Processed facility art usable on this zone (anchored art needs a matching door side).
 function facilityArtFor(type, zone) {
   const art = ASSET_MANIFEST.facilities[type];

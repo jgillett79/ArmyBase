@@ -409,6 +409,92 @@ h1 { font-size: clamp(2.9rem, 7vw, 5rem); line-height: .98; margin: 0 0 19px; co
 #profilePanel, #missionsPanel, #recruitPopup { z-index: 10; box-shadow: 0 20px 80px #000b; border-color: #759081; }
 #missionsPanel { width: min(92vw, 470px); }
 #profilePanel { top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; }
+/* ---------- First soldier chapter (brief 08) ---------- */
+.link-button { background: none; border: none; padding: 4px 6px; color: var(--text-dim); text-decoration: underline; font-size: .78rem; }
+.link-button:hover:not(:disabled) { background: none; color: var(--text); transform: none; }
+.base-progress { align-items: center; }
+
+/* Supplies and materials fold under "More" while onboarding; afterwards the
+   summary disappears and they read as part of the HUD. */
+.hud-more { display: flex; }
+.hud-more > summary { cursor: pointer; font-size: .75rem; font-weight: 800; color: #afc5ad; padding: 6px 10px; border: 1px solid var(--panel-border); border-radius: 9px; list-style: none; }
+.hud-more > summary::-webkit-details-marker { display: none; }
+.hud-more-body { display: flex; flex-wrap: wrap; gap: 10px 20px; }
+.hud-more[open] > summary { margin-right: 12px; }
+body:not(.onboarding) .hud-more > summary { display: none; }
+
+/* Only the suggested facility shows while onboarding, until "All buildings". */
+.show-all-buildings { margin: 0 14px 12px; }
+body:not(.onboarding) .show-all-buildings, .construction.show-all .show-all-buildings { display: none; }
+body.onboarding .construction:not(.show-all) .construction-grid .hud-block:not(.recommended) { display: none; }
+.construction-grid button { display: flex; flex-direction: column; gap: 3px; }
+.build-effect { color: var(--text-dim); font-size: .72rem; font-weight: 400; line-height: 1.3; }
+
+.objective { width: min(100%, 960px); display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; margin: 0 0 12px; padding: 14px 16px; background: linear-gradient(90deg, #2c3d2f, #1f302b); border: 1px solid #c8a968; border-radius: 12px; box-shadow: 0 8px 28px #0005; }
+.objective-main { flex: 1 1 320px; min-width: 0; }
+.objective .eyebrow { margin-bottom: 4px; }
+.objective h3 { margin: 0 0 4px; font-family: Georgia, 'Times New Roman', serif; font-size: 1.3rem; color: #fff6dc; }
+.objective p { margin: 0; color: #d7e0d2; font-size: .88rem; line-height: 1.4; }
+.objective-progress { display: flex; align-items: center; gap: 10px; margin-top: 8px; font-size: .82rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.objective-progress .bar { max-width: 260px; height: 10px; }
+.objective-progress .bar-fill { background: #d5bb79; transition: width .3s; }
+.objective-actions { display: flex; flex-direction: column; align-items: stretch; gap: 4px; }
+#objectiveActionBtn { background: #d5bb79; color: #1d2923; font-weight: 800; border-color: #e3cd9a; min-height: 44px; }
+#objectiveActionBtn:disabled { background: #4a4f45; color: #cfcfbf; border-color: #5d6457; opacity: 1; }
+
+@keyframes guide-pulse { 0%, 100% { box-shadow: 0 0 0 0 #f4d79888; } 50% { box-shadow: 0 0 0 5px #f4d79833; } }
+.guide-target { border-color: #f4d798 !important; animation: guide-pulse 1.6s ease-in-out infinite; }
+
+.event-feed { position: absolute; right: 10px; top: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; max-width: min(70%, 360px); pointer-events: none; }
+.event-toast { pointer-events: auto; background: #182622ee; border: 1px solid #c8a968; color: #f6eed6; font-size: .82rem; padding: 7px 11px; text-align: right; animation: toast-in .25s ease-out; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
+
+.portrait { display: block; border-radius: 10px; border: 1px solid #6f8c7f; background: #22332e; flex: none; }
+.portrait.small { width: 44px; height: 44px; border-radius: 8px; }
+.portrait-button { padding: 0; border: none; background: none; }
+.roster-card { flex-direction: row; align-items: center; gap: 10px; }
+.roster-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+
+.soldier-card-header { display: flex; gap: 10px; align-items: center; }
+.soldier-card-id { flex: 1; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.soldier-card-id input { margin: 0; font-weight: 800; font-size: 1rem; }
+.soldier-role { color: #e8c987; font-size: .78rem; font-weight: 700; letter-spacing: .03em; }
+.soldier-activity { margin: 4px 0 2px; font-size: .85rem; color: #e6ecdf; }
+.soldier-recommendation { display: inline-block; margin: 2px 0 8px; padding: 3px 9px; border-radius: 999px; background: #34493f; color: #f4e6bf; font-size: .76rem; font-weight: 700; }
+.soldier-recommendation[data-code="ready"] { background: #d5bb79; color: #1d2923; }
+.soldier-recommendation[data-code="rest"], .soldier-recommendation[data-code="recovering"] { background: #6a3b35; }
+.soldier-key-stats .profile-row > span:last-child { min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; font-size: .78rem; }
+.soldier-service { margin: 8px 0; padding: 8px 10px; border-left: 3px solid #d5bb79; background: #22332e; font-size: .8rem; line-height: 1.4; }
+.soldier-service strong { display: block; color: #f2d58f; }
+.soldier-history { margin-top: 8px; font-size: .8rem; color: var(--text-dim); }
+.soldier-history > div { margin-top: 3px; display: flex; flex-direction: column; gap: 2px; }
+.profile-details { margin-top: 10px; border-top: 1px solid var(--panel-border); padding-top: 6px; }
+.profile-details summary { cursor: pointer; font-size: .8rem; font-weight: 700; color: var(--text-dim); }
+#profilePanel { width: 300px; }
+#recruitPopup .portrait { margin: 0 auto 10px; }
+#recruitPopup { max-width: min(92vw, 360px); }
+#recruitPopup p { line-height: 1.45; }
+
+.mission-tier { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; width: 100%; text-align: left; background: #1d2d29; }
+.mission-tier-purpose { font-size: .8rem; color: #e8c987; }
+.mission-unit-row.blocked { opacity: .7; }
+
+#debriefPanel { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 11; width: min(92vw, 420px); max-height: 88vh; overflow-y: auto; padding: 16px; background: var(--panel); border: 1px solid #c8a968; border-radius: 12px; box-shadow: 0 20px 80px #000b; }
+#debriefPanel h3 { margin: 0; font-family: Georgia, 'Times New Roman', serif; font-size: 1.35rem; color: #fff6dc; }
+#debriefPanel .eyebrow { margin: 0; }
+.debrief-lines { margin: 12px 0; padding-left: 18px; font-size: .9rem; line-height: 1.5; }
+.debrief-next { margin: 8px 0; padding: 10px; border: 1px solid var(--panel-border); border-radius: 9px; }
+.debrief-next p { margin: 4px 0 0; font-size: .86rem; line-height: 1.4; }
+button.primary { background: #d5bb79; color: #1d2923; font-weight: 800; border-color: #e3cd9a; }
+
+@media (max-width: 700px) {
+  .objective { border-radius: 0; margin: 0 0 8px; }
+  .objective-actions { flex: 1 1 100%; }
+  .event-feed { top: auto; bottom: 10px; right: 10px; left: 58px; max-width: none; }
+  .hud-more-body { gap: 10px 17px; }
+  #debriefPanel { top: auto; bottom: 0; transform: translateX(-50%); border-radius: 12px 12px 0 0; max-height: 80vh; }
+}
+
 @media (max-width: 700px) {
   .hero { min-height: 320px; border-radius: 0 0 16px 16px; background-position: 60% center; }
   .hero::before { background: linear-gradient(90deg, #102323e8, #10232388 70%, #10232350); }

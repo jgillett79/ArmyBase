@@ -173,11 +173,6 @@ function facilityKind(type) {
 }
 const CONSTRUCTION_MS = 1600;
 
-const BUILDING_LABELS = {
-  entrance_hall: 'Entrance Hall', barracks: 'Barracks', shooting_range: 'Shooting Range',
-  mess_hall: 'Mess Hall', weight_room: 'Weight Room', obstacle_course: 'Obstacle Course',
-  drill_yard: 'Combat Drill Yard', showers: 'Showers', rec_room: 'Rec Room',
-};
 const BUILDING_FALLBACK_COLORS = {
   entrance_hall: '#6a5a4a', barracks: '#5a6450', shooting_range: '#6a5240', mess_hall: '#40605a',
   weight_room: '#5a4a6a', obstacle_course: '#6a5a30', drill_yard: '#4a5a6a', showers: '#4a7a8a', rec_room: '#8a6a4a',
@@ -648,6 +643,73 @@ function tintedSprite(img, hue, saturation) {
   return tinted;
 }
 
+// Portrait slot (brief 08): head and shoulders from the person's own
+// front-facing sprite with their identity tint, so the card, roster, map
+// and debrief all show the same person. A stand-in until Codex exports
+// dedicated busts per soldier variant (see the brief 08 manifest).
+// Returns true once the art was drawn (false while it is still loading).
+const PORTRAIT_CROP = { x: 0.14, y: 0.0, size: 0.72 }; // of the sprite width, from its top edge
+function drawPortrait(canvas, unit) {
+  const g = canvas.getContext && canvas.getContext('2d');
+  if (!g) return false;
+  const w = canvas.width, h = canvas.height;
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = `hsl(${unit.colorSeed}, 18%, 26%)`;
+  g.fillRect(0, 0, w, h);
+  const set = unitSpriteSet(unit);
+  const img = spriteReady(set.down) ? set.down : set.fallback;
+  if (!spriteReady(img)) {
+    g.fillStyle = `hsl(${unit.colorSeed}, 45%, 55%)`;
+    g.beginPath(); g.arc(w / 2, h * 0.55, w * 0.3, 0, Math.PI * 2); g.fill();
+    return false;
+  }
+  const art = tintedSprite(img, unit.colorSeed, unit.outfit === 'uniform' ? 1.5 : 0.85);
+  const size = img.naturalWidth * PORTRAIT_CROP.size;
+  g.drawImage(art, img.naturalWidth * PORTRAIT_CROP.x, img.naturalHeight * PORTRAIT_CROP.y, size, size, 0, 0, w, h);
+  return true;
+}
+
+// Guidance highlight (first soldier chapter): a pulsing ring and marker on
+// the person to act on, and the outline of the facility involved.
+function drawGuideHighlight(ctx, gameState, guide, now) {
+  if (!guide) return;
+  const pulse = 0.5 + 0.5 * Math.sin(now / 260);
+  ctx.save();
+  if (guide.zoneId) {
+    const zone = zoneById(guide.zoneId);
+    if (zone) {
+      traceSmoothPolygon(ctx, zone.footprint);
+      ctx.setLineDash([px(10), px(6)]);
+      ctx.lineDashOffset = -now / 60;
+      ctx.strokeStyle = `rgba(244, 215, 152, ${0.55 + 0.35 * pulse})`;
+      ctx.lineWidth = px(3);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+  const unit = guide.unitId && gameState.units.find(u => u.id === guide.unitId);
+  if (unit && unit.status !== UNIT_STATUS.ON_MISSION) {
+    ctx.strokeStyle = `rgba(244, 215, 152, ${0.6 + 0.4 * pulse})`;
+    ctx.lineWidth = px(3);
+    ctx.beginPath();
+    ctx.ellipse(unit.x, unit.y - 1, UNIT_W / 2 + 6 + pulse * 4, 11 + pulse * 2, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    // Marker above the head, clear of the name label.
+    const tipY = unit.y - UNIT_H - px(22) - pulse * px(5);
+    ctx.fillStyle = '#f4d798';
+    ctx.strokeStyle = '#1d2923';
+    ctx.lineWidth = px(1.5);
+    ctx.beginPath();
+    ctx.moveTo(unit.x, tipY);
+    ctx.lineTo(unit.x - px(8), tipY - px(12));
+    ctx.lineTo(unit.x + px(8), tipY - px(12));
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // Keep the figure intact while moving. Cutting two "legs" out of still art
 // distorted uniforms and looked like skating; authored frame sets will
 // replace this complete-pose fallback in the character production pass.
@@ -820,7 +882,7 @@ function drawDebugOverlay(ctx, gameState) {
 
 let fallbackCamera = null;
 
-// view: { camera, dpr, now, buildMode, debug, revealedBuildingId }.
+// view: { camera, dpr, now, buildMode, debug, revealedBuildingId, guide }.
 function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   const camera = view.camera || (fallbackCamera ||= new Camera(960, 576));
   const dpr = view.dpr || 1;
@@ -881,6 +943,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id), now);
   drawUnitLabels(ctx, items.filter(item => item.unit).map(item => item.unit), selectedUnitId);
   for (const [buildingId, count] of hiddenCount) drawOccupancyBadge(ctx, gameState.buildingByAnyId(buildingId), count);
+  if (!view.buildMode) drawGuideHighlight(ctx, gameState, view.guide, now);
   if (view.buildMode) drawBuildOverlay(ctx, gameState, view.buildMode, now);
   if (view.debug) drawDebugOverlay(ctx, gameState);
 

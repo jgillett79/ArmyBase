@@ -49,6 +49,9 @@ assert.equal(run('visitor.slot.buildingId'), 'entrance_hall');
 assert.ok(run('visitor.chairIndex !== null && pointInPolygon(visitor.x, visitor.y, buildingZone(state.entranceHall).footprint)'));
 
 // Recruitment: chair released, walks to the Barracks, uniform at its entrance.
+// (This trace covers movement, not the first-soldier chapter — tests/chapter.cjs
+// covers that — so the chapter is closed and the plain Local Patrol applies.)
+run('state.chapter.done = true; state.chapter.introDispatched = true;');
 assert.equal(run('state.recruit(visitor.id)'), true);
 assert.equal(run(`events(visitor, 'release').at(-1).buildingId`), 'entrance_hall');
 assert.equal(run('visitor.outfit === "uniform"'), false, 'still in civilian clothes while walking in');

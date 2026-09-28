@@ -4,9 +4,9 @@ This document describes the **current playable build**. `README.md` records the 
 
 ## Player promise
 
-A small roster of up to 20 soldiers matters as individuals. Players recruit visitors at the gate, name soldiers, train them, send squads on timed missions, and build a home for the people who return. There is no permanent death: a failed mission or neglect sends a soldier to hospital for 23 real hours, without losing their identity, equipment, or stats.
+A small roster of up to 20 soldiers matters as individuals. Players recruit visitors at the gate, name soldiers, train them, send squads on timed missions, and build a home for the people who return. There is no permanent death: a failed mission sends a soldier to the aid station for a real-time recovery set by the mission (5 minutes for Local Patrol, 30 minutes, 2 hours and 4 hours for later tiers), and neglect for no longer than the shortest of those. Identity, equipment and stats are kept.
 
-**Next design milestone:** make the first soldier's story the entry point. [Brief 08](CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_CHAPTER.md) defines a guided recruit → train → introductory patrol → individual debrief sequence, soldier identity card and a grounded-walk release gate. Its proposed short early recovery supersedes the 23-hour default for early mission failures once implemented; the paragraph above describes the current build. Keep later base expansion subordinate to the first soldier's understandable progression.
+**First soldier chapter (brief 08, implemented):** a new player's first session follows one soldier: visitor at the gate → admission → soldier card → range training to a visible readiness target → a one-time 75-second introductory patrol with a guaranteed return → an individual debrief → the first improvement (usually the Mess Hall). See [the manifest](CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md) for the numbers, test evidence, the walk release gate (still blocked on art), and the decisions that need review. Keep later base expansion subordinate to the first soldier's understandable progression.
 
 ## First public release scope
 
@@ -72,7 +72,7 @@ The three player references received on 26 September 2026 refine the target. `gr
 
 1. **Promotion and multiple bases.** Base 1 must persist with its remaining soldiers and passive income; two chosen soldiers move to Base 2. Define carried resources, construction, mission unlocks, and save migrations before implementing.
 2. **Further material sinks.** Validate the provisional lumber and steel upgrade costs with playtesting; specify gem costs for equipment and promotion so the top mission reward has lasting value.
-3. **Audience and release target.** Playtest the first session, mission wait times, 23-hour hospital consequence and portrait phone layout. Verify the installable PWA and offline cache on the deployed HTTPS host.
+3. **Audience and release target.** Playtest the first session, mission wait times, recovery durations and portrait phone layout. Verify the installable PWA and offline cache on the deployed HTTPS host.
 4. **Visual production.** Produce consistent full-body walk frames for each character direction and activity. Finish the organic-base treatment for the remaining facilities, improve scale/composition and add environmental detail after checking the first four revised buildings at gameplay size.
 5. **Player trust.** Backup download and restore are available, but save migration and corruption recovery need more work before promising durable long-term progress. localStorage can be cleared by a browser or device change.
 

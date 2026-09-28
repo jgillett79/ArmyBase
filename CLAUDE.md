@@ -28,15 +28,21 @@ with a stat-weighted success chance → return, or don't.
   monetized via "pay/watch-ad to resurrect." Rejected: paying to undo grief
   over a character you were deliberately made to feel attached to is a
   known predatory mobile-monetization pattern and a platform-review risk.
-  Replaced with: death → 23-hour **real-time** hospital stay, full recovery,
-  no stat loss. Ad/pay-to-skip-the-wait can be added later as a convenience
+  Replaced with: death → **real-time** hospital stay, full recovery,
+  no stat loss. (Originally 23 hours; brief 08 made it per mission tier —
+  5 min Local Patrol, 30 min / 2 h / 4 h for later tiers — so an unlucky
+  early patrol can't stop a first session for a day. See `recoveryMs` in
+  `mission.js`.) Ad/pay-to-skip-the-wait can be added later as a convenience
   purchase (skip time), which is a fundamentally different, much less
   predatory mechanic than "pay to undo permanent loss."
 - **Same consequence for neglect death.** If a unit's Energy hits 0 from
-  poor food/schedule management, they get the *same* 23h hospital stay as
+  poor food/schedule management, they get a hospital stay no longer than
   mission death — not something harsher. Confirmed explicitly by the user;
   don't make starvation-death worse than mission-death, that reintroduces
-  the punishing-death problem from a different angle.
+  the punishing-death problem from a different angle. Since brief 08 that
+  means `NEGLECT_RECOVERY_MS` (5 min) ≤ the shortest tier recovery;
+  `tests/chapter.cjs` asserts it. (Flagged for review in the brief 08
+  manifest: it also makes neglect much milder than before.)
 - **Unit cap: 20.** Chosen explicitly so units stay individually
   distinguishable on screen. Don't raise this without it being a deliberate
   design decision, not scope creep.
@@ -168,8 +174,9 @@ independent clocks:
    `GAME_MS_PER_REAL_MS` in `state.js`). Drives training/sleep/schedule
    decisions (`Unit.desiredStatus()`).
 2. **Hospital recovery** (`unit.hospitalUntil`) — REAL TIME, uncompressed.
-   23 hours real, computed via `Date.now()`, completely independent of the
-   game clock's value.
+   A per-tier duration (5 min for Local Patrol up to 4 h, or
+   `NEGLECT_RECOVERY_MS`), computed via `Date.now()`, completely
+   independent of the game clock's value.
 3. **Offline catch-up cap** — REAL TIME. Capped at 24 hours
    (`OFFLINE_CATCHUP_CAP_MS`). Log off, come back within a day, everything
    (including hospital stays) has accrued normally as if you'd left the
@@ -348,6 +355,22 @@ point; the boom swings (presentation only) in render.js. Visitors check in
 at `WORLD.checkpoint.pause`, outside the barrier. Terrain strips and the
 painted down-walk are candidates (`?art=candidates`); validate-assets
 reports candidate shortfalls as WARN, not failures.
+
+**Brief 08 done (first soldier chapter)**: see
+`CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md`. `GameState.chapter`
+saves only the facts that can't be derived (first soldier id, readiness
+target, intro dispatched, intro report id, done, dismissed);
+`chapterStage()` derives the step from roster, buildings and mission log,
+so reloads can't restart or strand it. Deployment goes through
+`deploymentCheck()` (named reasons) and non-idle soldiers need an explicit
+`{ recall: true }` — the old IDLE-only rule was the "deployment trap".
+The first soldier's first Local Patrol is `INTRO_PATROL` (75 s,
+guaranteed, solo, one time). Mission-log entries are the debriefs
+(`seen: false` until read). Save stays schema 2 with optional additions;
+saves without `chapter` get one from `chapterForSave()` (an established
+base starts done). The directional-walk release gate (`walkReleaseGate()`)
+is still **blocked on art**. Tests: `tests/chapter.cjs`; browser flow:
+`tools/capture-first-session.cjs desktop|phone`.
 
 ## Open questions for Phase 2 — don't guess at these, ask
 

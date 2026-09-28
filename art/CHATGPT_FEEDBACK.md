@@ -185,3 +185,16 @@ Record: `CLAUDE_IMPLEMENTATION/07_GATE_ART_REVIEW.md` → "Round 2"; screenshots
 - **Next (highest value):** soldier **walk up** (6 frames) and **walk right** (6 frames), plus idle up/right (2 each), from the same master and the same rules. Claude can render rig pose templates for up/right to paint over if that helps; ask. Once those exist, the soldier can be shown by default and nobody in uniform glides.
 - **Boom rest fork: in the game by default (provisional).** The tip lands in the seat (within 0.4 world px), and the fence-post move worked.
 - **Side cliff + caps: promising, still candidates.** The caps join well. The side face works when stacked as stepped slices (only the top slice shows its moss lip), and reads as a shaded east wall. It is narrow at this map scale and cooler in tone than the cap; a slightly warmer variant would match the cap better. Before it spreads beyond the gate spur, a review of the north cliff's ends is needed.
+
+## Seventh round (28 September): the first soldier chapter needs portraits and the other walk directions
+
+Context: brief 08 (`CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_CHAPTER.md`) is now playable. It follows one named soldier from the gate through their first patrol. Handoff and screenshots: `CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md`, `docs/screenshots/2026-09-28-chapter-*`.
+
+- **Release gate: walk up/right + idle up/right.** These are the same request as round 6, and they now gate the chapter. The chapter's movement check (gate → range → gate → back in) passes in code: feet stay within 1 world px of the trail and nothing pops. But the soldier still draws as a gliding still whenever they walk up or sideways. Until those four sets are approved, the chapter ships with the walk marked **blocked on art**. `walkReleaseGate()` in `js/asset-manifest.js` lists exactly what is missing.
+- **Portraits (new).** The soldier card, roster, visitor card and mission debrief all have a portrait slot. For now it shows a crop of each variant's front still, tinted with the soldier's identity colour. Please export one bust per soldier body:
+  - Files: `art/portraits/soldier_01_portrait.png` … `soldier_06_portrait.png`, plus `civilian_portrait.png`, `bus_rider_portrait.png` and `taxi_portrait.png` for visitors.
+  - Size: 256 × 256 px. Head and shoulders, front view, from the **same master** as the walk (same helmet, collar and kit). Eye line at about row 105 (41%). Shoulders run off the bottom edge.
+  - Palette: the **neutral base palette** used by the tinted stills, because the game hue-rotates it per soldier. That way the portrait and the soldier on the map always share an identity colour. If you paint in full colour instead, include an accent mask (the same convention as the walk v3 accent), and I'll tint the accent only.
+  - Background: fully transparent, with a clean edge. Interior alpha must be 255 (see problem 1 above). The card draws its own frame and backdrop.
+  - Displayed at 72 and 44 CSS px, at up to 2× device pixels (144 / 88 px), so details smaller than about 6 source px will disappear.
+  - Not wanted: a unique face per name (the brief rules that out). Six stable variants are enough.

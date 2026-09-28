@@ -1,0 +1,16 @@
+   2.3 s  fresh game · stage meet · cash $200
+  16.3 s  objective: Meet your first visitor — Mary Garcia is walking in from the gate. Tap them to meet them.
+  16.9 s  met Mary Garcia by tapping them on the map · objective: Admit Mary Garcia — $50 to join. They'll walk to the barracks and change into uniform.
+  20.1 s  admitted Mary Garcia (target accuracy 51, now 50) · card: Walking to the barracks to change into uniform
+  39.0 s  in uniform · objective: Train Mary Garcia at the range — First, build the Shooting Range: Trains accuracy — 2 soldiers at a time per level.
+  43.0 s  range built · cash $71 · objective: Train Mary Garcia at the range — Accuracy decides whether Mary is ready for the first patrol. About 25 s at the range. Range open now (09:24).
+  45.5 s  assigned to the range · Heading to training at the Shooting Range
+  59.7 s  training at the range · objective: Train Mary Garcia at the range — Heading to training at the Shooting Range. Range open now (10:44).
+ 109.9 s  ready for patrol · events so far: Mary Garcia is in uniform | Mary Garcia qualified for Local Patrol
+ 113.5 s  DISPATCHED "Recall Mary and send on Local Patrol" (was training) · time to first patrol 114 s
+ 137.9 s  walked out through the gate
+ 139.4 s  reloaded mid-patrol → still "away" · objective: Welcome Mary Garcia back — Mary is out on patrol and will walk back in through the gate.
+ 189.4 s  debrief: Walked the Local Patrol route and came home through the gate. Brought back $70. +60 XP. · next: Mess Hall · $120 — Meals with your food stock, so soldiers stop collapsing from hunger. You have $145.
+ 199.3 s  chapter complete · built Mess Hall · cash $25
+ 204.0 s  reloaded after completion: no debrief, 1 intro report, cash $26 → $26 (idle trickle only)
+ 204.0 s  PASS

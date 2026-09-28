@@ -13,7 +13,7 @@ const UNIT_STATUS = {
   SLEEPING: 'sleeping',                          // night hours, at Barracks, low decay
   HYGIENE: 'hygiene',                            // scheduled block, at Showers, hygiene climbs
   RECREATION: 'recreation',                      // scheduled block, at Rec Room, morale climbs
-  HOSPITAL: 'hospital',                          // energy hit 0 OR failed a mission — same consequence
+  HOSPITAL: 'hospital',                          // energy hit 0 OR failed a mission — same kind of consequence
   ON_MISSION: 'on_mission',                      // away on a mission (async/black-box — see mission.js);
                                                   // excluded from the normal tick loop and not rendered
 };
@@ -130,6 +130,15 @@ class Unit {
     this.equipment = []; // persists through hospital stays — Phase 3 will add effects
 
     this.hospitalUntil = null; // timestamp (ms) when recovery finishes
+    this.hospitalReason = null; // 'mission' | 'energy' — only for explaining the stay
+
+    // Identity earned through play (brief 08), saved with the soldier:
+    // stat points gained by training (drives the speciality), and a short
+    // service record — a tag plus one sentence — written by their first
+    // patrol. Presentation, not a trait tree.
+    this.trained = {};         // { accuracy: 3.2, ... }
+    this.serviceTag = null;    // e.g. 'First Patrol'
+    this.serviceRecord = null; // one sentence
 
     // Set only while status === ON_MISSION — see state.js's dispatchMission()/tick().
     this.missionReturnAt = null; // timestamp (ms), same real-time pattern as hospitalUntil
@@ -195,11 +204,12 @@ class Unit {
     this.endurance = clamp(this.endurance + randInt(1, 3), 0, 95);
   }
 
-  sendToHospital(nowMs) {
+  // durationMs comes from the mission tier (or NEGLECT_RECOVERY_MS) — see
+  // mission.js. Real time, deliberately NOT run through the compressed game
+  // clock — see state.js header comment on the three-clocks issue.
+  sendToHospital(nowMs, durationMs) {
     this.status = UNIT_STATUS.HOSPITAL;
-    // 23h real-time timer, deliberately NOT run through the compressed game
-    // clock — see state.js header comment on the three-clocks issue.
-    this.hospitalUntil = nowMs + 23 * 60 * 60 * 1000;
+    this.hospitalUntil = nowMs + durationMs;
     this.hp = this.maxHp;
     this.energy = this.maxEnergy;
   }
@@ -261,8 +271,18 @@ class Unit {
   applyTrainingGain(gameHours, trains) {
     const moralePenalty = this.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1;
     for (const stat in trains) {
+      const before = this[stat];
       this[stat] = clamp(this[stat] + trains[stat] * gameHours * moralePenalty, 0, 95);
+      this.trained[stat] = (this.trained[stat] || 0) + (this[stat] - before);
     }
+  }
+
+  // Role earned through play: the stat they have trained most. Until a
+  // soldier has trained a whole point they are simply a Recruit.
+  get speciality() {
+    const best = Object.entries(this.trained || {}).sort((a, b) => b[1] - a[1])[0];
+    if (!best || best[1] < 1) return 'Recruit';
+    return { accuracy: 'Marksman', strength: 'Breacher', endurance: 'Pathfinder' }[best[0]] || 'Recruit';
   }
 
   // Replaces the current path with a fresh multi-leg route (a list of

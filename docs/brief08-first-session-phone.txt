@@ -1,0 +1,16 @@
+   2.1 s  fresh game · stage meet · cash $200
+  16.0 s  objective: Meet your first visitor — Fatima Kim is walking in from the gate. Tap them to meet them.
+  16.7 s  met Fatima Kim by tapping them on the map · objective: Admit Fatima Kim — $50 to join. They'll walk to the barracks and change into uniform.
+  19.9 s  admitted Fatima Kim (target accuracy 57, now 56) · card: Walking to the barracks to change into uniform
+  35.3 s  in uniform · objective: Train Fatima Kim at the range — First, build the Shooting Range: Trains accuracy — 2 soldiers at a time per level.
+  39.5 s  range built · cash $71 · objective: Train Fatima Kim at the range — Accuracy decides whether Fatima is ready for the first patrol. About 25 s at the range. Range open now (09:07).
+  42.0 s  assigned to the range · Heading to training at the Shooting Range
+  53.5 s  training at the range · objective: Train Fatima Kim at the range — Heading to training at the Shooting Range. Range open now (10:14).
+ 103.6 s  ready for patrol · events so far: Fatima Kim is in uniform | Fatima Kim qualified for Local Patrol
+ 107.3 s  DISPATCHED "Recall Fatima and send on Local Patrol" (was training) · time to first patrol 107 s
+ 128.5 s  walked out through the gate
+ 130.0 s  reloaded mid-patrol → still "away" · objective: Welcome Fatima Kim back — Fatima is out on patrol and will walk back in through the gate.
+ 183.2 s  debrief: Walked the Local Patrol route and came home through the gate. Brought back $70. +60 XP. · next: Mess Hall · $120 — Meals with your food stock, so soldiers stop collapsing from hunger. You have $145.
+ 193.5 s  chapter complete · built Mess Hall · cash $25
+ 198.5 s  reloaded after completion: no debrief, 1 intro report, cash $25 → $25 (idle trickle only)
+ 198.5 s  PASS

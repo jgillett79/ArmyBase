@@ -442,6 +442,21 @@ playback (distance-driven walk cycles, activity loops, separate effects) is
 ready for the walk/idle/activity sets requested in
 `art/CHATGPT_FEEDBACK.md`.
 
+## Brief 08 (done, walk art pending): first soldier chapter
+
+A new player's first session follows one soldier: meet a visitor at the
+gate, admit them, build the range, train them to a visible readiness
+target, send them on a one-time 75-second introductory patrol (guaranteed
+return), read their individual debrief, and spend the earnings on the
+next facility. There is one soldier card (portrait, earned role, activity,
+recommendation, XP, service record, mission history) reachable from the
+map and the roster. Missions say what they are for, and anyone who can't
+go says why. Busy soldiers are recalled explicitly. Failed missions mean a
+short real-time recovery (5 min for Local Patrol) instead of 23 hours.
+Details, measurements and open decisions:
+`CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md`. The directional walk
+stays behind its art release gate.
+
 ## Open questions still remaining for Phase 2
 
 1. **Walk-cycle animation.** User feedback: units don't have an actual

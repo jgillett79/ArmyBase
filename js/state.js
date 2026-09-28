@@ -8,8 +8,10 @@ const CIVILIAN_WALK_TIMEOUT_MS = 30000; // let arrivals reach the hall and be no
 // THREE CLOCKS — read this before touching any timing code.
 // 1. Game day/night clock: COMPRESSED. 5 real minutes = 24 game hours.
 //    Drives training/sleep/schedule decisions. Lives in gameState.gameClockMs.
-// 2. Hospital recovery: REAL TIME, uncompressed. 23 hours real, regardless
-//    of what the game clock is doing. Lives in unit.hospitalUntil (Date.now()-based).
+// 2. Hospital recovery: REAL TIME, uncompressed — a per-tier duration from
+//    mission.js (5 min for Local Patrol, NEGLECT_RECOVERY_MS for energy
+//    collapse), regardless of what the game clock is doing. Lives in
+//    unit.hospitalUntil (Date.now()-based).
 // 3. Offline catch-up cap: REAL TIME. Capped at 24h — log off, come back
 //    within a day, everything (including hospital stays) has accrued normally.
 // Do not derive #2 or #3 from the compressed game clock. This was flagged as
@@ -63,6 +65,24 @@ const FACILITY_ACTIVITIES = {
   entrance_hall: 'wait', barracks: 'rest', shooting_range: 'fire', weight_room: 'lift',
   obstacle_course: 'traverse', drill_yard: 'drill', mess_hall: 'eat', showers: 'wash', rec_room: 'relax',
 };
+// ---------------------------------------------------------------------------
+// FIRST SOLDIER CHAPTER (brief 08) — the guided first session: visitor at the
+// gate -> admission -> range training -> introductory patrol -> debrief ->
+// first improvement. GameState.chapterStage() derives the step from the
+// roster, buildings and mission log; only what can't be derived is saved:
+//   firstSoldierId   the soldier the chapter follows (set on admission)
+//   targetAccuracy   their patrol readiness target (accuracy at admission
+//                    + INTRO_READINESS_GAIN, mission.js)
+//   introDispatched  the one-time intro patrol has left (never offered twice)
+//   introReportId    its mission-log entry (the debrief, `seen` inside it)
+//   done             the player built something after the debrief
+//   dismissed        "Skip guidance" — hides the card, changes nothing else
+// Old saves get a chapter in save.js: an established base starts done.
+// ---------------------------------------------------------------------------
+function freshChapter() {
+  return { firstSoldierId: null, targetAccuracy: null, introDispatched: false, introReportId: null, done: false, dismissed: false };
+}
+
 const CIVILIAN_CHECKPOINT_MS = 2500; // real ms a visitor pauses at the gate before admission
 const QUEUE_SPACING = 26;            // world px between people queuing at a full facility
 const ACTIVITY_LOG_LIMIT = 300;
@@ -95,6 +115,8 @@ class GameState {
     this.slotOccupants = new Map(); // "buildingId:slotId" -> unit id (see reserveSlot)
     this.queues = new Map();        // buildingId -> unit ids waiting, first come first served
     this.activityLog = [];
+    this.chapter = freshChapter(); // the first soldier chapter, see FIRST SOLDIER CHAPTER below
+    this.events = [];               // individual moments for the toast feed; runtime only
     this.lastTick = Date.now();
     this.lastCivilianSpawn = Date.now();
     this.gameClockMs = DAY_START_HOUR * 60 * 60 * 1000; // start at 06:00 game time
@@ -259,6 +281,7 @@ class GameState {
   releaseSlot(unit, reason) {
     if (unit.slot) {
       const building = this.buildingByAnyId(unit.slot.buildingId);
+      this.noteTrainingSession(unit, building);
       this.slotOccupants.delete(this.slotKey(unit.slot.buildingId, unit.slot.slotId));
       this.logActivity(unit, 'release', { buildingId: unit.slot.buildingId, slotId: unit.slot.slotId, reason });
       unit.slot = null;
@@ -435,8 +458,11 @@ class GameState {
   }
 
   // The one way into hospital, so the slot is always released first.
-  hospitalize(unit, nowMs, reason) {
-    unit.sendToHospital(nowMs);
+  // durationMs: the failed tier's recoveryMs, or NEGLECT_RECOVERY_MS for an
+  // energy collapse (never longer than a mission failure — see mission.js).
+  hospitalize(unit, nowMs, reason, durationMs = NEGLECT_RECOVERY_MS) {
+    unit.sendToHospital(nowMs, durationMs);
+    unit.hospitalReason = reason;
     unit.departing = false;
     this.logActivity(unit, 'hospital', { reason });
     this.routeForStatus(unit);
@@ -504,6 +530,7 @@ class GameState {
     this.cash -= building.buildCost();
     building.build();
     building.constructedAt = Date.now(); // runtime only: drives the build animation
+    this.noteConstruction(building);
     return true;
   }
 
@@ -529,6 +556,7 @@ class GameState {
     building.upgrade();
     building.constructedAt = Date.now(); // runtime only: drives the build animation
     this.admitFromQueue(building); // a training upgrade opens more slots
+    this.noteConstruction(building);
   }
 
   upgradeBuilding(key) {
@@ -595,6 +623,10 @@ class GameState {
     unit.checkpointUntil = null;
     unit.recruit();
     this.logActivity(unit, 'recruited');
+    if (!this.chapter.firstSoldierId && !this.chapter.done) {
+      this.chapter.firstSoldierId = unit.id;
+      this.chapter.targetAccuracy = Math.min(95, Math.floor(unit.accuracy) + INTRO_READINESS_GAIN);
+    }
     this.routeForStatus(unit); // frees their chair; RECRUITING -> walks to the Barracks, see tick()
     return true;
   }
@@ -607,23 +639,71 @@ class GameState {
 
   // --- Missions — see mission.js for the tier data/pure-function rules ---
 
-  eligibleUnitsForTier(tier) {
-    return this.units.filter(u =>
-      !u.isCivilian && u.status === UNIT_STATUS.IDLE && unitMeetsMissionRequirements(u, tier));
+  // Whether `unit` can go on `tier` right now, and why not. Soldiers busy
+  // with their own schedule (training, eating, showering, resting) can be
+  // sent, but only through an explicit recall (`recall: true`): the old rule
+  // accepted IDLE only, so an assigned trainee was usually undeployable
+  // (brief 08's "deployment trap"). Recall frees their slot or queue place
+  // and keeps their training assignment, so they go back to it on return.
+  // Returns { ok, recall, reason } — reason is '' when ok.
+  deploymentCheck(unit, tier) {
+    const no = reason => ({ ok: false, recall: false, reason });
+    if (!unit || unit.isCivilian) return no('Visitors must be admitted first');
+    if (unit.status === UNIT_STATUS.RECRUITING) return no('Still entering the base');
+    if (unit.status === UNIT_STATUS.HOSPITAL) return no('Recovering at the aid station');
+    if (unit.status === UNIT_STATUS.ON_MISSION) return no('Away on a mission');
+    const intro = this.introTierFor(tier, [unit.id]);
+    if (intro) {
+      const target = this.chapter.targetAccuracy;
+      if (unit.accuracy < target) return no(`Accuracy ${Math.floor(unit.accuracy)} / ${target} for the first patrol`);
+    } else {
+      if (unit.level < tier.minLevel) return no(`Needs level ${tier.minLevel} (now ${unit.level})`);
+      const avg = unitStatAvg(unit);
+      if (avg < tier.minStatAvg) return no(`Needs stat average ${tier.minStatAvg} (now ${Math.floor(avg)})`);
+    }
+    if (unit.energy <= ENERGY_CRITICAL) return no('Too tired — needs food and rest first');
+    return { ok: true, recall: unit.status !== UNIT_STATUS.IDLE, reason: '' };
   }
 
-  dispatchMission(tierId, unitIds) {
-    const tier = missionTierById(tierId);
-    if (!tier) return false;
-    if (unitIds.length === 0 || unitIds.length > tier.maxSquadSize) return false;
-    if (new Set(unitIds).size !== unitIds.length) return false;
+  eligibleUnitsForTier(tier) {
+    return this.units.filter(u => this.deploymentCheck(u, tier).ok);
+  }
+
+  // The first soldier's one-time introductory assignment replaces their
+  // first Local Patrol (mission.js INTRO_PATROL). Available until it has
+  // been dispatched, whether or not guidance is showing — skipping the
+  // guide never skips the reward.
+  get introAvailable() {
+    const { firstSoldierId, introDispatched } = this.chapter;
+    return !!firstSoldierId && !introDispatched && this.units.some(u => u.id === firstSoldierId);
+  }
+
+  // INTRO_PATROL when a Local Patrol squad includes the first soldier while
+  // the intro is available, else null.
+  introTierFor(tier, unitIds) {
+    if (!tier || tier.id !== 'local_patrol' || !this.introAvailable) return null;
+    return unitIds.includes(this.chapter.firstSoldierId) ? INTRO_PATROL : null;
+  }
+
+  // opts.recall must be true to send anyone who isn't idle (see
+  // deploymentCheck). The first soldier's intro patrol is solo.
+  dispatchMission(tierId, unitIds, { recall = false } = {}) {
+    const listed = missionTierById(tierId);
+    if (!listed) return false;
+    if (unitIds.length === 0 || new Set(unitIds).size !== unitIds.length) return false;
+    const tier = this.introTierFor(listed, unitIds) || listed;
+    if (unitIds.length > tier.maxSquadSize) return false;
 
     const squad = unitIds.map(id => this.units.find(u => u.id === id)).filter(Boolean);
     if (squad.length !== unitIds.length) return false; // some id didn't resolve to a real unit
-    if (!squad.every(u => u.status === UNIT_STATUS.IDLE && unitMeetsMissionRequirements(u, tier))) return false;
+    const checks = squad.map(u => this.deploymentCheck(u, listed));
+    if (!checks.every(c => c.ok)) return false;
+    if (!recall && checks.some(c => c.recall)) return false;
 
     const returnAt = Date.now() + tier.durationMs;
-    for (const unit of squad) {
+    if (tier.intro) this.chapter.introDispatched = true;
+    squad.forEach((unit, i) => {
+      if (checks[i].recall) this.logActivity(unit, 'recall', { from: unit.status });
       this.releaseSlot(unit, 'mission');
       unit.status = UNIT_STATUS.ON_MISSION;
       unit.missionReturnAt = returnAt;
@@ -633,30 +713,36 @@ class GameState {
       unit.departing = true;
       this.routeToNode(unit, 'gate_outside', [], 'depart');
       this.logActivity(unit, 'depart', { tierId: tier.id });
-    }
+      this.pushEvent(unit, `${unit.name} left on ${tier.name}`);
+    });
     return true;
   }
 
   // Resolves one returning unit's mission — called once per squad-mate from
   // tick() below. Every unit in a squad rolls independently, so a squad can
   // come back partially successful (some hospitalized, some not) rather
-  // than all-or-nothing.
+  // than all-or-nothing. The mission log entry is the soldier's debrief: it
+  // records exactly what was awarded and stays `seen: false` until the
+  // player reads it (markReportSeen), so a return during offline catch-up
+  // is reported once after load. Resolution and reward happen in the same
+  // tick that clears ON_MISSION, so a saved game holds either the pending
+  // mission or its result, never both.
   resolveMissionForUnit(unit, nowMs) {
     const tier = missionTierById(unit.missionTierId);
     const returnedAt = unit.missionReturnAt || nowMs;
-    const succeeded = tier && Math.random() < missionSuccessChance(tier, [unit]);
+    // A guaranteed tier (the intro) doesn't roll, so later rolls are unaffected.
+    const succeeded = !!tier && (tier.guaranteed || Math.random() < missionSuccessChance(tier, [unit]));
+    const levelFrom = unit.level;
+    const xp = !tier ? 0 : succeeded ? tier.xpReward : Math.max(10, Math.round(tier.xpReward * 0.25));
     // Every deployment teaches something; successful missions teach more.
-    if (tier) unit.addXp(succeeded ? tier.xpReward : Math.max(10, Math.round(tier.xpReward * 0.25)));
-    if (tier) {
-      this.missionLog.unshift({ name: unit.name, tier: tier.name, succeeded: !!succeeded,
-        xp: succeeded ? tier.xpReward : Math.max(10, Math.round(tier.xpReward * 0.25)), at: returnedAt });
-      this.missionLog.length = Math.min(this.missionLog.length, 30);
-    }
-
+    unit.addXp(xp);
+    let cash = 0, resource = null;
     if (succeeded) {
-      this.cash += rollInRange(tier.cashReward);
+      cash = rollInRange(tier.cashReward);
+      this.cash += cash;
       if (tier.resourceReward) {
-        this[tier.resourceReward.type] += rollInRange(tier.resourceReward.amount);
+        resource = { type: tier.resourceReward.type, amount: rollInRange(tier.resourceReward.amount) };
+        this[resource.type] += resource.amount;
       }
     }
 
@@ -672,11 +758,171 @@ class GameState {
       unit.status = UNIT_STATUS.IDLE;
       this.routeForStatus(unit);
     } else {
-      // Same 23h real-time hospital stay as any other failure in this game
-      // — no permadeath, mission failure isn't treated as worse than
-      // neglect death. See CLAUDE.md.
-      this.hospitalize(unit, returnedAt, 'mission');
+      // No permadeath: a short real-time recovery set by the tier (see
+      // mission.js), never shorter for neglect than for failure. CLAUDE.md.
+      this.hospitalize(unit, returnedAt, 'mission', tier ? tier.recoveryMs : NEGLECT_RECOVERY_MS);
     }
+
+    if (tier && tier.intro && succeeded) {
+      unit.serviceTag = 'First In';
+      const startAccuracy = this.chapter.targetAccuracy - INTRO_READINESS_GAIN; // accuracy at admission
+      unit.serviceRecord = `The base's first soldier: admitted at the gate, trained at the range from accuracy ${startAccuracy} to ${Math.floor(unit.accuracy)}, and home from the first Local Patrol with $${cash}.`;
+    }
+    const report = { id: makeId('report'), unitId: unit.id, name: unit.name, tierId: tier ? tier.id : null,
+      tier: tier ? tier.name : 'Unknown mission', intro: !!(tier && tier.intro), succeeded, xp, cash, resource,
+      levelFrom, levelTo: unit.level, recoveryUntil: succeeded ? null : unit.hospitalUntil, at: returnedAt, seen: false };
+    this.missionLog.unshift(report);
+    this.missionLog.length = Math.min(this.missionLog.length, 30);
+    if (report.intro) this.chapter.introReportId = report.id;
+
+    this.pushEvent(unit, succeeded
+      ? `${unit.name} returned with $${cash}${resource ? ` and ${resource.amount} ${resource.type}` : ''}`
+      : `${unit.name} was hurt on ${report.tier} — recovering`);
+    if (unit.level > levelFrom) this.pushEvent(unit, `${unit.name} reached level ${unit.level}`);
+  }
+
+  // Debriefs the player hasn't read yet, oldest first.
+  unseenReports() {
+    return this.missionLog.filter(entry => entry.seen === false).reverse();
+  }
+
+  markReportSeen(reportId) {
+    const report = this.missionLog.find(entry => entry.id === reportId);
+    if (!report || report.seen !== false) return false;
+    report.seen = true;
+    return true;
+  }
+
+  // A soldier's own mission history, newest first (entries from before
+  // brief 08 have no unitId and match by name).
+  missionHistoryFor(unit) {
+    return this.missionLog.filter(entry => entry.unitId ? entry.unitId === unit.id : entry.name === unit.name);
+  }
+
+  // --- individual moments (toast feed) -------------------------------------
+
+  // A compact line when something meaningful changes for one person — not
+  // every tick. Runtime only; the durable record is the mission log.
+  pushEvent(unit, text) {
+    this.events.push({ id: makeId('event'), at: Date.now(), unitId: unit ? unit.id : null, text });
+    if (this.events.length > 20) this.events.splice(0, this.events.length - 20);
+  }
+
+  collapse(unit, nowMs) {
+    this.hospitalize(unit, nowMs, 'energy', NEGLECT_RECOVERY_MS);
+    this.pushEvent(unit, `${unit.name} collapsed from exhaustion — recovering`);
+  }
+
+  // The first soldier crossing their patrol readiness target.
+  noteReadiness(unit) {
+    if (unit.id !== this.chapter.firstSoldierId || !this.introAvailable) return;
+    const ready = unit.accuracy >= this.chapter.targetAccuracy;
+    if (ready && unit.wasReady === false) this.pushEvent(unit, `${unit.name} qualified for Local Patrol`);
+    unit.wasReady = ready; // runtime only: the first check after load never announces
+  }
+
+  // --- the first soldier chapter (brief 08) -------------------------------------
+
+  get firstSoldier() {
+    return this.units.find(u => u.id === this.chapter.firstSoldierId) || null;
+  }
+
+  // Where the first session stands, derived from durable state wherever
+  // possible (roster, statuses, buildings, the mission log) so a reload,
+  // an offline return or an imported backup resumes the right step. Only
+  // the facts that can't be derived are saved in `chapter`. Returns
+  // { id, step, unit, visitor, report, advice } — main.js turns it into words.
+  //   meet -> admit -> build_range | train -> patrol -> away -> debrief -> improve -> complete
+  chapterStage() {
+    const { chapter } = this;
+    if (chapter.done) return { id: 'complete', step: 6 };
+    const unit = this.firstSoldier;
+    if (!unit) {
+      const visitor = this.units.find(u => u.isCivilian && u.status === UNIT_STATUS.CIVILIAN_APPROACHING) || null;
+      return { id: 'meet', step: 1, visitor };
+    }
+    if (unit.status === UNIT_STATUS.RECRUITING) return { id: 'admit', step: 2, unit };
+    if (chapter.introDispatched) {
+      const report = chapter.introReportId && this.missionLog.find(e => e.id === chapter.introReportId);
+      if (unit.status === UNIT_STATUS.ON_MISSION && unit.missionTierId === INTRO_PATROL.id) return { id: 'away', step: 5, unit };
+      if (report && report.seen === false) return { id: 'debrief', step: 5, unit, report };
+      return { id: 'improve', step: 6, unit, advice: this.nextConstructionAdvice() };
+    }
+    if (!this.shootingRange.isBuilt) return { id: 'build_range', step: 3, unit };
+    if (unit.accuracy < chapter.targetAccuracy) return { id: 'train', step: 3, unit };
+    return { id: 'patrol', step: 4, unit };
+  }
+
+  // Guidance (the objective card, highlights, collapsed extras) shows while
+  // the chapter runs and hasn't been skipped.
+  get guidanceActive() {
+    return !this.chapter.done && !this.chapter.dismissed;
+  }
+
+  // Advanced build choices and extra resources stay folded away until the
+  // first patrol has returned (or guidance is skipped).
+  get onboarding() {
+    return this.guidanceActive && ['meet', 'admit', 'build_range', 'train', 'patrol', 'away'].includes(this.chapterStage().id);
+  }
+
+  // Skip guidance hides the card; it never skips rewards or state.
+  dismissGuidance() { this.chapter.dismissed = true; }
+  resumeGuidance() { this.chapter.dismissed = false; }
+
+  // Buying anything after the first patrol's debrief completes the chapter.
+  noteConstruction(building) {
+    if (this.chapter.done || this.chapterStage().id !== 'improve') return;
+    this.chapter.done = true;
+    const unit = this.firstSoldier;
+    this.pushEvent(unit, `${BUILDING_LABELS[building.type] || 'Facility'} ready — ${unit ? `${unit.name}'s` : 'your'} base is growing`);
+  }
+
+  // The one construction to suggest next and whether it can be afforded:
+  // the first affordable choice in this order, otherwise the first one to
+  // save up for.
+  nextConstructionAdvice() {
+    const options = [
+      ['shootingRange', !this.shootingRange.isBuilt],
+      ['messHall', !this.messHall.isBuilt],
+      ['barracks', !this.barracks.isBuilt],
+      ['showers', !this.showers.isBuilt],
+      ['recRoom', !this.recRoom.isBuilt],
+      ['shootingRange', this.shootingRange.isBuilt && !this.shootingRange.isMaxLevel],
+      ['barracks', this.barracks.isBuilt && !this.barracks.isMaxLevel],
+    ].filter(([, open]) => open).map(([key]) => {
+      const building = this[key];
+      const price = building.isBuilt ? this.upgradePrice(building) : this.constructionPrice(building);
+      const shortfall = building.isBuilt ? (this.canAffordUpgrade(building) ? '' : this.constructionShortfall(building))
+        : this.constructionShortfall(building);
+      return { key, building, price, shortfall, affordable: !shortfall, upgrade: building.isBuilt };
+    });
+    return options.find(o => o.affordable) || options[0] || null;
+  }
+
+  // One recommendation at a time for a soldier's card.
+  recommendationFor(unit) {
+    if (unit.isCivilian) return { code: 'admit', text: 'Admit to the base' };
+    if (unit.status === UNIT_STATUS.RECRUITING) return { code: 'enlisting', text: 'Walking in to enlist' };
+    if (unit.status === UNIT_STATUS.HOSPITAL) return { code: 'recovering', text: 'Recovering' };
+    if (unit.status === UNIT_STATUS.ON_MISSION) return { code: 'away', text: 'Away on a mission' };
+    if (unit.energy <= 35) return { code: 'rest', text: 'Rest before deployment' };
+    if (unit.id === this.chapter.firstSoldierId && this.introAvailable) {
+      if (unit.accuracy >= this.chapter.targetAccuracy) return { code: 'ready', text: 'Ready for patrol' };
+      return { code: 'train', text: this.shootingRange.isBuilt ? 'Train accuracy' : 'Build the range to train accuracy' };
+    }
+    const next = MISSION_TIERS.find(tier => !unitMeetsMissionRequirements(unit, tier));
+    const best = MISSION_TIERS.filter(tier => unitMeetsMissionRequirements(unit, tier)).pop();
+    if (next && next.minLevel <= unit.level) return { code: 'train', text: `Train for ${next.name} (stat average ${next.minStatAvg})` };
+    return { code: 'ready', text: best ? `Ready for ${best.name}` : 'Ready for patrol' };
+  }
+
+  // Real seconds of range time until the first soldier reaches the patrol
+  // target (range gain per game-hour, halved at low morale).
+  trainingSecondsToTarget(unit) {
+    const need = this.chapter.targetAccuracy - unit.accuracy;
+    if (!(need > 0)) return 0;
+    const rate = this.shootingRange.trains.accuracy * (unit.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1);
+    return (need / rate) * 3600 / GAME_MS_PER_REAL_MS;
   }
 
   // Advance simulation by dtSeconds. Used both for the live game loop
@@ -703,6 +949,8 @@ class GameState {
         unit.step(dtSeconds); // walking to the aid station; presentation only
         if (unit.isRecovered(nowMs)) {
           unit.status = UNIT_STATUS.IDLE;
+          unit.hospitalReason = null;
+          this.pushEvent(unit, `${unit.name} is back on duty`);
           this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
         }
         this.notePhase(unit);
@@ -730,11 +978,12 @@ class GameState {
         unit.step(dtSeconds);
         unit.applyEnergyDelta(gameHours, foodAvailable);
         if (unit.energy <= 0) {
-          this.hospitalize(unit, nowMs, 'energy');
+          this.collapse(unit, nowMs);
         } else if (unit.isAtTarget()) {
           unit.outfit = 'uniform';
           unit.status = UNIT_STATUS.IDLE;
           this.logActivity(unit, 'uniform', { buildingId: this.barracks.id });
+          this.pushEvent(unit, `${unit.name} is in uniform`);
           this.routeForStatus(unit);
         }
         this.notePhase(unit);
@@ -762,8 +1011,9 @@ class GameState {
       }
 
       if (unit.energy <= 0) {
-        this.hospitalize(unit, nowMs, 'energy');
+        this.collapse(unit, nowMs);
       }
+      this.noteReadiness(unit);
       this.notePhase(unit);
     }
 
@@ -781,9 +1031,23 @@ class GameState {
     const phase = unit.routePhase;
     if (phase === unit.lastPhase) return;
     if (phase === 'using') unit.facing = unit.slot.facing;
+    const training = phase === 'using' && this.buildingById(unit.slot.buildingId);
+    if (training) unit.sessionStart = Object.fromEntries(Object.keys(training.trains).map(stat => [stat, unit[stat]]));
     this.logActivity(unit, 'phase', { from: unit.lastPhase || null, to: phase,
       buildingId: unit.slot ? unit.slot.buildingId : unit.queuedFor, slotId: unit.slot ? unit.slot.slotId : null });
     unit.lastPhase = phase;
+  }
+
+  // One line per training session, when the soldier leaves the station:
+  // "accuracy 48 → 51 at the Shooting Range". Only whole-point changes, so
+  // there is never a popup per training tick. sessionStart is runtime only.
+  noteTrainingSession(unit, building) {
+    const start = unit.sessionStart;
+    unit.sessionStart = null;
+    if (!start || !this.buildingById(building && building.id)) return;
+    const changes = Object.keys(start).filter(stat => Math.floor(unit[stat]) > Math.floor(start[stat]))
+      .map(stat => `${stat} ${Math.floor(start[stat])} → ${Math.floor(unit[stat])}`);
+    if (changes.length) this.pushEvent(unit, `${unit.name}: ${changes.join(', ')} at the ${BUILDING_LABELS[building.type]}`);
   }
 
   // Moves a unit into a new status and routes it to wherever that status
@@ -855,6 +1119,7 @@ class GameState {
       steel: this.steel,
       gems: this.gems,
       missionLog: this.missionLog,
+      chapter: { ...this.chapter },
       buildings,
       lastTick: Date.now(),
       units: this.units
@@ -865,8 +1130,9 @@ class GameState {
           level: u.level, xp: u.xp, xpToNext: u.xpToNext,
           maxHp: u.maxHp, hp: u.hp, strength: u.strength, accuracy: u.accuracy, endurance: u.endurance,
           maxEnergy: u.maxEnergy, energy: u.energy, hygiene: u.hygiene, morale: u.morale, assignedBuildingId: u.assignedBuildingId,
-          equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil,
+          equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil, hospitalReason: u.hospitalReason,
           missionReturnAt: u.missionReturnAt, missionTierId: u.missionTierId,
+          trained: u.trained, serviceTag: u.serviceTag, serviceRecord: u.serviceRecord,
         })),
     };
   }
@@ -881,6 +1147,7 @@ class GameState {
     state.steel = data.steel ?? 0;
     state.gems = data.gems ?? 0;
     state.missionLog = Array.isArray(data.missionLog) ? data.missionLog.slice(0, 30) : [];
+    state.chapter = { ...freshChapter(), ...(data.chapter || chapterForSave(data)) };
     state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
     for (const building of state.allBuildings) {
       const saved = data.buildings[building.id];
@@ -892,6 +1159,7 @@ class GameState {
     state.units = (data.units || []).map(d => {
       const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
       Object.assign(u, d);
+      if (!u.trained || typeof u.trained !== 'object') u.trained = {}; // saves from before brief 08
       // A unit saved mid-transition (e.g. status EATING but no building
       // built anymore — shouldn't happen, but defensive) falls back to idle.
       if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {

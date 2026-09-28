@@ -16,7 +16,7 @@ function element(id = '') {
   };
 }
 for (const id of ids) nodes.set(id, element(id));
-const document = { activeElement: null, getElementById: id => nodes.get(id), createElement: () => element() };
+const document = { activeElement: null, body: element('body'), getElementById: id => nodes.get(id), createElement: () => element(), querySelectorAll: () => [] };
 const sandbox = vm.createContext({
   console, Math, Date, performance, document, window: { addEventListener() {} },
   localStorage: { getItem: () => null, setItem() {} },
