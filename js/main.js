@@ -50,6 +50,31 @@ const profileServiceRecord = document.getElementById('profileServiceRecord');
 const profileHistory = document.getElementById('profileHistory');
 const profileDetails = document.getElementById('profileDetails');
 const profileAssignRangeBtn = document.getElementById('profileAssignRangeBtn');
+const profileCallsign = document.getElementById('profileCallsign');
+const profileAccentBadge = document.getElementById('profileAccentBadge');
+const profileAccentsEl = document.getElementById('profileAccents');
+
+// Accent swatches, built once from the shared palette (unit.js).
+for (const accent of ACCENT_COLOURS) {
+  const swatch = document.createElement('button');
+  swatch.type = 'button';
+  swatch.className = 'accent-swatch';
+  swatch.dataset.accent = accent.id;
+  swatch.setAttribute('role', 'radio');
+  swatch.setAttribute('aria-label', accent.label);
+  swatch.title = accent.label;
+  swatch.style.background = accent.hex;
+  swatch.addEventListener('click', () => {
+    if (selectedUnitId && gameState.setAccent(selectedUnitId, accent.id)) gameState.save();
+  });
+  profileAccentsEl.append(swatch);
+}
+
+function paintAccentBadge(el, accentId) {
+  const accent = accentById(accentId);
+  el.style.background = accent ? accent.hex : 'transparent';
+  el.title = accent ? `Accent: ${accent.label}` : '';
+}
 const profileLevel = document.getElementById('profileLevel');
 const profileXpBar = document.getElementById('profileXpBar');
 const profileStatus = document.getElementById('profileStatus');
@@ -144,18 +169,29 @@ function renderRoster() {
     card.className = `roster-card${unit.isCivilian ? ' visitor' : ''}${guided ? ' guide-target' : ''}`;
     const portrait = document.createElement('canvas');
     portrait.className = 'portrait small';
-    portrait.width = portrait.height = 44;
+    portrait.width = portrait.height = 88; // 2x for sharp phones; CSS draws it at 44
     drawPortrait(portrait, unit);
     const text = document.createElement('span');
     text.className = 'roster-text';
     const name = document.createElement('strong');
     name.textContent = unit.name;
     const detail = document.createElement('small');
+    if (!unit.isCivilian && unit.callsign) name.textContent = `${unit.name} "${unit.callsign}"`;
     detail.textContent = unit.isCivilian ? 'Visitor · Tap to meet' : `${unit.speciality} · Level ${unit.level}${unit.serviceTag ? ` · ${unit.serviceTag}` : ''}`;
     const doing = document.createElement('small');
     if (!unit.isCivilian) doing.textContent = activityText(unit);
     text.append(name, detail, doing);
-    card.append(portrait, text);
+    const face = document.createElement('span');
+    face.className = 'portrait-button';
+    face.append(portrait);
+    if (!unit.isCivilian) {
+      const badge = document.createElement('span');
+      badge.className = 'accent-badge small';
+      paintAccentBadge(badge, unit.accent);
+      face.append(badge);
+    }
+    card.dataset.unitId = unit.id;
+    card.append(face, text);
     card.addEventListener('click', () => {
       // The roster is the reliable touch fallback; it also brings the person into view.
       locateUnit(unit);
@@ -176,7 +212,9 @@ function activityText(unit) {
   if (unit.routePhase === 'queued') return `Waiting for a place${unit.queuedFor ? ` at the ${BUILDING_LABELS[gameState.buildingByAnyId(unit.queuedFor).type]}` : ''}`;
   switch (unit.status) {
     case UNIT_STATUS.RECRUITING: return 'Walking to the barracks to change into uniform';
-    case UNIT_STATUS.TRAINING: return unit.routePhase === 'using' ? `Training${at}` : `Heading to training${at}`;
+    case UNIT_STATUS.TRAINING:
+      if (unit.onDrill) return unit.routePhase === 'using' ? 'Range drill at the Shooting Range' : 'Heading to the range drill';
+      return unit.routePhase === 'using' ? `Training${at}` : `Heading to training${at}`;
     case UNIT_STATUS.EATING: return gameState.messHall.isBuilt ? `Eating${at}` : 'Hungry — no Mess Hall to eat in';
     case UNIT_STATUS.SLEEPING: return gameState.barracks.isBuilt ? 'Sleeping at the barracks' : 'Resting — no barracks beds yet';
     case UNIT_STATUS.HYGIENE: return gameState.showers.isBuilt ? `Washing${at}` : 'Free time (no showers yet)';
@@ -217,6 +255,14 @@ function openProfile(unit) {
   const opening = selectedUnitId !== unit.id || profilePanel.classList.contains('hidden');
   selectedUnitId = unit.id;
   if (opening || document.activeElement !== profileName) profileName.value = unit.name;
+  if (opening || document.activeElement !== profileCallsign) profileCallsign.value = unit.callsign || '';
+  const customizable = !unit.isCivilian && unit.status !== UNIT_STATUS.RECRUITING;
+  profileCallsign.disabled = !customizable;
+  paintAccentBadge(profileAccentBadge, unit.accent);
+  for (const swatch of profileAccentsEl.children) {
+    swatch.setAttribute('aria-checked', String(swatch.dataset.accent === unit.accent));
+    swatch.disabled = !customizable;
+  }
   if (opening) profileDetails.open = false;
   // Redraw until the sprite has loaded, then only when the person changes.
   const portraitKey = `${unit.id}|${unit.outfit}`;
@@ -302,10 +348,26 @@ profileAssignRangeBtn.addEventListener('click', () => {
   if (selectedUnitId) gameState.assignToBuilding(selectedUnitId, gameState.shootingRange.id);
 });
 
+// Callsign: optional, committed on change (Enter or leaving the field);
+// clearing the field removes it. Never required for the first patrol.
+profileCallsign.addEventListener('change', () => {
+  if (selectedUnitId && gameState.setCallsign(selectedUnitId, profileCallsign.value)) {
+    profileCallsign.value = selectedUnit().callsign || '';
+    gameState.save();
+  }
+});
+document.getElementById('profileRandomise').addEventListener('click', () => {
+  if (selectedUnitId && gameState.randomiseIdentity(selectedUnitId)) {
+    profileCallsign.value = selectedUnit().callsign || '';
+    gameState.save();
+  }
+});
+
 profileName.addEventListener('change', () => {
   const unit = gameState.units.find(u => u.id === selectedUnitId);
   if (unit && profileName.value.trim()) {
     unit.name = profileName.value.trim().slice(0, 18);
+    gameState.save();
   }
 });
 
@@ -556,8 +618,13 @@ function showDebrief(report) {
   openDebriefId = report.id;
   const unit = gameState.units.find(u => u.id === report.unitId);
   if (unit) drawPortrait(document.getElementById('debriefPortrait'), unit);
+  // The soldier as they are now (same name, callsign and accent as the
+  // map and card); the report's own snapshot if they are no longer listed.
+  const who = unit || report;
+  paintAccentBadge(document.getElementById('debriefAccentBadge'), who.accent);
+  document.getElementById('debriefCallsign').textContent = who.callsign ? `Callsign "${who.callsign}"` : '';
   document.getElementById('debriefEyebrow').textContent = report.intro ? 'FIRST PATROL REPORT' : `${report.tier.toUpperCase()} REPORT`;
-  document.getElementById('debriefTitle').textContent = report.succeeded ? `${report.name} is back` : `${report.name} was hurt`;
+  document.getElementById('debriefTitle').textContent = report.succeeded ? `${who.name} is back` : `${who.name} was hurt`;
   const lines = [];
   if (report.succeeded) {
     lines.push(report.intro ? `Walked the ${report.tier} route and came home through the gate.` : `Completed ${report.tier}.`);
@@ -948,12 +1015,9 @@ let lastObjectiveTime = 0;
 
 const firstName = unit => unit.name.split(' ')[0];
 
-function rangeHoursText() {
-  const hour = gameState.hourOfDay;
-  const open = scheduledStatusFor(hour) === UNIT_STATUS.TRAINING;
-  const clock = `${String(Math.floor(hour)).padStart(2, '0')}:${String(Math.floor((hour % 1) * 60)).padStart(2, '0')}`;
-  return open ? `Range open now (${clock}).` : `Range opens 09:00–12:00 and 13:00–17:00 (now ${clock}).`;
-}
+const drillHour = h => `${String(h).padStart(2, '0')}:00`;
+// The first-soldier range drill, named as the special case it is (mission.js).
+const DRILL_TEXT = unit => `Range drill: as the base's first soldier, ${firstName(unit)} trains ${FIRST_SOLDIER_DRILL.multiplier}× faster at any waking hour (${drillHour(FIRST_SOLDIER_DRILL.from)}–${drillHour(FIRST_SOLDIER_DRILL.to)}) until patrol-ready.`;
 
 // { step, title, detail, progress: {pct, text}|null, action: {label, run, disabled}|null, focus }
 function describeObjective(stage) {
@@ -983,12 +1047,13 @@ function describeObjective(stage) {
       const title = `Train ${unit.name} at the range`;
       if (unit.status === UNIT_STATUS.HOSPITAL) return { step: 3, title, detail: `${firstName(unit)} ${activityText(unit).charAt(0).toLowerCase() + activityText(unit).slice(1)}.`, progress, action: null, focus: { unitId: unit.id } };
       if (unit.assignedBuildingId !== range.id) {
-        return { step: 3, title, detail: `Accuracy decides whether ${firstName(unit)} is ready for the first patrol. About ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s at the range. ${rangeHoursText()}`,
+        return { step: 3, title, detail: `Accuracy decides whether ${firstName(unit)} is ready for the first patrol. ${DRILL_TEXT(unit)} About ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s at the range.`,
           progress, action: { label: `Assign ${firstName(unit)} to the range`, run: () => { gameState.assignToBuilding(unit.id, range.id); openProfile(unit); } }, focus: { unitId: unit.id, zoneId: range.zoneId } };
       }
       const training = unit.status === UNIT_STATUS.TRAINING && unit.routePhase === 'using';
-      const detail = training ? `${firstName(unit)} is firing at the range — about ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s to go.`
-        : `${activityText(unit)}. ${rangeHoursText()}`;
+      const detail = training ? `Range drill (${FIRST_SOLDIER_DRILL.multiplier}× training): ${firstName(unit)} is firing at the range — about ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s to go.`
+        : unit.status === UNIT_STATUS.SLEEPING ? `${firstName(unit)} is asleep; the range drill resumes at ${drillHour(FIRST_SOLDIER_DRILL.from)}.`
+        : `${activityText(unit)}. ${DRILL_TEXT(unit)}`;
       return { step: 3, title, detail, progress, action: { label: `Watch ${firstName(unit)}`, run: () => { locateUnit(unit); openProfile(unit); } }, focus: { unitId: unit.id, zoneId: range.zoneId } };
     }
     case 'patrol': {

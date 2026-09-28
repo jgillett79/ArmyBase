@@ -603,8 +603,21 @@ function drawUnitLabels(ctx, units, selectedUnitId) {
       if (marker) ctx.fillText(marker, unit.x, top - px(2) + place(unit.x, top - px(2), px(12), px(11), -px(12)));
       continue;
     }
-    const name = unit.name.split(' ')[0], status = statusLabel(unit);
-    const nameDy = place(unit.x, top - px(4), textW(name) + px(4), px(11), -px(12));
+    // Name as called in the field (callsign when set), with the soldier's
+    // accent as a pip before it — the in-world accent until an approved
+    // accent mask draws it on the figure itself.
+    const name = unit.fieldName, status = statusLabel(unit);
+    const accent = accentById(unit.accent);
+    const nameDy = place(unit.x, top - px(4), textW(name) + px(14), px(11), -px(12));
+    if (accent) {
+      ctx.fillStyle = accent.hex;
+      ctx.strokeStyle = 'rgba(0,0,0,0.8)';
+      ctx.lineWidth = px(1);
+      ctx.beginPath();
+      ctx.arc(unit.x - textW(name) / 2 - px(6), top - px(8) + nameDy, px(3.5), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+    }
     const statusDy = place(unit.x, bottom + px(18), Math.max(textW(status), px(24)) + px(4), px(17), px(17));
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)';
@@ -649,6 +662,15 @@ function tintedSprite(img, hue, saturation) {
 // dedicated busts per soldier variant (see the brief 08 manifest).
 // Returns true once the art was drawn (false while it is still loading).
 const PORTRAIT_CROP = { x: 0.14, y: 0.0, size: 0.72 }; // of the sprite width, from its top edge
+const portraitImages = new Map();
+function portraitArt(variant) {
+  const entry = ASSET_MANIFEST.portraits[variant];
+  const allowCandidates = typeof ALLOW_CANDIDATE_ART !== 'undefined' && ALLOW_CANDIDATE_ART;
+  if (!entry || !assetInUse(entry, allowCandidates)) return null;
+  if (!portraitImages.has(entry.file)) portraitImages.set(entry.file, loadSprite(entry.file));
+  const img = portraitImages.get(entry.file);
+  return spriteReady(img) ? img : null;
+}
 function drawPortrait(canvas, unit) {
   const g = canvas.getContext && canvas.getContext('2d');
   if (!g) return false;
@@ -656,6 +678,13 @@ function drawPortrait(canvas, unit) {
   g.clearRect(0, 0, w, h);
   g.fillStyle = `hsl(${unit.colorSeed}, 18%, 26%)`;
   g.fillRect(0, 0, w, h);
+  // A painted portrait for this body when one is in use (asset-manifest.js
+  // `portraits`: candidates only with ?art=candidates), drawn untinted.
+  const painted = unit.outfit === 'uniform' && portraitArt(unit.soldierVariant);
+  if (painted) {
+    g.drawImage(painted, 0, 0, w, h);
+    return true;
+  }
   const set = unitSpriteSet(unit);
   const img = spriteReady(set.down) ? set.down : set.fallback;
   if (!spriteReady(img)) {

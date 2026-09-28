@@ -449,9 +449,19 @@ body.onboarding .construction:not(.show-all) .construction-grid .hud-block:not(.
 .event-toast { pointer-events: auto; background: #182622ee; border: 1px solid #c8a968; color: #f6eed6; font-size: .82rem; padding: 7px 11px; text-align: right; animation: toast-in .25s ease-out; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-6px); } }
 
-.portrait { display: block; border-radius: 10px; border: 1px solid #6f8c7f; background: #22332e; flex: none; }
+.portrait { display: block; width: 72px; height: 72px; border-radius: 10px; border: 1px solid #6f8c7f; background: #22332e; flex: none; }
 .portrait.small { width: 44px; height: 44px; border-radius: 8px; }
-.portrait-button { padding: 0; border: none; background: none; }
+.portrait-button { position: relative; display: inline-block; padding: 0; border: none; background: none; flex: none; }
+/* The chosen accent beside the portrait (the portrait art has no accent mask). */
+.accent-badge { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 6px 6px 10px 10px; border: 2px solid #101c1b; box-shadow: 0 0 0 1px #6f8c7f; }
+.accent-badge.small { width: 13px; height: 13px; right: -3px; bottom: -3px; border-width: 1.5px; }
+.soldier-card-id .callsign-input { margin: 0; padding: 3px 6px; font-size: .8rem; font-weight: 600; font-style: italic; background: var(--bg); color: #f2d58f; border: 1px dashed var(--panel-border); border-radius: 4px; }
+.callsign-input::placeholder { color: #7f9587; }
+.accent-picker { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; }
+.accent-swatches { display: flex; gap: 6px; }
+.accent-swatch { width: 26px; height: 26px; padding: 0; border-radius: 6px; border: 2px solid #101c1b; box-shadow: 0 0 0 1px #6f8c7f; }
+.accent-swatch[aria-checked="true"] { box-shadow: 0 0 0 2px #f4d798; }
+.accent-picker .link-button { margin-left: auto; }
 .roster-card { flex-direction: row; align-items: center; gap: 10px; }
 .roster-text { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 

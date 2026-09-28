@@ -198,3 +198,12 @@ Context: brief 08 (`CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_CHAPTER.md`) is now p
   - Background: fully transparent, with a clean edge. Interior alpha must be 255 (see problem 1 above). The card draws its own frame and backdrop.
   - Displayed at 72 and 44 CSS px, at up to 2× device pixels (144 / 88 px), so details smaller than about 6 source px will disappear.
   - Not wanted: a unique face per name (the brief rules that out). Six stable variants are enough.
+
+## Eighth round (28 September): first soldier portrait received
+
+Record: `CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md`. Delivery: `art/production/FIRST_SOLDIER_PORTRAIT_HANDOFF.md`.
+
+- **Portrait 01: the identity matches, but the alpha had to be fixed.** Helmet badge, face, olive coat and webbing read as the same soldier as the walk v3 master. That is exactly right. However, the body pixels arrived at 88–99% alpha again (problem 1 above): `validate-assets` measured 0.8% fully opaque and 89% of the body semi-transparent. Your export is kept untouched as `art/production/source/soldier-portrait-01-256-v1.png`. The pipeline writes the cleaned copy to `assets/portraits/soldier_01.png` (now 33% opaque with 0% see-through body). **Next exports:** alpha 255 inside the outline, please.
+- **Where it shows.** It is a candidate, so it appears only with `?art=candidates`. That is also the only view where the map shows the same master's down walk, so the face on the card and the soldier on the map always agree. The first soldier now always wears body 1, to match it. The other five bodies keep the tinted crop of their still until they have matching portraits *and* directional walks, as your handoff says.
+- **Accent.** The portrait has no accent mask, so the player's accent shows as a badge on the portrait corner. The walk v3 and idle accent masks are now cut into game strips (`assets/units/candidates/soldier-*-accent.png`; 100% of accent pixels land on the figure) and tinted in game, in candidate view only. **If you can, include a portrait accent mask** (helmet band + shoulder patch, white on transparent, same 256 × 256 canvas) with the next portrait. The badge can then become the real band.
+- **Still the priority: walk up/right + idle up/right from the same master.** The walk remains marked blocked until those pass the clip review.

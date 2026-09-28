@@ -1,0 +1,19 @@
+   3.9 s  fresh game · stage meet · cash $200
+  16.9 s  objective: Meet your first visitor — Elizabeth Chen is walking in from the gate. Tap them to meet them.
+  17.5 s  met Elizabeth Chen by tapping them on the map · objective: Admit Elizabeth Chen — $50 to join. They'll walk to the barracks and change into uniform.
+  20.8 s  admitted Elizabeth Chen (target accuracy 54, now 51) · card: Walking to the barracks to change into uniform
+  32.9 s  in uniform · objective: Train Elizabeth Chen at the range — First, build the Shooting Range: Trains accuracy — 2 soldiers at a time per level.
+  37.0 s  range built · cash $71 · objective: Train Elizabeth Chen at the range — Accuracy decides whether Elizabeth is ready for the first patrol. Range drill: as the base's first soldier, Elizabeth trains 3× faster at any waking hour (06:00–22:00) until patrol-ready. About 25 s at the range.
+  39.5 s  assigned to the range · Heading to the range drill
+  40.9 s  customized on the card: callsign "Kestrel", accent gold → blue (badge rgb(74, 143, 214)); map label "Elizabeth "Kestrel""
+  48.1 s  training at the range · objective: Train Elizabeth Chen at the range — Heading to the range drill. Range drill: as the base's first soldier, Elizabeth trains 3× faster at any waking hour (06:00–22:00) until patrol-ready.
+  73.2 s  ready for patrol · events so far: Elizabeth Chen is in uniform | Elizabeth Chen qualified for Local Patrol
+  76.8 s  DISPATCHED "Recall Elizabeth and send on Local Patrol" (was eating) · time to first patrol 77 s
+  94.4 s  walked out through the gate
+  96.7 s  reloaded mid-patrol → still "away" · objective: Welcome Elizabeth Chen back — Elizabeth is out on patrol and will walk back in through the gate.
+  96.7 s  customization survived the reload: "Kestrel", blue
+ 152.7 s  debrief shows Callsign "Kestrel" with the blue badge; the report saved callsign "Kestrel"
+ 152.8 s  debrief: Walked the Local Patrol route and came home through the gate. Brought back $70. +60 XP. · next: Mess Hall · $120 — Meals with your food stock, so soldiers stop collapsing from hunger. You have $144.
+ 163.3 s  chapter complete · built Mess Hall · cash $24
+ 169.1 s  reloaded after completion: no debrief, 1 intro report, cash $24 → $25 (idle trickle only)
+ 169.1 s  PASS

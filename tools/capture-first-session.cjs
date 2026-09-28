@@ -6,8 +6,13 @@
 //   node tools/capture-first-session.cjs [desktop|phone] [outDir]
 //        (default: desktop, captures/first-session/<mode>/)
 //
+//   node tools/capture-first-session.cjs desktop --candidates   (?art=candidates:
+//        painted down walk/idle with the accent mask, variant-1 portrait)
+//
 // Flow: fresh save -> tap the visitor on the map -> admit -> soldier card ->
-// build the range from the objective card -> assign -> wait for readiness
+// build the range from the objective card -> assign (range drill) -> type a
+// callsign and pick an accent on the card (checked on card, roster, after a
+// reload and in the debrief) -> wait for readiness
 // -> open Local Patrol -> dispatch (recall) -> reload mid-patrol (must
 // resume) -> debrief appears once -> build the suggested facility ->
 // chapter complete -> reload (debrief must not reappear, reward not
@@ -22,8 +27,15 @@ const path = require('node:path');
 const { sleep, startStaticServer, launchBrowser } = require('./lib/browser.cjs');
 
 const root = path.resolve(__dirname, '..');
-const mode = process.argv[2] === 'phone' ? 'phone' : 'desktop';
-const outDir = path.resolve(process.argv[3] || path.join(root, 'captures', 'first-session', mode));
+const args = process.argv.slice(2);
+const mode = args[0] === 'phone' ? 'phone' : 'desktop';
+// --candidates: the same flow with ?art=candidates (painted down walk/idle
+// with the accent mask, and the variant-1 portrait) for art review.
+const candidates = args.includes('--candidates');
+const outArg = args.slice(1).find(a => !a.startsWith('--'));
+const outDir = path.resolve(outArg || path.join(root, 'captures', 'first-session', mode + (candidates ? '-candidates' : '')));
+const query = candidates ? '&art=candidates' : '';
+const CALLSIGN = 'Kestrel';
 const THINK_MS = 2000; // a player's pause before acting on each step
 const phone = mode === 'phone';
 
@@ -72,6 +84,17 @@ const phone = mode === 'phone';
     await sleep(150);
     await tapAt(rect.x, rect.y);
   };
+  // Tap a text field, type into it like a keyboard would, and press Enter.
+  const typeInto = async (selector, text, what) => {
+    await tapElement(selector, what);
+    await ev(`(() => { const el = document.querySelector(${JSON.stringify(selector)}); el.focus(); el.select(); return true; })()`);
+    await page.send('Input.insertText', { text });
+    await page.send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await page.send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 });
+    await sleep(200);
+    await ev(`document.activeElement && document.activeElement.blur(); true`); // leaving the field commits too
+    await sleep(200);
+  };
   // Tap a person where they are drawn on the map (body centre).
   const tapUnitOnMap = async unitExpr => {
     const point = await ev(`(() => { document.getElementById('gameArea').scrollIntoView({ block: 'center' });
@@ -107,7 +130,7 @@ const phone = mode === 'phone';
     const ready = `document.readyState === 'complete' && typeof gameState !== 'undefined'`;
     await page.navigate(`${server.url}/index.html`, ready);
     await ev('localStorage.clear(); true');
-    await page.navigate(`${server.url}/index.html?fresh=${Date.now()}`, ready);
+    await page.navigate(`${server.url}/index.html?fresh=${Date.now()}${query}`, ready);
     note(`fresh game · stage ${await stage()} · cash $${await ev('Math.floor(gameState.cash)')}`);
 
     // 1. Meet the first visitor: tap them on the map once they are through the gate.
@@ -153,9 +176,23 @@ const phone = mode === 'phone';
     await waitFor(`${first}.assignedBuildingId === 'shooting_range'`, 5, 'assignment');
     timings.assignedS = (Date.now() - t0) / 1000;
     note(`assigned to the range · ${await ev(`document.getElementById('profileActivity').textContent`)}`);
-    await sleep(1200);
-    await screenshot('soldier-card-assigned');
+    // Optional customization on the same card: type a callsign, pick an accent.
+    const accentBefore = await ev(`${first}.accent`);
+    const accentPick = accentBefore === 'gold' ? 'blue' : 'gold';
+    await typeInto('#profileCallsign', CALLSIGN, 'callsign');
+    await tapElement(`#profileAccents [data-accent="${accentPick}"]`, 'accent swatch');
+    const custom = await ev(`({ callsign: ${first}.callsign, accent: ${first}.accent, field: ${first}.fieldName,
+      badge: getComputedStyle(document.getElementById('profileAccentBadge')).backgroundColor,
+      checked: document.querySelector('#profileAccents [aria-checked="true"]').dataset.accent })`);
+    if (custom.callsign !== CALLSIGN || custom.accent !== accentPick || custom.checked !== accentPick) throw new Error(`customization not applied: ${JSON.stringify(custom)}`);
+    timings.customized = { callsign: CALLSIGN, accent: accentPick };
+    note(`customized on the card: callsign "${custom.callsign}", accent ${accentBefore} → ${custom.accent} (badge ${custom.badge}); map label "${custom.field}"`);
+    await sleep(800);
+    await screenshot('soldier-card-customized');
     await tapElement('#closeProfile', 'close card');
+    await sleep(1200); // the roster refreshes once a second
+    const roster = await ev(`document.querySelector('#rosterList [data-unit-id="' + ${first}.id + '"] strong').textContent`);
+    if (!roster.includes(`"${CALLSIGN}"`)) throw new Error(`roster card shows "${roster}"`);
     await waitFor(`${first}.routePhase === 'using' && ${first}.status === 'training'`, 150, 'training at the range');
     note(`training at the range · objective: ${await objective()}`);
     await ev(`(() => { const u = ${first}; camera.zoom = 1.4; camera.centreOn(u.x, u.y - 20); return true; })()`);
@@ -190,11 +227,14 @@ const phone = mode === 'phone';
 
     // 6. Reload mid-patrol: the chapter must resume at "away".
     await ev('gameState.save(); true');
-    await page.navigate(`${server.url}/index.html?reload=1`, ready);
+    await page.navigate(`${server.url}/index.html?reload=1${query}`, ready);
     await sleep(800);
     const afterReload = await stage();
     if (afterReload !== 'away') throw new Error(`reload mid-patrol resumed at ${afterReload}`);
     note(`reloaded mid-patrol → still "${afterReload}" · objective: ${await objective()}`);
+    const kept = await ev(`({ callsign: ${first}.callsign, accent: ${first}.accent })`);
+    if (kept.callsign !== CALLSIGN || kept.accent !== timings.customized.accent) throw new Error(`customization lost on reload: ${JSON.stringify(kept)}`);
+    note(`customization survived the reload: "${kept.callsign}", ${kept.accent}`);
 
     // 7. Return and debrief (shown once).
     const cashBefore = await ev('gameState.cash');
@@ -206,6 +246,12 @@ const phone = mode === 'phone';
     await screenshot('debrief');
     const debrief = await ev(`[...document.querySelectorAll('#debriefLines li')].map(li => li.textContent).join(' ')`);
     const report = await ev(`gameState.missionLog.find(e => e.id === gameState.chapter.introReportId)`);
+    const debriefId = await ev(`({ callsign: document.getElementById('debriefCallsign').textContent,
+      badge: document.getElementById('debriefAccentBadge').style.background, hex: accentById(${first}.accent).hex })`);
+    if (!debriefId.callsign.includes(CALLSIGN) || report.callsign !== CALLSIGN || report.accent !== timings.customized.accent) {
+      throw new Error(`debrief identity wrong: ${JSON.stringify({ debriefId, reportCallsign: report.callsign, reportAccent: report.accent })}`);
+    }
+    note(`debrief shows ${debriefId.callsign} with the ${report.accent} badge; the report saved callsign "${report.callsign}"`);
     const gained = (await ev('gameState.cash')) - cashBefore;
     note(`debrief: ${debrief} · next: ${await ev(`document.getElementById('debriefNextText').textContent`)}`);
     if (!debrief.includes(`$${report.cash}`)) throw new Error('debrief cash does not match the award');
@@ -234,7 +280,7 @@ const phone = mode === 'phone';
     // 9. Reload after completion: no second debrief, no second reward.
     const cashDone = await ev('gameState.cash');
     await ev('gameState.save(); true');
-    await page.navigate(`${server.url}/index.html?reload=2`, ready);
+    await page.navigate(`${server.url}/index.html?reload=2${query}`, ready);
     await sleep(1500);
     const again = await ev(`!document.getElementById('debriefPanel').classList.contains('hidden')`);
     const logCount = await ev(`gameState.missionLog.filter(e => e.intro).length`);

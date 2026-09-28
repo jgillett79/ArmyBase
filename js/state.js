@@ -626,6 +626,11 @@ class GameState {
     if (!this.chapter.firstSoldierId && !this.chapter.done) {
       this.chapter.firstSoldierId = unit.id;
       this.chapter.targetAccuracy = Math.min(95, Math.floor(unit.accuracy) + INTRO_READINESS_GAIN);
+      // The only soldier body with a matching portrait and painted walk is
+      // variant 1 (art/production/FIRST_SOLDIER_PORTRAIT_HANDOFF.md), so the
+      // first soldier wears it. Set before the uniform goes on, saved, and
+      // nobody else's identity changes.
+      unit.soldierVariant = 1;
     }
     this.routeForStatus(unit); // frees their chair; RECRUITING -> walks to the Barracks, see tick()
     return true;
@@ -768,7 +773,7 @@ class GameState {
       const startAccuracy = this.chapter.targetAccuracy - INTRO_READINESS_GAIN; // accuracy at admission
       unit.serviceRecord = `The base's first soldier: admitted at the gate, trained at the range from accuracy ${startAccuracy} to ${Math.floor(unit.accuracy)}, and home from the first Local Patrol with $${cash}.`;
     }
-    const report = { id: makeId('report'), unitId: unit.id, name: unit.name, tierId: tier ? tier.id : null,
+    const report = { id: makeId('report'), unitId: unit.id, name: unit.name, callsign: unit.callsign, accent: unit.accent, tierId: tier ? tier.id : null,
       tier: tier ? tier.name : 'Unknown mission', intro: !!(tier && tier.intro), succeeded, xp, cash, resource,
       levelFrom, levelTo: unit.level, recoveryUntil: succeeded ? null : unit.hospitalUntil, at: returnedAt, seen: false };
     this.missionLog.unshift(report);
@@ -797,6 +802,39 @@ class GameState {
   // brief 08 have no unitId and match by name).
   missionHistoryFor(unit) {
     return this.missionLog.filter(entry => entry.unitId ? entry.unitId === unit.id : entry.name === unit.name);
+  }
+
+  // --- customization: callsign and accent (see unit.js ACCENT_COLOURS) ------
+
+  soldierById(unitId) {
+    return this.units.find(u => u.id === unitId && !u.isCivilian) || null;
+  }
+
+  // Empty text clears the callsign. Returns false for an unknown soldier.
+  setCallsign(unitId, text) {
+    const unit = this.soldierById(unitId);
+    if (!unit) return false;
+    unit.callsign = sanitizeCallsign(text);
+    return true;
+  }
+
+  setAccent(unitId, accentId) {
+    const unit = this.soldierById(unitId);
+    if (!unit || !accentById(accentId)) return false;
+    unit.accent = accentId;
+    return true;
+  }
+
+  // "Randomise": a callsign nobody else on the roster uses, and a
+  // different accent, so pressing it always visibly changes something.
+  randomiseIdentity(unitId) {
+    const unit = this.soldierById(unitId);
+    if (!unit) return false;
+    const taken = new Set(this.units.map(u => u.callsign));
+    const callsigns = CALLSIGN_POOL.filter(c => !taken.has(c));
+    unit.callsign = pick(callsigns.length ? callsigns : CALLSIGN_POOL);
+    unit.accent = pick(ACCENT_COLOURS.filter(a => a.id !== unit.accent)).id;
+    return true;
   }
 
   // --- individual moments (toast feed) -------------------------------------
@@ -908,7 +946,7 @@ class GameState {
     if (unit.energy <= 35) return { code: 'rest', text: 'Rest before deployment' };
     if (unit.id === this.chapter.firstSoldierId && this.introAvailable) {
       if (unit.accuracy >= this.chapter.targetAccuracy) return { code: 'ready', text: 'Ready for patrol' };
-      return { code: 'train', text: this.shootingRange.isBuilt ? 'Train accuracy' : 'Build the range to train accuracy' };
+      return { code: 'train', text: this.shootingRange.isBuilt ? 'Range drill: train accuracy' : 'Build the range to train accuracy' };
     }
     const next = MISSION_TIERS.find(tier => !unitMeetsMissionRequirements(unit, tier));
     const best = MISSION_TIERS.filter(tier => unitMeetsMissionRequirements(unit, tier)).pop();
@@ -916,12 +954,21 @@ class GameState {
     return { code: 'ready', text: best ? `Ready for ${best.name}` : 'Ready for patrol' };
   }
 
+  // The first-soldier range drill (mission.js FIRST_SOLDIER_DRILL): only the
+  // first soldier, only while assigned to a built range, only until they
+  // reach the patrol target and only before the intro patrol leaves.
+  isOnRangeDrill(unit) {
+    return unit.id === this.chapter.firstSoldierId && this.introAvailable && this.shootingRange.isBuilt
+      && unit.assignedBuildingId === this.shootingRange.id && unit.accuracy < this.chapter.targetAccuracy;
+  }
+
   // Real seconds of range time until the first soldier reaches the patrol
-  // target (range gain per game-hour, halved at low morale).
+  // target (range gain per game-hour x the drill, halved at low morale).
   trainingSecondsToTarget(unit) {
     const need = this.chapter.targetAccuracy - unit.accuracy;
     if (!(need > 0)) return 0;
-    const rate = this.shootingRange.trains.accuracy * (unit.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1);
+    const rate = this.shootingRange.trains.accuracy * FIRST_SOLDIER_DRILL.multiplier
+      * (unit.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1);
     return (need / rate) * 3600 / GAME_MS_PER_REAL_MS;
   }
 
@@ -991,6 +1038,7 @@ class GameState {
       }
 
       // Decide + apply transition if the desired status differs from current
+      unit.onDrill = this.isOnRangeDrill(unit); // runtime only, re-derived every tick
       const desired = unit.desiredStatus(this.hourOfDay);
       if (desired !== unit.status) this.transitionUnit(unit, desired);
 
@@ -1007,7 +1055,8 @@ class GameState {
       }
       if (unit.status === UNIT_STATUS.TRAINING) {
         const building = this.buildingById(unit.assignedBuildingId);
-        if (this.isUsingFacility(unit, building)) unit.applyTrainingGain(gameHours, building.trains);
+        const drill = unit.onDrill && building === this.shootingRange ? FIRST_SOLDIER_DRILL.multiplier : 1;
+        if (this.isUsingFacility(unit, building)) unit.applyTrainingGain(gameHours, building.trains, drill);
       }
 
       if (unit.energy <= 0) {
@@ -1133,6 +1182,7 @@ class GameState {
           equipment: u.equipment, status: u.status, hospitalUntil: u.hospitalUntil, hospitalReason: u.hospitalReason,
           missionReturnAt: u.missionReturnAt, missionTierId: u.missionTierId,
           trained: u.trained, serviceTag: u.serviceTag, serviceRecord: u.serviceRecord,
+          callsign: u.callsign, accent: u.accent,
         })),
     };
   }
@@ -1160,6 +1210,8 @@ class GameState {
       const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
       Object.assign(u, d);
       if (!u.trained || typeof u.trained !== 'object') u.trained = {}; // saves from before brief 08
+      u.callsign = sanitizeCallsign(u.callsign);
+      if (!accentById(u.accent)) u.accent = defaultAccentFor(u.colorSeed);
       // A unit saved mid-transition (e.g. status EATING but no building
       // built anymore — shouldn't happen, but defensive) falls back to idle.
       if (u.status === UNIT_STATUS.CIVILIAN_APPROACHING || u.status === UNIT_STATUS.CIVILIAN_LEAVING) {

@@ -365,7 +365,14 @@ so reloads can't restart or strand it. Deployment goes through
 `deploymentCheck()` (named reasons) and non-idle soldiers need an explicit
 `{ recall: true }` — the old IDLE-only rule was the "deployment trap".
 The first soldier's first Local Patrol is `INTRO_PATROL` (75 s,
-guaranteed, solo, one time). Mission-log entries are the debriefs
+guaranteed, solo, one time), after a +3 accuracy readiness target reached
+through the labelled `FIRST_SOLDIER_DRILL` (3x range gain, any waking hour,
+first soldier only, ends at the target) — `tests/pacing.cjs` holds prompt
+and slow players to the first session. Customization is deliberately
+small: optional `callsign` + one of four `ACCENT_COLOURS` per soldier
+(unit.js), drawn only through approved accent masks, otherwise as a
+badge/map pip — never a whole-body tint. The first soldier wears body
+variant 1, the only one with a (candidate) portrait. Mission-log entries are the debriefs
 (`seen: false` until read). Save stays schema 2 with optional additions;
 saves without `chapter` get one from `chapterForSave()` (an established
 base starts done). The directional-walk release gate (`walkReleaseGate()`)

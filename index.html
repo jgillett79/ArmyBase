@@ -148,12 +148,18 @@
   <!-- The soldier card: the one place a soldier is shown, from the roster or the map. -->
   <div id="profilePanel" class="hidden">
     <div class="profile-header soldier-card-header">
-      <button id="profilePortraitBtn" type="button" class="portrait-button" aria-label="Show this soldier on the map"><canvas id="profilePortrait" class="portrait" width="72" height="72"></canvas></button>
+      <button id="profilePortraitBtn" type="button" class="portrait-button" aria-label="Show this soldier on the map"><canvas id="profilePortrait" class="portrait" width="144" height="144"></canvas><span id="profileAccentBadge" class="accent-badge" aria-hidden="true"></span></button>
       <div class="soldier-card-id">
         <input id="profileName" type="text" maxlength="18" aria-label="Soldier name">
+        <input id="profileCallsign" type="text" maxlength="12" placeholder="Callsign (optional)" aria-label="Callsign" class="callsign-input">
         <span id="profileRole" class="soldier-role"></span>
       </div>
       <button id="closeProfile" aria-label="Close">&times;</button>
+    </div>
+    <div class="accent-picker" role="radiogroup" aria-label="Accent colour">
+      <span class="hud-label">Accent</span>
+      <span id="profileAccents" class="accent-swatches"></span>
+      <button id="profileRandomise" type="button" class="link-button">Randomise</button>
     </div>
     <p id="profileActivity" class="soldier-activity"></p>
     <p id="profileRecommendation" class="soldier-recommendation"></p>
@@ -223,10 +229,11 @@
   <!-- Individual mission debrief, shown once per return -->
   <div id="debriefPanel" class="hidden" role="dialog" aria-labelledby="debriefTitle">
     <div class="soldier-card-header">
-      <canvas id="debriefPortrait" class="portrait" width="72" height="72"></canvas>
+      <span class="portrait-button"><canvas id="debriefPortrait" class="portrait" width="144" height="144"></canvas><span id="debriefAccentBadge" class="accent-badge" aria-hidden="true"></span></span>
       <div class="soldier-card-id">
         <p class="eyebrow" id="debriefEyebrow">MISSION REPORT</p>
         <h3 id="debriefTitle"></h3>
+        <span id="debriefCallsign" class="soldier-role"></span>
       </div>
     </div>
     <ul id="debriefLines" class="debrief-lines"></ul>

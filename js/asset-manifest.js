@@ -148,6 +148,21 @@ const ASSET_MANIFEST = {
   // People. Frame sets are per archetype; identity colour comes from the
   // per-person tint in render.js. Walk cycles are distance-driven (one
   // cycle per `strideWorld` world px travelled) so feet don't skate.
+  // Card portraits by soldier body (soldierVariant). Only variant 1 exists:
+  // a candidate painted from the walk v3 master
+  // (art/production/FIRST_SOLDIER_PORTRAIT_HANDOFF.md). It shows only with
+  // ?art=candidates — where the map also shows that master's down walk —
+  // so the card never shows a face the map doesn't. It has no accent mask,
+  // so the chosen accent is a badge beside it. Other variants (and the
+  // default view) use a crop of the soldier's own tinted still.
+  portraits: {
+    // `delivered` is Codex's 256 px export, kept untouched; prepare-art cleans
+    // its alpha (it arrived 88–99% "opaque") into `file`. `source` is the
+    // full-size painting it was cut from.
+    1: { status: 'candidate', file: 'assets/portraits/soldier_01.png', delivered: 'art/production/source/soldier-portrait-01-256-v1.png',
+      source: 'art/production/source/soldier-portrait-01-v1.webp', alphaCleanup: true,
+      reference: 'art/rig/soldier_walk_down_painted_v3.png', size: [256, 256], accentMask: null },
+  },
   units: {
     soldier: {
       stills: { status: 'interim', pattern: 'assets/units/soldiers/soldier_{variant}_{direction}.png', directions: ['down', 'up', 'right'], mirrorLeft: true },
@@ -168,6 +183,9 @@ const ASSET_MANIFEST = {
             status: 'candidate', file: 'assets/units/candidates/soldier-walk-down-v3.webp', version: 3,
             source: 'art/rig/soldier_walk_down_painted_v3.png', accent: 'art/rig/soldier_walk_down_painted_v3_accent.png',
             gaitTrack: 'art/rig/soldier_walk_down_painted_v3.json', alphaCleanup: true, tint: 'none',
+            // Customization accent (helmet band + shoulder patch), cut and
+            // resampled with the same frames by tools/prepare-art.cjs.
+            accentFile: 'assets/units/candidates/soldier-walk-down-v3-accent.png',
             frames: [[0, 0, 256, 384], [256, 0, 256, 384], [512, 0, 256, 384], [768, 0, 256, 384], [1024, 0, 256, 384], [1280, 0, 256, 384]],
             pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
             names: ['R contact', 'R down', 'passing', 'L contact', 'L down', 'passing'],
@@ -182,6 +200,7 @@ const ASSET_MANIFEST = {
             // on row 330 in both frames, ~1% chest rise for breathing.
             status: 'candidate', file: 'assets/units/candidates/soldier-idle-down-v2.webp', version: 2,
             source: 'art/rig/soldier_idle_down_painted_candidate.png', accent: 'art/rig/soldier_idle_down_painted_candidate_accent.png', alphaCleanup: true, tint: 'none',
+            accentFile: 'assets/units/candidates/soldier-idle-down-v2-accent.png',
             frames: [[0, 0, 256, 384], [256, 0, 256, 384]], pivot: [128, 330], headroom: 30, output: { frameHeight: 144 },
             frameMs: [900, 900],
           },

@@ -56,12 +56,31 @@ run('var first = s.firstSoldier;');
 assert.match(run(`s.deploymentCheck(first, missionTierById('local_patrol')).reason`), /^Accuracy \d+ \/ \d+ for the first patrol$/);
 assert.equal(run(`s.dispatchMission('local_patrol', [first.id], { recall: true })`), false);
 
+// The first-soldier range drill: +3 accuracy, trained at 3x the range rate
+// during any waking hour — here 18:00, the recreation block, when the
+// normal range is closed.
+assert.equal(run('INTRO_READINESS_GAIN'), 3);
+assert.equal(run('s.chapter.targetAccuracy - Math.floor(first.accuracy)'), 3);
+run(`s.gameClockMs = 18 * 3600000; first.energy = 100; s.assignToBuilding(first.id, 'shooting_range');`);
+assert.equal(run('s.isOnRangeDrill(first)'), true);
+assert.ok(run(`until(() => first.routePhase === 'using' && first.status === 'training', 60)`), 'drills at the range outside the normal training blocks');
+assert.equal(run('scheduledStatusFor(s.hourOfDay)'), 'recreation', 'the normal schedule says free time');
+run('var before = first.accuracy; advance(12.5);'); // one game hour
+const drillGain = run('first.accuracy - before');
+assert.ok(Math.abs(drillGain - 0.5 * run('FIRST_SOLDIER_DRILL.multiplier')) < 0.05, `drill gain per game hour is 3 x 0.5 (was ${drillGain.toFixed(2)})`);
+run(`var other = new Unit({ x: first.x, y: first.y, isCivilian: false }); other.outfit = 'uniform'; s.units.push(other);
+  s.assignToBuilding(other.id, 'shooting_range');`);
+assert.equal(run('s.isOnRangeDrill(other)'), false, 'only the first soldier drills');
+run('s.tick(0.05, Date.now())');
+assert.equal(run('other.status'), run('other.desiredStatus(s.hourOfDay)'), 'everyone else keeps the normal schedule');
+assert.notEqual(run('other.status'), 'training', 'nobody else trains outside the normal blocks');
+run(`s.removeUnit(other.id)`);
+
 // 2. The deployment trap: an assigned trainee can go only via explicit recall.
-run(`s.gameClockMs = 9 * 3600000; s.assignToBuilding(first.id, 'shooting_range');`);
-assert.ok(run(`until(() => first.routePhase === 'using' && first.status === 'training', 60)`), 'training at the range');
-assert.ok(run(`until(() => s.chapterStage().id === 'patrol', 120)`), 'reaches readiness by training');
+assert.ok(run(`until(() => s.chapterStage().id === 'patrol', 60)`), 'reaches readiness through the drill');
+assert.equal(run('s.isOnRangeDrill(first)'), false, 'the drill ends at the target');
 assert.ok(run(`s.events.some(e => e.text === first.name + ' qualified for Local Patrol')`), 'readiness is announced once');
-assert.equal(run('first.status'), 'training');
+assert.notEqual(run('first.status'), 'idle', 'busy, so dispatch needs a recall');
 const check = run(`s.deploymentCheck(first, missionTierById('local_patrol'))`);
 assert.deepEqual({ ok: check.ok, recall: check.recall }, { ok: true, recall: true }, 'eligible, but needs a recall');
 assert.equal(run(`s.dispatchMission('local_patrol', [first.id])`), false, 'no silent recall');
@@ -205,6 +224,36 @@ assert.throws(() => run(`var bad = new GameState().serialize(); bad.chapter.done
 // Old mission-log entries (no id/unitId/seen) are history, never unread reports.
 run(`var legacyLog = new GameState(); legacyLog.missionLog = [{ name: 'Ada Stone', tier: 'Local Patrol', succeeded: true, xp: 60, at: 1 }];`);
 assert.equal(run('legacyLog.unseenReports().length'), 0);
+
+// ---------------------------------------------------------------------------
+// 8b. Customization: callsign and accent persist, migrate and reach the report.
+run(`var c = new GameState(); var cv = new Unit({ x: 100, y: 100, isCivilian: true }); c.units.push(cv); c.recruit(cv.id);
+  cv.outfit = 'uniform'; cv.status = 'idle';`);
+assert.equal(run('cv.soldierVariant'), 1, 'the first soldier wears the body that has a portrait');
+assert.equal(run('cv.callsign'), null, 'no callsign by default');
+assert.ok(run('!!accentById(cv.accent)'), 'a default accent from the shared palette');
+assert.equal(run(`c.setCallsign(cv.id, ' Iron  Kite ')`), true);
+assert.equal(run('cv.callsign'), 'Iron Kite');
+assert.equal(run(`c.setAccent(cv.id, 'purple')`), false, 'only palette accents');
+assert.equal(run(`c.setAccent(cv.id, 'blue')`), true);
+assert.equal(run(`c.setCallsign('unit_nobody', 'X')`), false);
+run(`c.save(); var c2 = GameState.load(); var cv2 = c2.units.find(u => u.id === cv.id);`);
+assert.equal(run('cv2.callsign'), 'Iron Kite', 'callsign survives reload');
+assert.equal(run('cv2.accent'), 'blue', 'accent survives reload');
+assert.equal(run('cv2.fieldName'), `${run("cv.name.split(' ')[0]")} "Iron Kite"`);
+run(`cv2.accuracy = c2.chapter.targetAccuracy; cv2.energy = 100; c2.dispatchMission('local_patrol', [cv2.id]);
+  cv2.missionReturnAt = Date.now() - 1; c2.tick(0.05, Date.now()); var rep = c2.missionLog[0];`);
+assert.equal(run('rep.callsign'), 'Iron Kite', 'the report carries the callsign');
+assert.equal(run('rep.accent'), 'blue', 'the report carries the accent');
+// Old and hand-edited saves.
+const oldData = run(`normalizeSaveData(${JSON.stringify(fixture)}).data`);
+assert.ok(oldData.units.every(u => u.callsign === null && ['red', 'blue', 'gold', 'white'].includes(u.accent)), 'v1 soldiers get defaults');
+run(`var edited = c.serialize(); edited.units[0].callsign = 'A very long callsign indeed'; edited.units[0].accent = 'neon';
+  var repaired = normalizeSaveData(edited).data.units[0];`);
+assert.equal(run('repaired.callsign'), 'A very long');
+assert.equal(run('repaired.accent'), run('defaultAccentFor(repaired.colorSeed)'), 'unknown accent falls back to the default');
+run(`var noFields = c.serialize(); delete noFields.units[0].callsign; delete noFields.units[0].accent;`);
+assert.equal(run('normalizeSaveData(noFields).data.units[0].callsign'), null, 'pre-customization v2 saves migrate');
 
 // ---------------------------------------------------------------------------
 // 9. Movement continuity: the first soldier's route gate -> range -> gate ->

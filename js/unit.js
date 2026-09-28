@@ -72,6 +72,38 @@ function scheduledStatusFor(hourOfDay) {
   return UNIT_STATUS.IDLE; // unreachable if DAILY_SCHEDULE covers all 24h, kept as a safe fallback
 }
 
+// Player customization (brief 08, deliberately small): an optional short
+// callsign and one of four identity accent colours for the helmet band and
+// shoulder patch. The accent never tints skin, kit, shadows or the body:
+// it is drawn only through an approved accent mask, and otherwise shown as
+// a badge/pip beside the portrait and name. No face/body/uniform choices
+// until matching directional, portrait and activity art exists.
+const ACCENT_COLOURS = [
+  { id: 'red', label: 'Signal red', hex: '#c9483c' },
+  { id: 'blue', label: 'Sky blue', hex: '#4a8fd6' },
+  { id: 'gold', label: 'Gold', hex: '#e3b53f' },
+  { id: 'white', label: 'White', hex: '#ecebe4' },
+];
+const CALLSIGN_MAX_LENGTH = 12;
+const CALLSIGN_POOL = ['Ace', 'Bishop', 'Comet', 'Dusty', 'Echo', 'Falcon', 'Ghost', 'Hawk', 'Jinx', 'Kodiak',
+  'Lucky', 'Maverick', 'Nomad', 'Pilot', 'Rook', 'Sparrow', 'Tango', 'Viper'];
+
+function accentById(id) {
+  return ACCENT_COLOURS.find(a => a.id === id) || null;
+}
+
+// Stable default so every soldier has an accent before the player picks one.
+function defaultAccentFor(colorSeed) {
+  return ACCENT_COLOURS[Math.abs(Math.floor(colorSeed || 0)) % ACCENT_COLOURS.length].id;
+}
+
+// Trimmed, single-spaced, printable, at most CALLSIGN_MAX_LENGTH; null when empty.
+function sanitizeCallsign(text) {
+  if (typeof text !== 'string') return null;
+  const clean = text.replace(/[\u0000-\u001f\u007f<>"`\\]/g, '').replace(/\s+/g, ' ').trim().slice(0, CALLSIGN_MAX_LENGTH).trim();
+  return clean || null;
+}
+
 class Unit {
   constructor({ x, y, isCivilian = true }) {
     this.id = makeId('unit');
@@ -139,6 +171,8 @@ class Unit {
     this.trained = {};         // { accuracy: 3.2, ... }
     this.serviceTag = null;    // e.g. 'First Patrol'
     this.serviceRecord = null; // one sentence
+    this.callsign = null;                          // optional, player-chosen (sanitizeCallsign)
+    this.accent = defaultAccentFor(this.colorSeed); // ACCENT_COLOURS id
 
     // Set only while status === ON_MISSION — see state.js's dispatchMission()/tick().
     this.missionReturnAt = null; // timestamp (ms), same real-time pattern as hospitalUntil
@@ -225,6 +259,10 @@ class Unit {
   desiredStatus(hourOfDay) {
     if (this.energy <= ENERGY_CRITICAL) return UNIT_STATUS.EATING; // safety net overrides the schedule
     const scheduled = scheduledStatusFor(hourOfDay);
+    // First-soldier range drill (mission.js FIRST_SOLDIER_DRILL): any waking
+    // hour is range time. `onDrill` is set by GameState each tick.
+    if (this.onDrill && scheduled !== UNIT_STATUS.SLEEPING
+      && hourOfDay >= FIRST_SOLDIER_DRILL.from && hourOfDay < FIRST_SOLDIER_DRILL.to) return UNIT_STATUS.TRAINING;
     // Training is opt-in per unit (must be assigned to a training building —
     // see CLAUDE.md's "auto-schedule, not manual job-walking" decision, which
     // covers *when*, not *which building*). Everyone else's block applies
@@ -268,13 +306,21 @@ class Unit {
   // trains: { statName: gainPerGameHour, ... } — comes from whichever
   // building.trains map the unit is currently assigned to. A building that
   // trains multiple stats (Combat Drill Yard) just has multiple keys here.
-  applyTrainingGain(gameHours, trains) {
+  // `multiplier` is 1 except for the first-soldier range drill.
+  applyTrainingGain(gameHours, trains, multiplier = 1) {
     const moralePenalty = this.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1;
     for (const stat in trains) {
       const before = this[stat];
-      this[stat] = clamp(this[stat] + trains[stat] * gameHours * moralePenalty, 0, 95);
+      this[stat] = clamp(this[stat] + trains[stat] * gameHours * moralePenalty * multiplier, 0, 95);
       this.trained[stat] = (this.trained[stat] || 0) + (this[stat] - before);
     }
+  }
+
+  // How the soldier is called on the map and in quick lines: first name,
+  // plus the callsign when they have one ('Linda "Ace"').
+  get fieldName() {
+    const first = this.name.split(' ')[0];
+    return this.callsign ? `${first} "${this.callsign}"` : first;
   }
 
   // Role earned through play: the stat they have trained most. Until a

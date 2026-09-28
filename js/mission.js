@@ -89,13 +89,22 @@ const MISSION_TIERS = [
 // readiness target is the first soldier's accuracy at admission plus
 // INTRO_READINESS_GAIN (GameState.chapter.targetAccuracy). Not listed in
 // MISSION_TIERS, so the ladder and its formulas are unchanged.
-// Accuracy points: 25 s of range time at 0.5/game-hour. Deliberately small:
-// the range trains only 09:00-12:00 and 13:00-17:00 of a 5-minute day and
-// walking eats game hours, so a new player gains ~1.5 points on day 1
-// (measured headlessly, see CLAUDE_IMPLEMENTATION/08_FIRST_SOLDIER_MANIFEST.md).
-// At +3 the first patrol slipped to ~12 minutes and the soldier collapsed
-// overnight first. Placeholder pending a training-rate/schedule decision.
-const INTRO_READINESS_GAIN = 1;
+const INTRO_READINESS_GAIN = 3; // accuracy points, e.g. 48 -> 51
+
+// FIRST-SOLDIER RANGE DRILL — a labelled special case, shown to the player
+// as "Range drill". Under the normal rules the range trains only
+// 09:00-12:00 and 13:00-17:00 of a 5-minute day at 0.5 accuracy per game
+// hour, and walking eats game hours, so a new player gained ~1.5 points on
+// day 1 and a +3 target pushed the first patrol past 12 minutes (measured,
+// see the brief 08 manifest). While the first soldier is assigned to the
+// range and not yet patrol-ready, they instead drill at `multiplier` x the
+// range's rate during any waking hour (`from`-`to`, game clock; sleep and
+// the low-energy safety net still win). It ends for good once the intro
+// patrol is dispatched; every other soldier, and this one afterwards, use
+// the unchanged schedule and rates. tests/pacing.cjs holds it to its
+// purpose: prompt and slow players both dispatch inside the first session
+// without a collapse or a missed training window.
+const FIRST_SOLDIER_DRILL = { multiplier: 3, from: 6, to: 22 };
 const INTRO_PATROL = {
   id: 'intro_patrol',
   name: 'Local Patrol',

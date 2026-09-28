@@ -1,5 +1,5 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v14';
+const CACHE_NAME = 'command-base-v15';
 const APP_FILES = [
   "./",
   "index.html",
@@ -71,6 +71,9 @@ const APP_FILES = [
   "assets/units/candidates/soldier-fire-candidate-v1.webp",
   "assets/units/candidates/soldier-idle-down-v2.webp",
   "assets/units/candidates/soldier-walk-down-v3.webp",
+  "assets/units/candidates/soldier-walk-down-v3-accent.png",
+  "assets/units/candidates/soldier-idle-down-v2-accent.png",
+  "assets/portraits/soldier_01.png",
   "assets/units/civilians/.gitkeep",
   "assets/units/civilians/bus_rider.png",
   "assets/units/civilians/bus_rider_down.png",

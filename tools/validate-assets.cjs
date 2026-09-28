@@ -161,7 +161,26 @@ for (const [archetype, sets] of Object.entries(manifest.units)) {
       } else fail(`${label}: walk cycle has no foot track to prove planted feet`);
     }
     pixelJobs.push(job);
+    // Customization accent strip: same grid as the frames, a few percent of
+    // pixels, and every one of them on the figure (brief 08).
+    if (set.accentFile) {
+      if (!set.accent) fail(`${label}: accentFile without an accent source`);
+      if (!exists(set.accentFile)) fail(`${label}: missing ${set.accentFile} (run tools/prepare-art.cjs)`);
+      else pixelJobs.push({ label: `${label} accent`, kind: 'mask', file: set.accentFile, body: set.file, width: job.width, height: job.height,
+        frames: set.frames.length, minOpaque: 0.001 });
+    }
   }
+}
+// Card portraits (brief 08): square, transparent, one per soldier body.
+for (const [variant, portrait] of Object.entries(manifest.portraits || {})) {
+  const label = `portrait soldier ${variant}`;
+  checkStatus(label, portrait);
+  if (!exists(portrait.file)) { fail(`${label}: missing ${portrait.file}`); continue; }
+  if (portrait.source && !exists(portrait.source)) fail(`${label}: missing source ${portrait.source}`);
+  if (portrait.delivered && !exists(portrait.delivered)) fail(`${label}: missing delivered export ${portrait.delivered}`);
+  if (portrait.reference && !exists(portrait.reference)) fail(`${label}: missing identity reference ${portrait.reference}`);
+  if (!(Number(variant) >= 1 && Number(variant) <= 6)) fail(`${label}: not a soldier variant`);
+  pixelJobs.push({ label, kind: 'image', file: portrait.file, width: portrait.size[0], height: portrait.size[1] });
 }
 for (const [id, prop] of Object.entries(manifest.props || {})) {
   checkStatus(`prop ${id}`, prop);
@@ -265,6 +284,13 @@ async function checkPixels() {
         const problems = gaitProblems(stats, job.gait.frames);
         problems.forEach(p => fail(`${job.label}: ${p}`));
         if (!problems.length) ok(`${job.label}: ${job.gait.frames} distinct phases (legs differ by >= ${(stats.minDifference * 100).toFixed(0)}% between any two frames), front foot alternates`);
+      } else if (job.kind === 'mask') {
+        const onBody = await page.evaluate(`(async () => { const load = s => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load ' + s)); i.src = s; });
+          const px = img => { const c = document.createElement('canvas'); c.width = img.naturalWidth; c.height = img.naturalHeight; const g = c.getContext('2d'); g.drawImage(img, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; };
+          const m = px(await load('/${job.file}')), b = px(await load('/${job.body}')); let n = 0, on = 0;
+          for (let i = 3; i < m.length; i += 4) if (m[i] > 128) { n++; if (b[i] > 128) on++; } return n ? on / n : 0; })()`);
+        if (onBody < 0.95) fail(`${where}: only ${(onBody * 100).toFixed(0)}% of the accent lies on the figure`);
+        else ok(`${where}: ${(onBody * 100).toFixed(0)}% of the accent on the figure`);
       } else if (job.kind === 'strip') {
         const spread = Math.max(...r.feet) - Math.min(...r.feet);
         if (spread > 3) fail(`${where}: feet rows vary by ${spread}px across frames (${r.feet})`);

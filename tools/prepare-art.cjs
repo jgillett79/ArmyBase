@@ -129,6 +129,31 @@ async function prepareFrames(page, name, anim) {
   write(anim.file, result.image);
   write(`art/review/${name}-review.jpg`, result.sheet);
   console.log(`  frame ${result.outFw}x${result.outFh}, feet rows ${result.baselines.join(', ')}`);
+  if (anim.accent && anim.accentFile) await prepareAccent(page, name, anim);
+}
+
+// The customization accent mask (white on transparent, same cells as the
+// source) cut and resampled exactly like the frames, then made hard-edged
+// (alpha >= 96 -> opaque white, else clear) so a tint fills it cleanly.
+async function prepareAccent(page, name, anim) {
+  const result = await page.evaluate(`(async () => {
+    const anim = ${JSON.stringify(anim)};
+    const src = await loadImage('/' + anim.accent);
+    const [, , fw, fh] = anim.frames[0];
+    const scale = anim.output.frameHeight / fh, outFw = Math.round(fw * scale), outFh = anim.output.frameHeight;
+    const strip = canvasOf(outFw * anim.frames.length, outFh);
+    anim.frames.forEach(([x, y, w, h], i) => {
+      const frame = canvasOf(w, h); frame.getContext('2d').drawImage(src, -x, -y);
+      strip.getContext('2d').drawImage(resample(frame, outFw, outFh), i * outFw, 0);
+    });
+    const g = strip.getContext('2d'), img = g.getImageData(0, 0, strip.width, strip.height), d = img.data;
+    let on = 0;
+    for (let i = 0; i < d.length; i += 4) { const keep = d[i + 3] >= 96; d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = keep ? 255 : 0; on += keep; }
+    g.putImageData(img, 0, 0);
+    return { image: b64(strip), on, w: strip.width, h: strip.height };
+  })()`);
+  write(anim.accentFile, result.image);
+  console.log(`  accent ${result.w}x${result.h}, ${result.on} px`);
 }
 
 (async () => {
@@ -147,6 +172,13 @@ async function prepareFrames(page, name, anim) {
         const c = canvasOf(src.naturalWidth, src.naturalHeight); c.getContext('2d').drawImage(src, 0, 0);
         ${prop.alphaCleanup ? 'cleanAlpha(c);' : ''} return b64(c); })()`);
       write(prop.file, image);
+    }
+    for (const [variant, portrait] of Object.entries(manifest.portraits || {})) {
+      if (!portrait.delivered || (only && only !== `portrait-${variant}`)) continue;
+      const image = await page.evaluate(`(async () => { const src = await loadImage('/${portrait.delivered}');
+        const c = canvasOf(src.naturalWidth, src.naturalHeight); c.getContext('2d').drawImage(src, 0, 0);
+        ${portrait.alphaCleanup ? 'cleanAlpha(c);' : ''} return b64(c); })()`);
+      write(portrait.file, image);
     }
     const soldier = manifest.units.soldier;
     const frameSets = [

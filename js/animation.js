@@ -64,8 +64,31 @@ function unitFramePose(unit, now) {
   return null;
 }
 
+// The accent mask strip filled with one colour, cached per strip + colour.
+const accentStripCache = new Map();
+function accentStrip(entry, hex) {
+  if (!entry.accentFile) return null;
+  const mask = frameStrip({ ...entry, file: entry.accentFile });
+  if (!mask) return null;
+  const key = `${entry.accentFile}|${hex}`;
+  if (!accentStripCache.has(key)) {
+    const c = document.createElement('canvas');
+    c.width = mask.naturalWidth; c.height = mask.naturalHeight;
+    const g = c.getContext('2d');
+    if (!g) return null;
+    g.drawImage(mask, 0, 0);
+    g.globalCompositeOperation = 'source-in';
+    g.fillStyle = hex;
+    g.fillRect(0, 0, c.width, c.height);
+    accentStripCache.set(key, c);
+  }
+  return accentStripCache.get(key);
+}
+
 // Draws a strip frame with its pivot on the person's feet, scaled so the
-// figure matches the standing height. Returns false if nothing was drawn.
+// figure matches the standing height, then the soldier's chosen accent
+// through the set's mask (helmet band and shoulder patch only). Returns
+// false if nothing was drawn.
 function drawFramePose(ctx, unit, pose) {
   const { entry, index, count } = pose;
   // Identity tint only for sets drawn in the neutral base palette.
@@ -77,14 +100,19 @@ function drawFramePose(ctx, unit, pose) {
   const worldPerStrip = (UNIT_H / (entry.pivot[1] - (entry.headroom || 20))) / scale;
   const w = frameW * worldPerStrip, h = frameH * worldPerStrip;
   const pivotX = entry.pivot[0] * scale * worldPerStrip, pivotY = entry.pivot[1] * scale * worldPerStrip;
-  if (pose.mirror) {
-    ctx.save();
-    ctx.translate(unit.x, 0);
-    ctx.scale(-1, 1);
-    ctx.drawImage(strip, index * frameW, 0, frameW, frameH, -pivotX, unit.y - pivotY, w, h);
-    ctx.restore();
-  } else {
-    ctx.drawImage(strip, index * frameW, 0, frameW, frameH, unit.x - pivotX, unit.y - pivotY, w, h);
+  const accent = accentById(unit.accent);
+  const layers = [strip, accent && accentStrip(entry, accent.hex)].filter(Boolean);
+  for (const layer of layers) {
+    const lw = layer.width / count; // same frame grid as the body strip
+    if (pose.mirror) {
+      ctx.save();
+      ctx.translate(unit.x, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(layer, index * lw, 0, lw, layer.height, -pivotX, unit.y - pivotY, w, h);
+      ctx.restore();
+    } else {
+      ctx.drawImage(layer, index * lw, 0, lw, layer.height, unit.x - pivotX, unit.y - pivotY, w, h);
+    }
   }
   // Effects are a separate layer, never baked into the frames.
   const flash = entry.effects && entry.effects.muzzleFlash;

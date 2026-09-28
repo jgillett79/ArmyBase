@@ -15,6 +15,8 @@
 //      levelTo/seen (the soldier's debrief). A save without `chapter` gets
 //      one from chapterForSave(): an established base starts with the
 //      chapter done and guidance dismissed, a brand-new one starts fresh.
+//      Per-unit `callsign` and `accent` (customization) are filled in by
+//      migrateCustomization().
 //
 // Safety rules
 //   - The v1 key is never modified or removed. Migration writes a new v2 key;
@@ -132,6 +134,16 @@ function repairChapter(data) {
   return { ...data, chapter: { ...chapter, done: true, dismissed: true } };
 }
 
+// Callsign/accent (brief 08 customization): older soldiers get no callsign
+// and their stable default accent; hand-edited values are cleaned rather
+// than refusing the save (an overlong callsign is cut, an unknown accent
+// falls back to the default).
+function migrateCustomization(data) {
+  return { ...data, units: data.units.map(unit => ({ ...unit,
+    callsign: sanitizeCallsign(unit.callsign),
+    accent: accentById(unit.accent) ? unit.accent : defaultAccentFor(unit.colorSeed) })) };
+}
+
 // Problems that make data unsafe to load, as sentences a player can act on.
 function validateSaveData(data) {
   const errors = [];
@@ -207,7 +219,7 @@ function normalizeSaveData(data) {
     const more = errors.length > 3 ? ` (and ${errors.length - 3} more problems)` : '';
     throw new SaveFormatError(`This backup can't be restored: ${errors.slice(0, 3).join(' ')}${more}`);
   }
-  return { data: repairChapter(current), migrated: version !== SAVE_SCHEMA_VERSION, fromVersion: version };
+  return { data: migrateCustomization(repairChapter(current)), migrated: version !== SAVE_SCHEMA_VERSION, fromVersion: version };
 }
 
 function parseSaveText(raw) {
