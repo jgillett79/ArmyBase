@@ -72,7 +72,7 @@ node tools/capture-accent-closeup.cjs
 node tools/capture-field-meal.cjs    # round 3: meal text, stored flag, no second meal after reload
 ```
 
-Round 3 re-run on the merge commit: all eight suites pass, assets are valid, and both device playthroughs pass. First patrol at 82 s on desktop and 82 s on phone (both recalled from a meal break); chapter complete at 168 s and 169 s. The field-meal check passes on both. Step logs: `docs/brief08-first-session-*.txt`, `docs/brief08-field-meal.txt`.
+Round 3 re-run on the final merged tree (with `e46e3d3`): all eight suites pass, assets are valid, and both device playthroughs pass. First patrol at 75 s on desktop (recalled from training) and 84 s on phone (recalled from a meal break); chapter complete at 161 s and 170 s. The field-meal check passes on both. The pre-merge run gave 82 s / 82 s and 168 s / 169 s. Step logs: `docs/brief08-first-session-*.txt`, `docs/brief08-field-meal.txt`.
 
 **Pacing (`tests/pacing.cjs`).** A scripted player acts N real seconds after each new step and plays fresh, seeded games in simulated real time, with visitors spawning as in the browser. Five seeds per reaction time. It asserts:
 - the first patrol leaves by the limit shown;
@@ -126,6 +126,7 @@ Screenshots: `docs/screenshots/2026-09-28-chapter-r2-*.jpg`. Step logs: `docs/br
 ## 5. Blocked by art (Deliverable E)
 
 - `walkReleaseGate()` reports: walk down: candidate; walk up: missing; walk right: missing; idle down: candidate; idle up: missing; idle right: missing. It stays blocked until approved up/right walk and idle art passes the clip review.
+- Round 3 merged `e46e3d3` from main: measured **up/right pose guides** (`art/rig/UP_RIGHT_POSE_GUIDES.md`). They are construction guides awaiting a paintover of the walk v3 master, not game sprites, and are deliberately not registered at runtime. When the painted sheets arrive, the next step is `validate-assets --gait` against the guides' recorded foot landmarks, then the 30-second direction/idle clip. Only after that does the gate change.
 - In code, route geometry, continuity, facing and stopping all pass (`tests/chapter.cjs`, 38–46 s at 30 fps, trail legs within 1 world px).
 - By default, players see still sprites that glide. That is not presented as finished.
 - The portrait is a candidate too. It shows only in candidate view, where the map uses the same master's down walk, so the card never shows a face the map doesn't.

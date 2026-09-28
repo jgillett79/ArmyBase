@@ -1,19 +1,19 @@
-   2.2 s  fresh game · stage meet · cash $200
-  16.2 s  objective: Meet your first visitor — Barbara Rossi is walking in from the gate. Tap them to meet them.
-  17.0 s  met Barbara Rossi by tapping them on the map · objective: Admit Barbara Rossi — $50 to join. They'll walk to the barracks and change into uniform.
-  20.4 s  admitted Barbara Rossi (target accuracy 54, now 51) · card: Walking to the barracks to change into uniform
-  35.1 s  in uniform · objective: Admit Barbara Rossi — Barbara is walking to the barracks to change into uniform.
-  39.6 s  range built · cash $71 · objective: Train Barbara Rossi at the range — Accuracy decides whether Barbara is ready for the first patrol. Range drill: as the base's first soldier, Barbara trains 3× faster at any waking hour (06:00–22:00) until patrol-ready. About 25 s at the range.
-  42.3 s  assigned to the range · Heading to the range drill
-  44.1 s  customized on the card: callsign "Kestrel", accent white → gold (badge rgb(227, 181, 63)); map label "Barbara "Kestrel""
-  53.6 s  training at the range · objective: Train Barbara Rossi at the range — Range drill (3× training): Barbara is firing at the range — about 25 s to go.
-  78.3 s  ready for patrol · events so far: Barbara Rossi is in uniform | Barbara Rossi qualified for Local Patrol | Barbara Rossi: accuracy 51 → 54 at the Shooting Range
-  82.5 s  DISPATCHED "Recall Barbara and send on Local Patrol" (was eating) · time to first patrol 82 s
+   2.0 s  fresh game · stage meet · cash $200
+  15.7 s  objective: Meet your first visitor — Maria Andersson is walking in from the gate. Tap them to meet them.
+  16.6 s  met Maria Andersson by tapping them on the map · objective: Admit Maria Andersson — $50 to join. They'll walk to the barracks and change into uniform.
+  20.1 s  admitted Maria Andersson (target accuracy 61, now 58) · card: Walking to the barracks to change into uniform
+  33.2 s  in uniform · objective: Admit Maria Andersson — Maria is walking to the barracks to change into uniform.
+  37.7 s  range built · cash $71 · objective: Train Maria Andersson at the range — Accuracy decides whether Maria is ready for the first patrol. Range drill: as the base's first soldier, Maria trains 3× faster at any waking hour (06:00–22:00) until patrol-ready. About 25 s at the range.
+  40.3 s  assigned to the range · Heading to the range drill
+  42.0 s  customized on the card: callsign "Kestrel", accent gold → blue (badge rgb(74, 143, 214)); map label "Maria "Kestrel""
+  54.5 s  training at the range · objective: Train Maria Andersson at the range — Range drill (3× training): Maria is firing at the range — about 25 s to go.
+  79.5 s  ready for patrol · events so far: Maria Andersson is in uniform | Maria Andersson qualified for Local Patrol | Maria Andersson: accuracy 58 → 61 at the Shooting Range
+  83.6 s  DISPATCHED "Recall Maria and send on Local Patrol" (was eating) · time to first patrol 84 s
  100.0 s  walked out through the gate
- 102.0 s  reloaded mid-patrol → still "away" · objective: Welcome Barbara Rossi back — Barbara is out on patrol and will walk back in through the gate.
- 102.0 s  customization survived the reload: "Kestrel", gold
- 158.4 s  debrief shows Callsign "Kestrel" with the gold badge; the report saved callsign "Kestrel"
- 158.4 s  debrief: Walked the Local Patrol route and came home through the gate. Brought back $70. +60 XP. · next: Mess Hall · $120 — Meals with your food stock, so soldiers stop collapsing from hunger. You have $144.
- 168.9 s  chapter complete · built Mess Hall · cash $25
- 174.3 s  reloaded after completion: no debrief, 1 intro report, cash $25 → $25 (idle trickle only)
- 174.3 s  PASS
+ 102.0 s  reloaded mid-patrol → still "away" · objective: Welcome Maria Andersson back — Maria is out on patrol and will walk back in through the gate.
+ 102.0 s  customization survived the reload: "Kestrel", blue
+ 159.3 s  debrief shows Callsign "Kestrel" with the blue badge; the report saved callsign "Kestrel"
+ 159.4 s  debrief: Walked the Local Patrol route and came home through the gate. Brought back $70. +60 XP. · next: Mess Hall · $120 — Meals with your food stock, so soldiers stop collapsing from hunger. You have $144.
+ 169.8 s  chapter complete · built Mess Hall · cash $25
+ 174.9 s  reloaded after completion: no debrief, 1 intro report, cash $25 → $25 (idle trickle only)
+ 174.9 s  PASS
