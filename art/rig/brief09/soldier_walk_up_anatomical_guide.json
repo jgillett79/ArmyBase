@@ -1,0 +1,89 @@
+{
+  "status": "anatomical paint guide only; not approved art",
+  "cell": [
+    256,
+    384
+  ],
+  "pivot": [
+    128,
+    330
+  ],
+  "sourcePxPerWorld": 6.818181818181818,
+  "strideWorld": 22,
+  "frames": 6,
+  "direction": "up",
+  "track": [
+    {
+      "right": {
+        "x": 108,
+        "y": 293,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 343,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 318,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 300,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 343,
+        "planted": true
+      },
+      "left": {
+        "x": 148,
+        "y": 252,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 343,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 293,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 300,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 318,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 108,
+        "y": 252,
+        "planted": false
+      },
+      "left": {
+        "x": 148,
+        "y": 343,
+        "planted": true
+      }
+    }
+  ]
+}
