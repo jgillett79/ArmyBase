@@ -1,0 +1,4168 @@
+{
+  "generated": "2026-10-01",
+  "worldId": "first_base_v1",
+  "unitWorldHeight": 44,
+  "exportDensity": 3,
+  "dayLengthRealMinutes": 20,
+  "timetable": [
+    {
+      "id": "sleep",
+      "start": 1320,
+      "end": 360,
+      "task": "sleep",
+      "label": "Sleep",
+      "status": "sleeping"
+    },
+    {
+      "id": "bathroom",
+      "start": 360,
+      "end": 420,
+      "task": "bathroom",
+      "label": "Bathroom",
+      "status": "hygiene"
+    },
+    {
+      "id": "breakfast",
+      "start": 420,
+      "end": 480,
+      "task": "meal",
+      "label": "Breakfast",
+      "status": "eating"
+    },
+    {
+      "id": "morning_training",
+      "start": 480,
+      "end": 720,
+      "task": "training",
+      "label": "Morning training",
+      "status": "training"
+    },
+    {
+      "id": "lunch",
+      "start": 720,
+      "end": 780,
+      "task": "meal",
+      "label": "Lunch",
+      "status": "eating"
+    },
+    {
+      "id": "afternoon_training",
+      "start": 780,
+      "end": 1020,
+      "task": "training",
+      "label": "Afternoon training",
+      "status": "training"
+    },
+    {
+      "id": "recreation",
+      "start": 1020,
+      "end": 1140,
+      "task": "recreation",
+      "label": "Recreation",
+      "status": "recreation"
+    },
+    {
+      "id": "dinner",
+      "start": 1140,
+      "end": 1200,
+      "task": "meal",
+      "label": "Dinner",
+      "status": "eating"
+    },
+    {
+      "id": "shower",
+      "start": 1200,
+      "end": 1260,
+      "task": "shower",
+      "label": "Shower",
+      "status": "hygiene"
+    },
+    {
+      "id": "free",
+      "start": 1260,
+      "end": 1320,
+      "task": "free",
+      "label": "Free time / bed prep",
+      "status": "idle"
+    }
+  ],
+  "graceMinutes": 5,
+  "stationRules": {
+    "bed": {
+      "activity": "sleep",
+      "label": "bunk",
+      "perHour": {
+        "energy": 6
+      }
+    },
+    "bedroll": {
+      "activity": "sleep",
+      "label": "bedroll",
+      "perHour": {
+        "energy": 3
+      },
+      "fallback": true
+    },
+    "toilet": {
+      "activity": "toilet",
+      "label": "toilet stall",
+      "minutes": 8,
+      "grace": true,
+      "privacy": true,
+      "effect": {
+        "hygiene": 15
+      }
+    },
+    "basin": {
+      "activity": "wash",
+      "label": "wash basin",
+      "minutes": 4,
+      "grace": true,
+      "effect": {
+        "hygiene": 10
+      }
+    },
+    "shower": {
+      "activity": "shower",
+      "label": "shower stall",
+      "minutes": 10,
+      "grace": true,
+      "privacy": true,
+      "effect": {
+        "hygiene": 30
+      }
+    },
+    "counter": {
+      "activity": "collect_meal",
+      "label": "serving counter",
+      "minutes": 3,
+      "grace": true
+    },
+    "seat": {
+      "activity": "eat",
+      "label": "dining seat",
+      "minutes": 15,
+      "grace": true,
+      "perHour": {
+        "energy": 100
+      }
+    },
+    "bench": {
+      "activity": "relax",
+      "label": "rec bench",
+      "minutes": 20,
+      "effect": {
+        "morale": 12
+      }
+    },
+    "range_lane": {
+      "activity": "fire",
+      "label": "firing point",
+      "minutes": 30,
+      "training": true
+    },
+    "barbell": {
+      "activity": "lift",
+      "label": "barbell",
+      "minutes": 30,
+      "training": true
+    },
+    "beam": {
+      "activity": "traverse",
+      "label": "balance beam",
+      "minutes": 30,
+      "training": true
+    },
+    "drill_post": {
+      "activity": "drill",
+      "label": "drill post",
+      "minutes": 30,
+      "training": true
+    }
+  },
+  "needs": {
+    "energyDrainAwake": -2,
+    "energyDrainTraining": -6,
+    "hygieneDrain": -2,
+    "moraleDrain": -1.5,
+    "mealFood": 1
+  },
+  "geometrySizes": {
+    "bed": [
+      46,
+      18
+    ],
+    "stall": [
+      20,
+      24
+    ],
+    "tables": [
+      [
+        -32,
+        -56,
+        70,
+        10
+      ],
+      [
+        -32,
+        -26,
+        70,
+        10
+      ]
+    ]
+  },
+  "perimeter": {
+    "barrierX": 40,
+    "window": {
+      "x": 48,
+      "y": 572
+    },
+    "service": {
+      "x": 31,
+      "y": 576,
+      "facing": "right"
+    },
+    "guard": {
+      "x": 60,
+      "y": 576,
+      "facing": "left"
+    },
+    "queue": [
+      {
+        "x": 8,
+        "y": 582
+      },
+      {
+        "x": -16,
+        "y": 584
+      },
+      {
+        "x": -40,
+        "y": 586
+      },
+      {
+        "x": -64,
+        "y": 587
+      },
+      {
+        "x": -88,
+        "y": 588
+      }
+    ],
+    "roadY": 612,
+    "admitted": {
+      "x": 24,
+      "y": 610
+    }
+  },
+  "checkpoint": {
+    "kiosk": [
+      [
+        48,
+        552
+      ],
+      [
+        92,
+        552
+      ],
+      [
+        92,
+        590
+      ],
+      [
+        48,
+        590
+      ]
+    ],
+    "kioskPivot": {
+      "x": 70,
+      "y": 590
+    },
+    "boomHinge": {
+      "x": 40,
+      "y": 632
+    }
+  },
+  "muster": {
+    "node": "t4",
+    "spots": [
+      {
+        "id": "p1",
+        "x": 796,
+        "y": 522
+      },
+      {
+        "id": "p2",
+        "x": 820,
+        "y": 524
+      },
+      {
+        "id": "p3",
+        "x": 844,
+        "y": 526
+      },
+      {
+        "id": "p4",
+        "x": 790,
+        "y": 546
+      },
+      {
+        "id": "p5",
+        "x": 814,
+        "y": 548
+      },
+      {
+        "id": "p6",
+        "x": 838,
+        "y": 550
+      },
+      {
+        "id": "p7",
+        "x": 784,
+        "y": 568
+      },
+      {
+        "id": "p8",
+        "x": 808,
+        "y": 570
+      },
+      {
+        "id": "p9",
+        "x": 832,
+        "y": 572
+      }
+    ]
+  },
+  "outsideRoad": {
+    "x0": -200,
+    "roadY": 612,
+    "node": {
+      "x": -196,
+      "y": 612
+    }
+  },
+  "facilities": {
+    "barracks": {
+      "label": "Barracks",
+      "zoneId": "zone_river_bend",
+      "kind": "indoor",
+      "fitScale": 1,
+      "anchor": [
+        1150.3,
+        280
+      ],
+      "footprint": [
+        [
+          -150.2,
+          -140
+        ],
+        [
+          -40.2,
+          -168
+        ],
+        [
+          81.8,
+          -158
+        ],
+        [
+          149.8,
+          -108
+        ],
+        [
+          139.8,
+          -28
+        ],
+        [
+          49.8,
+          6
+        ],
+        [
+          -80.2,
+          2
+        ],
+        [
+          -150.2,
+          -48
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 1000,
+        "minY": 112,
+        "maxX": 1300,
+        "maxY": 286
+      },
+      "entrance": {
+        "world": [
+          1110,
+          298
+        ],
+        "offset": [
+          -40.2,
+          18
+        ],
+        "px": [
+          -121,
+          54
+        ]
+      },
+      "inside": {
+        "world": [
+          1150.3,
+          270
+        ],
+        "offset": [
+          0,
+          -10
+        ],
+        "px": [
+          0,
+          -30
+        ]
+      },
+      "aisle": null,
+      "counts": {
+        "1": {
+          "bed": 6
+        },
+        "2": {
+          "bed": 6
+        },
+        "3": {
+          "bed": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "barracks:bed_1",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "left",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1115.3,
+              210
+            ],
+            "offset": [
+              -35,
+              -70
+            ],
+            "px": [
+              -105,
+              -210
+            ]
+          },
+          "approach": {
+            "world": [
+              1136.3,
+              210
+            ],
+            "offset": [
+              -14,
+              -70
+            ],
+            "px": [
+              -42,
+              -210
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1132.3,
+              210
+            ],
+            "offset": [
+              -18,
+              -70
+            ],
+            "px": [
+              -54,
+              -210
+            ]
+          },
+          "feet": {
+            "world": [
+              1098.3,
+              210
+            ],
+            "offset": [
+              -52,
+              -70
+            ],
+            "px": [
+              -156,
+              -210
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "barracks:bed_2",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "right",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1185.3,
+              210
+            ],
+            "offset": [
+              35,
+              -70
+            ],
+            "px": [
+              105,
+              -210
+            ]
+          },
+          "approach": {
+            "world": [
+              1164.3,
+              210
+            ],
+            "offset": [
+              14,
+              -70
+            ],
+            "px": [
+              42,
+              -210
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1168.3,
+              210
+            ],
+            "offset": [
+              18,
+              -70
+            ],
+            "px": [
+              54,
+              -210
+            ]
+          },
+          "feet": {
+            "world": [
+              1202.3,
+              210
+            ],
+            "offset": [
+              52,
+              -70
+            ],
+            "px": [
+              156,
+              -210
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "barracks:bed_3",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "left",
+          "index": 2,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1115.3,
+              234
+            ],
+            "offset": [
+              -35,
+              -46
+            ],
+            "px": [
+              -105,
+              -138
+            ]
+          },
+          "approach": {
+            "world": [
+              1136.3,
+              234
+            ],
+            "offset": [
+              -14,
+              -46
+            ],
+            "px": [
+              -42,
+              -138
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1132.3,
+              234
+            ],
+            "offset": [
+              -18,
+              -46
+            ],
+            "px": [
+              -54,
+              -138
+            ]
+          },
+          "feet": {
+            "world": [
+              1098.3,
+              234
+            ],
+            "offset": [
+              -52,
+              -46
+            ],
+            "px": [
+              -156,
+              -138
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "barracks:bed_4",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "right",
+          "index": 3,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1185.3,
+              234
+            ],
+            "offset": [
+              35,
+              -46
+            ],
+            "px": [
+              105,
+              -138
+            ]
+          },
+          "approach": {
+            "world": [
+              1164.3,
+              234
+            ],
+            "offset": [
+              14,
+              -46
+            ],
+            "px": [
+              42,
+              -138
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1168.3,
+              234
+            ],
+            "offset": [
+              18,
+              -46
+            ],
+            "px": [
+              54,
+              -138
+            ]
+          },
+          "feet": {
+            "world": [
+              1202.3,
+              234
+            ],
+            "offset": [
+              52,
+              -46
+            ],
+            "px": [
+              156,
+              -138
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "barracks:bed_5",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "left",
+          "index": 4,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1115.3,
+              258
+            ],
+            "offset": [
+              -35,
+              -22
+            ],
+            "px": [
+              -105,
+              -66
+            ]
+          },
+          "approach": {
+            "world": [
+              1136.3,
+              258
+            ],
+            "offset": [
+              -14,
+              -22
+            ],
+            "px": [
+              -42,
+              -66
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1132.3,
+              258
+            ],
+            "offset": [
+              -18,
+              -22
+            ],
+            "px": [
+              -54,
+              -66
+            ]
+          },
+          "feet": {
+            "world": [
+              1098.3,
+              258
+            ],
+            "offset": [
+              -52,
+              -22
+            ],
+            "px": [
+              -156,
+              -66
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "barracks:bed_6",
+          "type": "bed",
+          "activity": "sleep",
+          "facing": "right",
+          "index": 5,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1185.3,
+              258
+            ],
+            "offset": [
+              35,
+              -22
+            ],
+            "px": [
+              105,
+              -66
+            ]
+          },
+          "approach": {
+            "world": [
+              1164.3,
+              258
+            ],
+            "offset": [
+              14,
+              -22
+            ],
+            "px": [
+              42,
+              -66
+            ]
+          },
+          "contact": null,
+          "head": {
+            "world": [
+              1168.3,
+              258
+            ],
+            "offset": [
+              18,
+              -22
+            ],
+            "px": [
+              54,
+              -66
+            ]
+          },
+          "feet": {
+            "world": [
+              1202.3,
+              258
+            ],
+            "offset": [
+              52,
+              -22
+            ],
+            "px": [
+              156,
+              -66
+            ]
+          },
+          "stall": null,
+          "cook": null,
+          "minutes": null,
+          "perHour": {
+            "energy": 6
+          },
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {}
+    },
+    "shooting_range": {
+      "label": "Shooting Range",
+      "zoneId": "zone_west_rise",
+      "kind": "open",
+      "fitScale": 1,
+      "anchor": [
+        384.8,
+        372
+      ],
+      "footprint": [
+        [
+          -94.7,
+          -134
+        ],
+        [
+          -2.7,
+          -152
+        ],
+        [
+          87.3,
+          -136
+        ],
+        [
+          113.3,
+          -72
+        ],
+        [
+          89.3,
+          -10
+        ],
+        [
+          -0.7,
+          6
+        ],
+        [
+          -82.7,
+          -10
+        ],
+        [
+          -108.7,
+          -72
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 276,
+        "minY": 220,
+        "maxX": 498,
+        "maxY": 378
+      },
+      "entrance": {
+        "world": [
+          392,
+          392
+        ],
+        "offset": [
+          7.3,
+          20
+        ],
+        "px": [
+          22,
+          60
+        ]
+      },
+      "inside": null,
+      "aisle": null,
+      "counts": {
+        "1": {
+          "range_lane": 2
+        },
+        "2": {
+          "range_lane": 4
+        },
+        "3": {
+          "range_lane": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "shooting_range:mat_1",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              344.4,
+              311.5
+            ],
+            "offset": [
+              -40.3,
+              -60.5
+            ],
+            "px": [
+              -121,
+              -181
+            ]
+          },
+          "approach": {
+            "world": [
+              344.4,
+              311.5
+            ],
+            "offset": [
+              -40.3,
+              -60.5
+            ],
+            "px": [
+              -121,
+              -181
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "shooting_range:mat_2",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              393.4,
+              330.9
+            ],
+            "offset": [
+              8.7,
+              -41.1
+            ],
+            "px": [
+              26,
+              -123
+            ]
+          },
+          "approach": {
+            "world": [
+              393.4,
+              330.9
+            ],
+            "offset": [
+              8.7,
+              -41.1
+            ],
+            "px": [
+              26,
+              -123
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "shooting_range:lane_1",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              386.4,
+              291.2
+            ],
+            "offset": [
+              1.7,
+              -80.8
+            ],
+            "px": [
+              5,
+              -242
+            ]
+          },
+          "approach": {
+            "world": [
+              386.4,
+              291.2
+            ],
+            "offset": [
+              1.7,
+              -80.8
+            ],
+            "px": [
+              5,
+              -242
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "shooting_range:lane_2",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 3,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              413.1,
+              302.9
+            ],
+            "offset": [
+              28.3,
+              -69.1
+            ],
+            "px": [
+              85,
+              -207
+            ]
+          },
+          "approach": {
+            "world": [
+              413.1,
+              302.9
+            ],
+            "offset": [
+              28.3,
+              -69.1
+            ],
+            "px": [
+              85,
+              -207
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "shooting_range:lane_3",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 4,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              403.1,
+              282.9
+            ],
+            "offset": [
+              18.3,
+              -89.1
+            ],
+            "px": [
+              55,
+              -267
+            ]
+          },
+          "approach": {
+            "world": [
+              403.1,
+              282.9
+            ],
+            "offset": [
+              18.3,
+              -89.1
+            ],
+            "px": [
+              55,
+              -267
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "shooting_range:lane_4",
+          "type": "range_lane",
+          "activity": "fire",
+          "facing": "up",
+          "index": 5,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              426.4,
+              291.2
+            ],
+            "offset": [
+              41.6,
+              -80.8
+            ],
+            "px": [
+              125,
+              -242
+            ]
+          },
+          "approach": {
+            "world": [
+              426.4,
+              291.2
+            ],
+            "offset": [
+              41.6,
+              -80.8
+            ],
+            "px": [
+              125,
+              -242
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "equipment": [
+          [
+            416,
+            402
+          ],
+          [
+            438,
+            402
+          ],
+          [
+            460,
+            402
+          ],
+          [
+            482,
+            402
+          ],
+          [
+            504,
+            402
+          ],
+          [
+            526,
+            402
+          ],
+          [
+            548,
+            402
+          ],
+          [
+            570,
+            402
+          ]
+        ]
+      }
+    },
+    "mess_hall": {
+      "label": "Mess Hall",
+      "zoneId": "zone_centre_knoll",
+      "kind": "open",
+      "fitScale": 1,
+      "anchor": [
+        704,
+        514
+      ],
+      "footprint": [
+        [
+          -64,
+          -89
+        ],
+        [
+          -4,
+          -114
+        ],
+        [
+          66,
+          -106
+        ],
+        [
+          86,
+          -59
+        ],
+        [
+          64,
+          -9
+        ],
+        [
+          -4,
+          6
+        ],
+        [
+          -62,
+          -6
+        ],
+        [
+          -82,
+          -49
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 622,
+        "minY": 400,
+        "maxX": 790,
+        "maxY": 520
+      },
+      "entrance": {
+        "world": [
+          705,
+          534
+        ],
+        "offset": [
+          1,
+          20
+        ],
+        "px": [
+          3,
+          60
+        ]
+      },
+      "inside": {
+        "world": [
+          704,
+          504
+        ],
+        "offset": [
+          0,
+          -10
+        ],
+        "px": [
+          0,
+          -30
+        ]
+      },
+      "aisle": null,
+      "counts": {
+        "1": {
+          "counter": 1,
+          "seat": 6
+        },
+        "2": {
+          "counter": 2,
+          "seat": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "mess_hall:counter_1",
+          "type": "counter",
+          "activity": "collect_meal",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              744,
+              446
+            ],
+            "offset": [
+              40,
+              -68
+            ],
+            "px": [
+              120,
+              -204
+            ]
+          },
+          "approach": {
+            "world": [
+              744,
+              456
+            ],
+            "offset": [
+              40,
+              -58
+            ],
+            "px": [
+              120,
+              -174
+            ]
+          },
+          "contact": {
+            "world": [
+              744,
+              434
+            ],
+            "offset": [
+              40,
+              -80
+            ],
+            "px": [
+              120,
+              -240
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": {
+            "world": [
+              744,
+              422
+            ],
+            "offset": [
+              40,
+              -92
+            ],
+            "px": [
+              120,
+              -276
+            ]
+          },
+          "minutes": 3,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:counter_2",
+          "type": "counter",
+          "activity": "collect_meal",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              720,
+              446
+            ],
+            "offset": [
+              16,
+              -68
+            ],
+            "px": [
+              48,
+              -204
+            ]
+          },
+          "approach": {
+            "world": [
+              720,
+              456
+            ],
+            "offset": [
+              16,
+              -58
+            ],
+            "px": [
+              48,
+              -174
+            ]
+          },
+          "contact": {
+            "world": [
+              720,
+              434
+            ],
+            "offset": [
+              16,
+              -80
+            ],
+            "px": [
+              48,
+              -240
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": {
+            "world": [
+              720,
+              422
+            ],
+            "offset": [
+              16,
+              -92
+            ],
+            "px": [
+              48,
+              -276
+            ]
+          },
+          "minutes": 3,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_1",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              650,
+              470
+            ],
+            "offset": [
+              -54,
+              -44
+            ],
+            "px": [
+              -162,
+              -132
+            ]
+          },
+          "approach": {
+            "world": [
+              650,
+              478
+            ],
+            "offset": [
+              -54,
+              -36
+            ],
+            "px": [
+              -162,
+              -108
+            ]
+          },
+          "contact": {
+            "world": [
+              650,
+              458
+            ],
+            "offset": [
+              -54,
+              -56
+            ],
+            "px": [
+              -162,
+              -168
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_2",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              672,
+              470
+            ],
+            "offset": [
+              -32,
+              -44
+            ],
+            "px": [
+              -96,
+              -132
+            ]
+          },
+          "approach": {
+            "world": [
+              672,
+              478
+            ],
+            "offset": [
+              -32,
+              -36
+            ],
+            "px": [
+              -96,
+              -108
+            ]
+          },
+          "contact": {
+            "world": [
+              672,
+              458
+            ],
+            "offset": [
+              -32,
+              -56
+            ],
+            "px": [
+              -96,
+              -168
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_3",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              694,
+              470
+            ],
+            "offset": [
+              -10,
+              -44
+            ],
+            "px": [
+              -30,
+              -132
+            ]
+          },
+          "approach": {
+            "world": [
+              694,
+              478
+            ],
+            "offset": [
+              -10,
+              -36
+            ],
+            "px": [
+              -30,
+              -108
+            ]
+          },
+          "contact": {
+            "world": [
+              694,
+              458
+            ],
+            "offset": [
+              -10,
+              -56
+            ],
+            "px": [
+              -30,
+              -168
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_4",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 3,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              650,
+              500
+            ],
+            "offset": [
+              -54,
+              -14
+            ],
+            "px": [
+              -162,
+              -42
+            ]
+          },
+          "approach": {
+            "world": [
+              650,
+              508
+            ],
+            "offset": [
+              -54,
+              -6
+            ],
+            "px": [
+              -162,
+              -18
+            ]
+          },
+          "contact": {
+            "world": [
+              650,
+              488
+            ],
+            "offset": [
+              -54,
+              -26
+            ],
+            "px": [
+              -162,
+              -78
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_5",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 4,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              672,
+              500
+            ],
+            "offset": [
+              -32,
+              -14
+            ],
+            "px": [
+              -96,
+              -42
+            ]
+          },
+          "approach": {
+            "world": [
+              672,
+              508
+            ],
+            "offset": [
+              -32,
+              -6
+            ],
+            "px": [
+              -96,
+              -18
+            ]
+          },
+          "contact": {
+            "world": [
+              672,
+              488
+            ],
+            "offset": [
+              -32,
+              -26
+            ],
+            "px": [
+              -96,
+              -78
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "mess_hall:seat_6",
+          "type": "seat",
+          "activity": "eat",
+          "facing": "up",
+          "index": 5,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              694,
+              500
+            ],
+            "offset": [
+              -10,
+              -14
+            ],
+            "px": [
+              -30,
+              -42
+            ]
+          },
+          "approach": {
+            "world": [
+              694,
+              508
+            ],
+            "offset": [
+              -10,
+              -6
+            ],
+            "px": [
+              -30,
+              -18
+            ]
+          },
+          "contact": {
+            "world": [
+              694,
+              488
+            ],
+            "offset": [
+              -10,
+              -26
+            ],
+            "px": [
+              -30,
+              -78
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 15,
+          "perHour": {
+            "energy": 100
+          },
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "counter": [
+          [
+            681,
+            544
+          ],
+          [
+            659,
+            544
+          ],
+          [
+            637,
+            544
+          ],
+          [
+            615,
+            544
+          ],
+          [
+            593,
+            544
+          ],
+          [
+            571,
+            544
+          ],
+          [
+            549,
+            544
+          ],
+          [
+            527,
+            544
+          ]
+        ]
+      }
+    },
+    "weight_room": {
+      "label": "Weight Room",
+      "zoneId": "zone_north_terrace",
+      "kind": "indoor",
+      "fitScale": 1,
+      "anchor": [
+        740,
+        252
+      ],
+      "footprint": [
+        [
+          -140,
+          -102
+        ],
+        [
+          -40,
+          -124
+        ],
+        [
+          80,
+          -120
+        ],
+        [
+          142,
+          -86
+        ],
+        [
+          132,
+          -16
+        ],
+        [
+          42,
+          6
+        ],
+        [
+          -78,
+          0
+        ],
+        [
+          -138,
+          -38
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 600,
+        "minY": 128,
+        "maxX": 882,
+        "maxY": 258
+      },
+      "entrance": {
+        "world": [
+          742,
+          272
+        ],
+        "offset": [
+          2,
+          20
+        ],
+        "px": [
+          6,
+          60
+        ]
+      },
+      "inside": null,
+      "aisle": null,
+      "counts": {
+        "1": {
+          "barbell": 2
+        },
+        "2": {
+          "barbell": 4
+        },
+        "3": {
+          "barbell": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "weight_room:s1",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              680,
+              224
+            ],
+            "offset": [
+              -60,
+              -28
+            ],
+            "px": [
+              -180,
+              -84
+            ]
+          },
+          "approach": {
+            "world": [
+              680,
+              224
+            ],
+            "offset": [
+              -60,
+              -28
+            ],
+            "px": [
+              -180,
+              -84
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "weight_room:s2",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              720,
+              228
+            ],
+            "offset": [
+              -20,
+              -24
+            ],
+            "px": [
+              -60,
+              -72
+            ]
+          },
+          "approach": {
+            "world": [
+              720,
+              228
+            ],
+            "offset": [
+              -20,
+              -24
+            ],
+            "px": [
+              -60,
+              -72
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "weight_room:s3",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              764,
+              228
+            ],
+            "offset": [
+              24,
+              -24
+            ],
+            "px": [
+              72,
+              -72
+            ]
+          },
+          "approach": {
+            "world": [
+              764,
+              228
+            ],
+            "offset": [
+              24,
+              -24
+            ],
+            "px": [
+              72,
+              -72
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "weight_room:s4",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 3,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              806,
+              222
+            ],
+            "offset": [
+              66,
+              -30
+            ],
+            "px": [
+              198,
+              -90
+            ]
+          },
+          "approach": {
+            "world": [
+              806,
+              222
+            ],
+            "offset": [
+              66,
+              -30
+            ],
+            "px": [
+              198,
+              -90
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "weight_room:s5",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 4,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              700,
+              184
+            ],
+            "offset": [
+              -40,
+              -68
+            ],
+            "px": [
+              -120,
+              -204
+            ]
+          },
+          "approach": {
+            "world": [
+              700,
+              184
+            ],
+            "offset": [
+              -40,
+              -68
+            ],
+            "px": [
+              -120,
+              -204
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "weight_room:s6",
+          "type": "barbell",
+          "activity": "lift",
+          "facing": "up",
+          "index": 5,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              780,
+              184
+            ],
+            "offset": [
+              40,
+              -68
+            ],
+            "px": [
+              120,
+              -204
+            ]
+          },
+          "approach": {
+            "world": [
+              780,
+              184
+            ],
+            "offset": [
+              40,
+              -68
+            ],
+            "px": [
+              120,
+              -204
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "equipment": [
+          [
+            766,
+            282
+          ],
+          [
+            788,
+            282
+          ],
+          [
+            810,
+            282
+          ],
+          [
+            832,
+            282
+          ],
+          [
+            854,
+            282
+          ],
+          [
+            876,
+            282
+          ],
+          [
+            898,
+            282
+          ],
+          [
+            920,
+            282
+          ]
+        ]
+      }
+    },
+    "obstacle_course": {
+      "label": "Obstacle Course",
+      "zoneId": "zone_southwest_flats",
+      "kind": "open",
+      "fitScale": 1,
+      "anchor": [
+        401.8,
+        794
+      ],
+      "footprint": [
+        [
+          -101.7,
+          -122
+        ],
+        [
+          -1.7,
+          -138
+        ],
+        [
+          98.3,
+          -126
+        ],
+        [
+          118.3,
+          -70
+        ],
+        [
+          96.3,
+          -10
+        ],
+        [
+          -1.7,
+          6
+        ],
+        [
+          -89.7,
+          -6
+        ],
+        [
+          -117.7,
+          -64
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 284,
+        "minY": 656,
+        "maxX": 520,
+        "maxY": 800
+      },
+      "entrance": {
+        "world": [
+          410,
+          640
+        ],
+        "offset": [
+          8.3,
+          -154
+        ],
+        "px": [
+          25,
+          -462
+        ]
+      },
+      "inside": null,
+      "aisle": null,
+      "counts": {
+        "1": {
+          "beam": 2
+        },
+        "2": {
+          "beam": 4
+        },
+        "3": {
+          "beam": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "obstacle_course:s1",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              340,
+              700
+            ],
+            "offset": [
+              -61.7,
+              -94
+            ],
+            "px": [
+              -185,
+              -282
+            ]
+          },
+          "approach": {
+            "world": [
+              340,
+              700
+            ],
+            "offset": [
+              -61.7,
+              -94
+            ],
+            "px": [
+              -185,
+              -282
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "obstacle_course:s2",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              380,
+              694
+            ],
+            "offset": [
+              -21.7,
+              -100
+            ],
+            "px": [
+              -65,
+              -300
+            ]
+          },
+          "approach": {
+            "world": [
+              380,
+              694
+            ],
+            "offset": [
+              -21.7,
+              -100
+            ],
+            "px": [
+              -65,
+              -300
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "obstacle_course:s3",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              424,
+              694
+            ],
+            "offset": [
+              22.3,
+              -100
+            ],
+            "px": [
+              67,
+              -300
+            ]
+          },
+          "approach": {
+            "world": [
+              424,
+              694
+            ],
+            "offset": [
+              22.3,
+              -100
+            ],
+            "px": [
+              67,
+              -300
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "obstacle_course:s4",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 3,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              464,
+              700
+            ],
+            "offset": [
+              62.3,
+              -94
+            ],
+            "px": [
+              187,
+              -282
+            ]
+          },
+          "approach": {
+            "world": [
+              464,
+              700
+            ],
+            "offset": [
+              62.3,
+              -94
+            ],
+            "px": [
+              187,
+              -282
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "obstacle_course:s5",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 4,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              360,
+              742
+            ],
+            "offset": [
+              -41.7,
+              -52
+            ],
+            "px": [
+              -125,
+              -156
+            ]
+          },
+          "approach": {
+            "world": [
+              360,
+              742
+            ],
+            "offset": [
+              -41.7,
+              -52
+            ],
+            "px": [
+              -125,
+              -156
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "obstacle_course:s6",
+          "type": "beam",
+          "activity": "traverse",
+          "facing": "up",
+          "index": 5,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              440,
+              742
+            ],
+            "offset": [
+              38.3,
+              -52
+            ],
+            "px": [
+              115,
+              -156
+            ]
+          },
+          "approach": {
+            "world": [
+              440,
+              742
+            ],
+            "offset": [
+              38.3,
+              -52
+            ],
+            "px": [
+              115,
+              -156
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "equipment": [
+          [
+            434,
+            650
+          ],
+          [
+            456,
+            650
+          ],
+          [
+            478,
+            650
+          ],
+          [
+            500,
+            650
+          ],
+          [
+            522,
+            650
+          ],
+          [
+            544,
+            650
+          ]
+        ]
+      }
+    },
+    "drill_yard": {
+      "label": "Combat Drill Yard",
+      "zoneId": "zone_riverside",
+      "kind": "open",
+      "fitScale": 1,
+      "anchor": [
+        961.3,
+        790
+      ],
+      "footprint": [
+        [
+          -111.2,
+          -128
+        ],
+        [
+          -1.2,
+          -144
+        ],
+        [
+          108.8,
+          -130
+        ],
+        [
+          134.8,
+          -74
+        ],
+        [
+          108.8,
+          -10
+        ],
+        [
+          0.8,
+          6
+        ],
+        [
+          -105.2,
+          -6
+        ],
+        [
+          -135.2,
+          -68
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 826,
+        "minY": 646,
+        "maxX": 1096,
+        "maxY": 796
+      },
+      "entrance": {
+        "world": [
+          962,
+          632
+        ],
+        "offset": [
+          0.8,
+          -158
+        ],
+        "px": [
+          2,
+          -474
+        ]
+      },
+      "inside": null,
+      "aisle": null,
+      "counts": {
+        "1": {
+          "drill_post": 2
+        },
+        "2": {
+          "drill_post": 4
+        },
+        "3": {
+          "drill_post": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "drill_yard:s1",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              900,
+              690
+            ],
+            "offset": [
+              -61.2,
+              -100
+            ],
+            "px": [
+              -184,
+              -300
+            ]
+          },
+          "approach": {
+            "world": [
+              900,
+              690
+            ],
+            "offset": [
+              -61.2,
+              -100
+            ],
+            "px": [
+              -184,
+              -300
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "drill_yard:s2",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              940,
+              684
+            ],
+            "offset": [
+              -21.2,
+              -106
+            ],
+            "px": [
+              -64,
+              -318
+            ]
+          },
+          "approach": {
+            "world": [
+              940,
+              684
+            ],
+            "offset": [
+              -21.2,
+              -106
+            ],
+            "px": [
+              -64,
+              -318
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "drill_yard:s3",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              984,
+              684
+            ],
+            "offset": [
+              22.8,
+              -106
+            ],
+            "px": [
+              68,
+              -318
+            ]
+          },
+          "approach": {
+            "world": [
+              984,
+              684
+            ],
+            "offset": [
+              22.8,
+              -106
+            ],
+            "px": [
+              68,
+              -318
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "drill_yard:s4",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 3,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              1026,
+              690
+            ],
+            "offset": [
+              64.8,
+              -100
+            ],
+            "px": [
+              194,
+              -300
+            ]
+          },
+          "approach": {
+            "world": [
+              1026,
+              690
+            ],
+            "offset": [
+              64.8,
+              -100
+            ],
+            "px": [
+              194,
+              -300
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "drill_yard:s5",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 4,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              920,
+              734
+            ],
+            "offset": [
+              -41.2,
+              -56
+            ],
+            "px": [
+              -124,
+              -168
+            ]
+          },
+          "approach": {
+            "world": [
+              920,
+              734
+            ],
+            "offset": [
+              -41.2,
+              -56
+            ],
+            "px": [
+              -124,
+              -168
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        },
+        {
+          "id": "drill_yard:s6",
+          "type": "drill_post",
+          "activity": "drill",
+          "facing": "up",
+          "index": 5,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              1004,
+              734
+            ],
+            "offset": [
+              42.8,
+              -56
+            ],
+            "px": [
+              128,
+              -168
+            ]
+          },
+          "approach": {
+            "world": [
+              1004,
+              734
+            ],
+            "offset": [
+              42.8,
+              -56
+            ],
+            "px": [
+              128,
+              -168
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 30,
+          "perHour": null,
+          "effect": null,
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "equipment": [
+          [
+            986,
+            642
+          ],
+          [
+            1008,
+            642
+          ],
+          [
+            1030,
+            642
+          ],
+          [
+            1052,
+            642
+          ],
+          [
+            1074,
+            642
+          ],
+          [
+            1096,
+            642
+          ],
+          [
+            1118,
+            642
+          ],
+          [
+            1140,
+            642
+          ]
+        ]
+      }
+    },
+    "showers": {
+      "label": "Wash Block",
+      "zoneId": "zone_knoll_east",
+      "kind": "indoor",
+      "fitScale": 1,
+      "anchor": [
+        1006.3,
+        510
+      ],
+      "footprint": [
+        [
+          -58.2,
+          -118
+        ],
+        [
+          1.8,
+          -132
+        ],
+        [
+          59.8,
+          -118
+        ],
+        [
+          73.8,
+          -65
+        ],
+        [
+          55.8,
+          -10
+        ],
+        [
+          -2.2,
+          6
+        ],
+        [
+          -56.2,
+          -8
+        ],
+        [
+          -74.2,
+          -62
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 932,
+        "minY": 378,
+        "maxX": 1080,
+        "maxY": 516
+      },
+      "entrance": {
+        "world": [
+          1006,
+          530
+        ],
+        "offset": [
+          -0.2,
+          20
+        ],
+        "px": [
+          -1,
+          60
+        ]
+      },
+      "inside": {
+        "world": [
+          1006.3,
+          504
+        ],
+        "offset": [
+          0,
+          -6
+        ],
+        "px": [
+          0,
+          -18
+        ]
+      },
+      "aisle": {
+        "world": [
+          1006.3,
+          452
+        ],
+        "offset": [
+          0,
+          -58
+        ],
+        "px": [
+          0,
+          -174
+        ]
+      },
+      "counts": {
+        "1": {
+          "toilet": 2,
+          "basin": 1,
+          "shower": 2
+        },
+        "2": {
+          "toilet": 3,
+          "basin": 2,
+          "shower": 2
+        },
+        "3": {
+          "toilet": 3,
+          "basin": 3,
+          "shower": 3
+        }
+      },
+      "stations": [
+        {
+          "id": "showers:toilet_1",
+          "type": "toilet",
+          "activity": "toilet",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              952.3,
+              428
+            ],
+            "offset": [
+              -54,
+              -82
+            ],
+            "px": [
+              -162,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              952.3,
+              446
+            ],
+            "offset": [
+              -54,
+              -64
+            ],
+            "px": [
+              -162,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              952.3,
+              428
+            ],
+            "offset": [
+              -54,
+              -82
+            ],
+            "px": [
+              -162,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 8,
+          "perHour": null,
+          "effect": {
+            "hygiene": 15
+          },
+          "privacy": true
+        },
+        {
+          "id": "showers:toilet_2",
+          "type": "toilet",
+          "activity": "toilet",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              974.3,
+              428
+            ],
+            "offset": [
+              -32,
+              -82
+            ],
+            "px": [
+              -96,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              974.3,
+              446
+            ],
+            "offset": [
+              -32,
+              -64
+            ],
+            "px": [
+              -96,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              974.3,
+              428
+            ],
+            "offset": [
+              -32,
+              -82
+            ],
+            "px": [
+              -96,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 8,
+          "perHour": null,
+          "effect": {
+            "hygiene": 15
+          },
+          "privacy": true
+        },
+        {
+          "id": "showers:toilet_3",
+          "type": "toilet",
+          "activity": "toilet",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              995.3,
+              428
+            ],
+            "offset": [
+              -11,
+              -82
+            ],
+            "px": [
+              -33,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              995.3,
+              446
+            ],
+            "offset": [
+              -11,
+              -64
+            ],
+            "px": [
+              -33,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              995.3,
+              428
+            ],
+            "offset": [
+              -11,
+              -82
+            ],
+            "px": [
+              -33,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 8,
+          "perHour": null,
+          "effect": {
+            "hygiene": 15
+          },
+          "privacy": true
+        },
+        {
+          "id": "showers:basin_1",
+          "type": "basin",
+          "activity": "wash",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              958.3,
+              480
+            ],
+            "offset": [
+              -48,
+              -30
+            ],
+            "px": [
+              -144,
+              -90
+            ]
+          },
+          "approach": {
+            "world": [
+              958.3,
+              480
+            ],
+            "offset": [
+              -48,
+              -30
+            ],
+            "px": [
+              -144,
+              -90
+            ]
+          },
+          "contact": {
+            "world": [
+              958.3,
+              468
+            ],
+            "offset": [
+              -48,
+              -42
+            ],
+            "px": [
+              -144,
+              -126
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 4,
+          "perHour": null,
+          "effect": {
+            "hygiene": 10
+          },
+          "privacy": false
+        },
+        {
+          "id": "showers:basin_2",
+          "type": "basin",
+          "activity": "wash",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 2,
+          "use": {
+            "world": [
+              980.3,
+              480
+            ],
+            "offset": [
+              -26,
+              -30
+            ],
+            "px": [
+              -78,
+              -90
+            ]
+          },
+          "approach": {
+            "world": [
+              980.3,
+              480
+            ],
+            "offset": [
+              -26,
+              -30
+            ],
+            "px": [
+              -78,
+              -90
+            ]
+          },
+          "contact": {
+            "world": [
+              980.3,
+              468
+            ],
+            "offset": [
+              -26,
+              -42
+            ],
+            "px": [
+              -78,
+              -126
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 4,
+          "perHour": null,
+          "effect": {
+            "hygiene": 10
+          },
+          "privacy": false
+        },
+        {
+          "id": "showers:basin_3",
+          "type": "basin",
+          "activity": "wash",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              1032.3,
+              480
+            ],
+            "offset": [
+              26,
+              -30
+            ],
+            "px": [
+              78,
+              -90
+            ]
+          },
+          "approach": {
+            "world": [
+              1032.3,
+              480
+            ],
+            "offset": [
+              26,
+              -30
+            ],
+            "px": [
+              78,
+              -90
+            ]
+          },
+          "contact": {
+            "world": [
+              1032.3,
+              468
+            ],
+            "offset": [
+              26,
+              -42
+            ],
+            "px": [
+              78,
+              -126
+            ]
+          },
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 4,
+          "perHour": null,
+          "effect": {
+            "hygiene": 10
+          },
+          "privacy": false
+        },
+        {
+          "id": "showers:shower_1",
+          "type": "shower",
+          "activity": "shower",
+          "facing": "up",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1060.3,
+              428
+            ],
+            "offset": [
+              54,
+              -82
+            ],
+            "px": [
+              162,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              1060.3,
+              446
+            ],
+            "offset": [
+              54,
+              -64
+            ],
+            "px": [
+              162,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              1060.3,
+              428
+            ],
+            "offset": [
+              54,
+              -82
+            ],
+            "px": [
+              162,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 10,
+          "perHour": null,
+          "effect": {
+            "hygiene": 30
+          },
+          "privacy": true
+        },
+        {
+          "id": "showers:shower_2",
+          "type": "shower",
+          "activity": "shower",
+          "facing": "up",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1038.3,
+              428
+            ],
+            "offset": [
+              32,
+              -82
+            ],
+            "px": [
+              96,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              1038.3,
+              446
+            ],
+            "offset": [
+              32,
+              -64
+            ],
+            "px": [
+              96,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              1038.3,
+              428
+            ],
+            "offset": [
+              32,
+              -82
+            ],
+            "px": [
+              96,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 10,
+          "perHour": null,
+          "effect": {
+            "hygiene": 30
+          },
+          "privacy": true
+        },
+        {
+          "id": "showers:shower_3",
+          "type": "shower",
+          "activity": "shower",
+          "facing": "up",
+          "index": 2,
+          "firstLevel": 3,
+          "use": {
+            "world": [
+              1017.3,
+              428
+            ],
+            "offset": [
+              11,
+              -82
+            ],
+            "px": [
+              33,
+              -246
+            ]
+          },
+          "approach": {
+            "world": [
+              1017.3,
+              446
+            ],
+            "offset": [
+              11,
+              -64
+            ],
+            "px": [
+              33,
+              -192
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": {
+            "world": [
+              1017.3,
+              428
+            ],
+            "offset": [
+              11,
+              -82
+            ],
+            "px": [
+              33,
+              -246
+            ]
+          },
+          "cook": null,
+          "minutes": 10,
+          "perHour": null,
+          "effect": {
+            "hygiene": 30
+          },
+          "privacy": true
+        }
+      ],
+      "queues": {
+        "toilet": [
+          [
+            1030,
+            540
+          ],
+          [
+            1052,
+            540
+          ],
+          [
+            1074,
+            540
+          ],
+          [
+            1096,
+            540
+          ],
+          [
+            1118,
+            540
+          ],
+          [
+            1140,
+            540
+          ],
+          [
+            1162,
+            540
+          ],
+          [
+            1184,
+            540
+          ]
+        ],
+        "basin": [
+          [
+            982,
+            540
+          ],
+          [
+            960,
+            540
+          ],
+          [
+            938,
+            540
+          ],
+          [
+            916,
+            540
+          ],
+          [
+            894,
+            540
+          ],
+          [
+            872,
+            540
+          ]
+        ],
+        "shower": [
+          [
+            1030,
+            562
+          ],
+          [
+            1052,
+            562
+          ],
+          [
+            1074,
+            562
+          ],
+          [
+            1096,
+            562
+          ],
+          [
+            1118,
+            562
+          ],
+          [
+            1140,
+            562
+          ],
+          [
+            1162,
+            562
+          ],
+          [
+            1184,
+            562
+          ]
+        ]
+      }
+    },
+    "rec_room": {
+      "label": "Rec Room",
+      "zoneId": "zone_east_meadow",
+      "kind": "indoor",
+      "fitScale": 1,
+      "anchor": [
+        1242.8,
+        478
+      ],
+      "footprint": [
+        [
+          -102.7,
+          -118
+        ],
+        [
+          -2.7,
+          -130
+        ],
+        [
+          93.3,
+          -106
+        ],
+        [
+          119.3,
+          -58
+        ],
+        [
+          93.3,
+          -10
+        ],
+        [
+          3.3,
+          6
+        ],
+        [
+          -86.7,
+          -4
+        ],
+        [
+          -116.7,
+          -60
+        ]
+      ],
+      "footprintBounds": {
+        "minX": 1126,
+        "minY": 348,
+        "maxX": 1362,
+        "maxY": 484
+      },
+      "entrance": {
+        "world": [
+          1240,
+          498
+        ],
+        "offset": [
+          -2.7,
+          20
+        ],
+        "px": [
+          -8,
+          60
+        ]
+      },
+      "inside": null,
+      "aisle": null,
+      "counts": {
+        "1": {
+          "bench": 6
+        }
+      },
+      "stations": [
+        {
+          "id": "rec_room:s1",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 0,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1190,
+              448
+            ],
+            "offset": [
+              -52.7,
+              -30
+            ],
+            "px": [
+              -158,
+              -90
+            ]
+          },
+          "approach": {
+            "world": [
+              1190,
+              448
+            ],
+            "offset": [
+              -52.7,
+              -30
+            ],
+            "px": [
+              -158,
+              -90
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        },
+        {
+          "id": "rec_room:s2",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 1,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1226,
+              454
+            ],
+            "offset": [
+              -16.7,
+              -24
+            ],
+            "px": [
+              -50,
+              -72
+            ]
+          },
+          "approach": {
+            "world": [
+              1226,
+              454
+            ],
+            "offset": [
+              -16.7,
+              -24
+            ],
+            "px": [
+              -50,
+              -72
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        },
+        {
+          "id": "rec_room:s3",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 2,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1262,
+              454
+            ],
+            "offset": [
+              19.3,
+              -24
+            ],
+            "px": [
+              58,
+              -72
+            ]
+          },
+          "approach": {
+            "world": [
+              1262,
+              454
+            ],
+            "offset": [
+              19.3,
+              -24
+            ],
+            "px": [
+              58,
+              -72
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        },
+        {
+          "id": "rec_room:s4",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 3,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1298,
+              446
+            ],
+            "offset": [
+              55.3,
+              -32
+            ],
+            "px": [
+              166,
+              -96
+            ]
+          },
+          "approach": {
+            "world": [
+              1298,
+              446
+            ],
+            "offset": [
+              55.3,
+              -32
+            ],
+            "px": [
+              166,
+              -96
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        },
+        {
+          "id": "rec_room:s5",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 4,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1210,
+              406
+            ],
+            "offset": [
+              -32.7,
+              -72
+            ],
+            "px": [
+              -98,
+              -216
+            ]
+          },
+          "approach": {
+            "world": [
+              1210,
+              406
+            ],
+            "offset": [
+              -32.7,
+              -72
+            ],
+            "px": [
+              -98,
+              -216
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        },
+        {
+          "id": "rec_room:s6",
+          "type": "bench",
+          "activity": "relax",
+          "facing": "down",
+          "index": 5,
+          "firstLevel": 1,
+          "use": {
+            "world": [
+              1280,
+              406
+            ],
+            "offset": [
+              37.3,
+              -72
+            ],
+            "px": [
+              112,
+              -216
+            ]
+          },
+          "approach": {
+            "world": [
+              1280,
+              406
+            ],
+            "offset": [
+              37.3,
+              -72
+            ],
+            "px": [
+              112,
+              -216
+            ]
+          },
+          "contact": null,
+          "head": null,
+          "feet": null,
+          "stall": null,
+          "cook": null,
+          "minutes": 20,
+          "perHour": null,
+          "effect": {
+            "morale": 12
+          },
+          "privacy": false
+        }
+      ],
+      "queues": {
+        "bench": [
+          [
+            1264,
+            508
+          ],
+          [
+            1286,
+            508
+          ],
+          [
+            1308,
+            508
+          ],
+          [
+            1330,
+            508
+          ],
+          [
+            1352,
+            508
+          ],
+          [
+            1374,
+            508
+          ]
+        ]
+      }
+    }
+  }
+}

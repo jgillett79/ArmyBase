@@ -1200,6 +1200,7 @@ class GameState {
             stationId: u.routine.stationId, progress: u.routine.progress, reason: u.routine.reason,
             meal: u.routine.meal, log: u.routine.log, queueKey: u.routine.queueKey || null,
             queueIndex: u.routine.queueIndex, pendingWindow: u.routine.pendingWindow, graceEnd: u.routine.graceEnd,
+            musterSpot: u.musterSpot || null, standby: !!u.routine.standby, bedroll: !!u.routine.bedroll,
           } : null,
         })),
       day: this.day,

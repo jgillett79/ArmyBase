@@ -1,0 +1,340 @@
+{
+  "gate-applicants": [
+    {
+      "name": "Grace Okafor",
+      "text": "Bathroom: walking to the parade ground — finished early",
+      "stage": "travel",
+      "station": null,
+      "x": 1045,
+      "y": 558
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Bathroom: using the wash basin (1/4 min)",
+      "stage": "use",
+      "station": "showers:basin_1",
+      "x": 958,
+      "y": 480
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Bathroom: using the toilet stall (7/8 min)",
+      "stage": "use",
+      "station": "showers:toilet_2",
+      "x": 974,
+      "y": 428
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Bathroom: using the toilet stall (5/8 min)",
+      "stage": "use",
+      "station": "showers:toilet_1",
+      "x": 952,
+      "y": 428
+    }
+  ],
+  "bathroom-queue": [
+    {
+      "name": "Grace Okafor",
+      "text": "Bathroom: walking to the wash basin",
+      "stage": "travel",
+      "station": "showers:basin_1",
+      "x": 1002,
+      "y": 451
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Bathroom: using the toilet stall (1/8 min)",
+      "stage": "use",
+      "station": "showers:toilet_1",
+      "x": 952,
+      "y": 428
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Bathroom: walking to the toilet stall",
+      "stage": "travel",
+      "station": "showers:toilet_2",
+      "x": 1006,
+      "y": 525
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Bathroom: queuing (1 of 1) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 1030,
+      "y": 540
+    }
+  ],
+  "breakfast-counter": [
+    {
+      "name": "Grace Okafor",
+      "text": "Breakfast: eating (3/15 min)",
+      "stage": "use",
+      "station": "mess_hall:seat_1",
+      "x": 650,
+      "y": 470
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Breakfast: collecting a meal at the serving counter",
+      "stage": "use",
+      "station": "mess_hall:counter_1",
+      "x": 744,
+      "y": 446
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Breakfast: queuing (1 of 2) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 681,
+      "y": 544
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Breakfast: walking to the queue",
+      "stage": "travel",
+      "station": null,
+      "x": 762,
+      "y": 585
+    }
+  ],
+  "morning-training-range": [
+    {
+      "name": "Grace Okafor",
+      "text": "Morning training: using the barbell (16/30 min)",
+      "stage": "use",
+      "station": "weight_room:s2",
+      "x": 720,
+      "y": 228
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Morning training: using the barbell (8/30 min)",
+      "stage": "use",
+      "station": "weight_room:s1",
+      "x": 680,
+      "y": 224
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Morning training: using the firing point (16/30 min)",
+      "stage": "use",
+      "station": "shooting_range:mat_2",
+      "x": 393,
+      "y": 331
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Morning training: using the firing point (14/30 min)",
+      "stage": "use",
+      "station": "shooting_range:mat_1",
+      "x": 344,
+      "y": 312
+    }
+  ],
+  "morning-training-weights": [
+    {
+      "name": "Grace Okafor",
+      "text": "Morning training: using the firing point (14/30 min)",
+      "stage": "use",
+      "station": "shooting_range:mat_2",
+      "x": 393,
+      "y": 331
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Morning training: using the firing point (14/30 min)",
+      "stage": "use",
+      "station": "shooting_range:mat_1",
+      "x": 344,
+      "y": 312
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Morning training: using the barbell (12/30 min)",
+      "stage": "use",
+      "station": "weight_room:s2",
+      "x": 720,
+      "y": 228
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Morning training: using the barbell (16/30 min)",
+      "stage": "use",
+      "station": "weight_room:s1",
+      "x": 680,
+      "y": 224
+    }
+  ],
+  "shower-stalls": [
+    {
+      "name": "Grace Okafor",
+      "text": "Shower: using the shower stall (5/10 min)",
+      "stage": "use",
+      "station": "showers:shower_2",
+      "x": 1038,
+      "y": 428
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Shower: using the shower stall (2/10 min)",
+      "stage": "use",
+      "station": "showers:shower_1",
+      "x": 1060,
+      "y": 428
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Shower: queuing (1 of 2) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 1030,
+      "y": 562
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Shower: walking to the queue",
+      "stage": "travel",
+      "station": null,
+      "x": 1084,
+      "y": 585
+    }
+  ],
+  "bedtime-barracks": [
+    {
+      "name": "Grace Okafor",
+      "text": "Asleep in their bunk",
+      "stage": "use",
+      "station": "barracks:bed_1",
+      "x": 1115,
+      "y": 210
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Asleep in their bunk",
+      "stage": "use",
+      "station": "barracks:bed_2",
+      "x": 1185,
+      "y": 210
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Asleep in their bunk",
+      "stage": "use",
+      "station": "barracks:bed_3",
+      "x": 1115,
+      "y": 234
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Asleep in their bunk",
+      "stage": "use",
+      "station": "barracks:bed_4",
+      "x": 1185,
+      "y": 234
+    }
+  ],
+  "six-lunch-shortage": [
+    {
+      "name": "Grace Okafor",
+      "text": "Lunch: eating (5/15 min)",
+      "stage": "use",
+      "station": "mess_hall:seat_1",
+      "x": 650,
+      "y": 470
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Lunch: carrying a tray to a seat",
+      "stage": "travel",
+      "station": "mess_hall:seat_2",
+      "x": 734,
+      "y": 459
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Lunch: walking to the serving counter",
+      "stage": "travel",
+      "station": "mess_hall:counter_1",
+      "x": 698,
+      "y": 537
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Lunch: walking to the queue",
+      "stage": "travel",
+      "station": null,
+      "x": 676,
+      "y": 544
+    },
+    {
+      "name": "Lena Park",
+      "text": "Lunch: walking to the queue",
+      "stage": "travel",
+      "station": null,
+      "x": 655,
+      "y": 544
+    },
+    {
+      "name": "Tomas Reyes",
+      "text": "Lunch: walking to the queue",
+      "stage": "travel",
+      "station": null,
+      "x": 630,
+      "y": 544
+    }
+  ],
+  "overview-debug": [
+    {
+      "name": "Grace Okafor",
+      "text": "Breakfast: eating (7/15 min)",
+      "stage": "use",
+      "station": "mess_hall:seat_1",
+      "x": 650,
+      "y": 470
+    },
+    {
+      "name": "Kenji Rossi",
+      "text": "Breakfast: eating (1/15 min)",
+      "stage": "use",
+      "station": "mess_hall:seat_2",
+      "x": 672,
+      "y": 470
+    },
+    {
+      "name": "Omar Chen",
+      "text": "Breakfast: walking to the serving counter",
+      "stage": "travel",
+      "station": "mess_hall:counter_1",
+      "x": 744,
+      "y": 450
+    },
+    {
+      "name": "Aisha Novak",
+      "text": "Breakfast: queuing (1 of 3) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 681,
+      "y": 544
+    },
+    {
+      "name": "Lena Park",
+      "text": "Breakfast: queuing (2 of 3) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 659,
+      "y": 544
+    },
+    {
+      "name": "Tomas Reyes",
+      "text": "Breakfast: queuing (3 of 3) — waiting for a free place",
+      "stage": "queued",
+      "station": null,
+      "x": 637,
+      "y": 544
+    }
+  ]
+}

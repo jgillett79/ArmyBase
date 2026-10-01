@@ -30,7 +30,13 @@ const ROUTINE_REASONS = {
   mission: 'away on a mission',
   recovery: 'recovering at the aid station',
   queue_overflow: 'the queue was full',
+  last_call: 'the kitchen had stopped serving for this meal',
 };
+
+// The serving counter stops calling people this close to a meal window's
+// end: a tray collected later could not be eaten before the grace runs out,
+// and the food would be wasted (found in the six-soldier trace).
+const LAST_SERVING_MINUTES = 15;
 
 // Which facility a station step uses.
 const STEP_FACILITY = { toilet: 'showers', basin: 'showers', shower: 'showers', counter: 'messHall', seat: 'messHall', bench: 'recRoom' };
@@ -162,18 +168,27 @@ Object.assign(GameState.prototype, {
     const spots = [];
     {
       const zone = buildingZone(building);
-      const groups = [...new Set(this.stationsOf(building).map(s => s.group))];
+      // Only real queue groups (seats and beds are reserved, never queued for).
+      const groups = [...new Set(this.stationsOf(building).map(s => s.group))].filter(g => Object.values(QUEUE_GROUP_OF).includes(g));
       const row = Math.max(0, groups.indexOf(group));
-      const dir = row % 2 === 0 ? 1 : -1, dy = 10 + Math.floor(row / 2) * 22;
+      const preferred = row % 2 === 0 ? 1 : -1, dy = 10 + Math.floor(row / 2) * 22;
       const taken = groups.slice(0, row).flatMap(g => this.queueSpots(building, g));
-      for (let i = 0; i < 8; i++) {
-        const x = zone.entrance.x + dir * (24 + 22 * i), y = zone.entrance.y + dy;
-        const blocked = WORLD.terrain.some(a => pointPolygonDistance(x, y, a.polygon) < 8)
-          || WORLD.zones.some(z => pointPolygonDistance(x, y, z.footprint) < 4)
-          || taken.some(p => Math.hypot(p.x - x, p.y - y) < 16);
-        if (blocked) break;
-        spots.push({ x, y });
-      }
+      const line = dir => {
+        const out = [];
+        for (let i = 0; i < 8; i++) {
+          const x = zone.entrance.x + dir * (24 + 22 * i), y = zone.entrance.y + dy;
+          const blocked = WORLD.terrain.some(a => pointPolygonDistance(x, y, a.polygon) < 8)
+            || WORLD.zones.some(z => pointPolygonDistance(x, y, z.footprint) < 4)
+            || WORLD.muster.spots.some(p => Math.hypot(p.x - x, p.y - y) < 18)
+            || taken.some(p => Math.hypot(p.x - x, p.y - y) < 16);
+          if (blocked) break;
+          out.push({ x, y });
+        }
+        return out;
+      };
+      // The preferred side unless the other one fits a longer line.
+      const first = line(preferred), other = first.length >= 6 ? [] : line(-preferred);
+      spots.push(...(other.length > first.length ? other : first));
     }
     this.queueSpotCache.set(key, spots);
     return spots;
@@ -548,18 +563,20 @@ Object.assign(GameState.prototype, {
       this.callToStation(unit, station);
       return;
     }
-    this.joinQueue(unit, building, group, free.length ? this.serviceBlockReason(type) : 'queue');
+    this.joinQueue(unit, building, group, free.length ? this.serviceBlockReason(type, unit) : 'queue');
   },
 
   // Extra conditions before a service starts: serving needs food in stock
   // and a free dining seat (reserved at serving start).
   canStartService(unit, type) {
     if (type !== 'counter') return true;
-    return this.food >= ROUTINE_NEEDS.mealFood && this.freeStations(this.messHall, 'seat').length > 0;
+    return this.minutesLeft(unit) >= LAST_SERVING_MINUTES && this.food >= ROUTINE_NEEDS.mealFood
+      && this.freeStations(this.messHall, 'seat').length > 0;
   },
 
-  serviceBlockReason(type) {
+  serviceBlockReason(type, unit) {
     if (type !== 'counter') return 'queue';
+    if (unit && this.minutesLeft(unit) < LAST_SERVING_MINUTES) return 'last_call';
     return this.food < ROUTINE_NEEDS.mealFood ? 'no_food' : 'seats_full';
   },
 
@@ -689,6 +706,7 @@ Object.assign(GameState.prototype, {
     r.stage = 'travel';
     r.reason = r.reason && r.reason !== 'queue' ? r.reason : 'done';
     r.standby = true;
+    this.noteArrival(unit); // already on their spot: standing by at once
   },
 
   // No usable station: wait on a parade-ground spot of their own, with a
@@ -703,13 +721,17 @@ Object.assign(GameState.prototype, {
     this.walkToMuster(unit);
     r.stage = 'travel';
     this.logActivity(unit, 'muster', { reason, window: r.window });
+    this.noteArrival(unit);
   },
 
   walkToMuster(unit) {
     let spot = [...this.musterOccupants].find(([, id]) => id === unit.id);
     if (!spot) {
+      // Keep the spot they were standing on (reload), else the first free one.
       const free = WORLD.muster.spots.filter(s => !this.musterOccupants.has(s.id));
-      const choice = free[0] || WORLD.muster.spots[this.units.indexOf(unit) % WORLD.muster.spots.length];
+      const kept = free.find(s => s.id === unit.savedMusterSpot || Math.hypot(s.x - unit.x, s.y - unit.y) < 2);
+      const choice = kept || free[0] || WORLD.muster.spots[this.units.indexOf(unit) % WORLD.muster.spots.length];
+      unit.savedMusterSpot = null;
       this.musterOccupants.set(choice.id, unit.id);
       spot = [choice.id];
     }
@@ -765,7 +787,7 @@ Object.assign(GameState.prototype, {
         r.stage = 'use';
         r.progress = r.progress || 0;
         unit.facing = unit.slot.facing;
-        r.carrying = r.step === 'seat';
+        r.carrying = false; // the tray goes down on the table
         this.logActivity(unit, 'use_start', { station: unit.slot.id, activity: unit.slot.activity });
       }
     }
@@ -921,7 +943,7 @@ Object.assign(GameState.prototype, {
         const type = group === 'equipment' ? null : head.routine.step;
         const free = this.stationsOf(building).filter(s => (type ? s.type === type : true) && !this.stationOccupants.has(s.id));
         if (!free.length) break;
-        if (type === 'counter' && !this.canStartService(head, 'counter')) { head.routine.reason = this.serviceBlockReason('counter'); break; }
+        if (type === 'counter' && !this.canStartService(head, 'counter')) { head.routine.reason = this.serviceBlockReason('counter', head); break; }
         if (type === 'seat') { this.leaveQueue(head, 'called'); this.goToSeat(head); continue; }
         const fresh = free.filter(s => s.id !== head.lastStationId);
         const station = (fresh.length ? fresh : free)[0];
@@ -948,6 +970,7 @@ Object.assign(GameState.prototype, {
       }
       const s = saved.get(unit.id);
       unit.routine = { ...freshRoutine(), ...(s || {}), log: { ...((s && s.log) || {}) } };
+      unit.savedMusterSpot = s && s.musterSpot || null;
       const r = unit.routine;
       const win = this.currentWindow();
       if (!s || !r.window) { r.window = null; this.beginWindow(unit, win); continue; }
@@ -987,7 +1010,7 @@ Object.assign(GameState.prototype, {
   // the denominators.
   dailySummary(day = this.day) {
     const lines = [];
-    let advice = null;
+    let advice = null, trainingAdvice = null; // missed services outrank a training shortfall
     for (const block of ROUTINE_TIMETABLE) {
       if (block.task === 'free') continue;
       const record = this.routineRecords[`${day}:${block.id}`];
@@ -1007,23 +1030,24 @@ Object.assign(GameState.prototype, {
         if (main && !completed) text += ` — ${ROUTINE_REASONS[main[0]] || main[0]}`;
         else if (used < scheduled * 0.6) {
           text += ' — soldiers queued for equipment or walked between stations';
-          if (!advice) advice = 'Training stations are the limit: upgrade a training facility or build another.';
+          trainingAdvice = 'Training stations are the limit: upgrade a training facility or build another.';
         }
       } else {
         const noun = { sleep: 'slept in a bed', bathroom: 'used the toilet', meal: 'meals', recreation: 'relaxed', shower: 'showers' }[block.task];
         text = `${block.label}: ${completed}/${total} ${noun}`;
         if (block.task === 'bathroom') text += ` (${entries.filter(e => e.basin === 'done').length} also washed)`;
-        if (main) text += `; ${main[1]} ${main[1] === 1 ? 'was' : 'were'} short because ${this.shortageText(block, main[0])}`;
+        const short = total - completed;
+        if (main && short > 0) text += `; ${short} ${short === 1 ? 'was' : 'were'} short — mostly because ${this.shortageText(block, main[0])}`;
       }
       const fix = main && this.capacityAdvice(block, main[0]);
       lines.push({ blockId: block.id, text, total, completed, missed: missed.length, reasons, advice: fix });
       if (!advice && fix && main[1] > 0) advice = fix;
     }
-    return { day, lines, advice };
+    return { day, lines, advice: advice || trainingAdvice };
   },
 
   shortageText(block, reason) {
-    if (reason === 'queue' || reason === 'window_end') {
+    if (reason === 'queue' || reason === 'window_end' || reason === 'last_call') {
       return { bathroom: 'the toilet queue was too long', shower: 'the shower stalls were full', meal: 'the serving counter was the bottleneck',
         recreation: 'every bench was taken', sleep: 'they never reached a bed' }[block.task] || ROUTINE_REASONS[reason];
     }

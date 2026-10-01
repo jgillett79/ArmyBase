@@ -134,7 +134,8 @@ const phone = mode === 'phone';
     note(`fresh game · stage ${await stage()} · cash $${await ev('Math.floor(gameState.cash)')}`);
 
     // 1. Meet the first visitor: tap them on the map once they are through the gate.
-    await waitFor(`(() => { const s = gameState.chapterStage(); return s.visitor && s.visitor.enteredGate; })()`, 40, 'a visitor through the gate');
+    // Brief 09: applicants are interviewed at the guardhouse's outside window.
+    await waitFor(`(() => { const s = gameState.chapterStage(); return s.visitor && gameState.applicantAtWindow() === s.visitor; })()`, 40, 'a visitor at the guardhouse window');
     await sleep(THINK_MS);
     await ev(`camera.home(); document.getElementById('objectiveCard').scrollIntoView({ block: 'start' }); true`);
     await sleep(300);
@@ -193,12 +194,16 @@ const phone = mode === 'phone';
     await sleep(1200); // the roster refreshes once a second
     const roster = await ev(`document.querySelector('#rosterList [data-unit-id="' + ${first}.id + '"] strong').textContent`);
     if (!roster.includes(`"${CALLSIGN}"`)) throw new Error(`roster card shows "${roster}"`);
-    await waitFor(`${first}.routePhase === 'using' && ${first}.status === 'training'`, 150, 'training at the range');
+    // Brief 09: training happens in the timetable's blocks; run the base at 4x
+    // (the player's speed control) so the capture doesn't take 8 real minutes.
+    await ev('gameState.simSpeed = 4; true');
+    await waitFor(`${first}.routine && ${first}.routine.stage === 'use' && ${first}.slot && ${first}.slot.type === 'range_lane'`, 150, 'training at the range');
     note(`training at the range · objective: ${await objective()}`);
     await ev(`(() => { const u = ${first}; camera.zoom = 1.4; camera.centreOn(u.x, u.y - 20); return true; })()`);
     await sleep(500);
     await screenshot('training-at-range');
     await waitFor(`gameState.chapterStage().id === 'patrol'`, 300, 'patrol readiness');
+    await ev('gameState.simSpeed = 1; true');
     timings.readyS = (Date.now() - t0) / 1000;
     const events = await ev(`gameState.events.map(e => e.text)`);
     note(`ready for patrol · events so far: ${events.join(' | ')}`);
@@ -267,7 +272,7 @@ const phone = mode === 'phone';
     await tapElement('#buildConfirmBtn', 'build here');
     await waitFor(`gameState.chapter.done`, 5, 'chapter complete');
     timings.completeS = (Date.now() - t0) / 1000;
-    note(`chapter complete · built ${await ev(`BUILDING_LABELS[[gameState.messHall, gameState.barracks, gameState.showers, gameState.recRoom].find(b => b.isBuilt).type]`)} · cash $${await ev('Math.floor(gameState.cash)')}`);
+    note(`chapter complete · built ${await ev(`BUILDING_LABELS[[gameState.recRoom, gameState.weightRoom, gameState.obstacleCourse, gameState.drillYard, gameState.messHall].find(b => b.isBuilt).type]`)} · cash $${await ev('Math.floor(gameState.cash)')}`);
     await sleep(1200);
     await ev(`openProfile(${first}); true`);
     await sleep(400);

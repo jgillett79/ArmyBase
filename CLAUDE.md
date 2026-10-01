@@ -384,6 +384,28 @@ base starts done). The directional-walk release gate (`walkReleaseGate()`)
 is still **blocked on art**. Tests: `tests/chapter.cjs`; browser flow:
 `tools/capture-first-session.cjs desktop|phone`.
 
+**Brief 09, gate 09A + routine core (1 Oct, branch `brief-09-daily-base`, not
+merged)**: see `CLAUDE_IMPLEMENTATION/09A_PERIMETER_AND_ROUTINE_MANIFEST.md` and the
+measured `09_STATION_VISUAL_CONTRACT.md` (regenerate with
+`tools/station-contract.cjs`; never hand-edit its numbers). Supersedes several
+rules above: applicants queue OUTSIDE (map extends to `WORLD_X0` = −200) and are
+admitted only at the guardhouse's outside window (`WORLD.perimeter`); the 5-min
+day is now **20 min** with pause/1×/2×/4× (`simSpeed`, never saved — real
+deadlines don't scale); soldiers follow `ROUTINE_TIMETABLE` (`js/routine.js`)
+via `js/daily.js` (GameState methods): travel → queued → use → exit at real
+stations (beds, toilet/basin/shower stalls, serving counter + seat with a
+once-per-window meal token, training equipment by Auto/Focus/Specific, rec
+benches) or a parade-ground spot with a reason — **never a random wander**
+(`routeToRandomRoadPoint` and `desiredStatus` are gone). Barracks, Mess Hall and
+Wash Block (the `showers` building) start at level 1 on every base; fresh-base
+placements were re-sited from `tools/walk-matrix.cjs` (mess on Centre knoll).
+The brief 08 range drill and starter field meal are retired. Station geometry
+(where) is `STATION_GEOMETRY`; rules (how long, what effect) are `STATION_RULES`
+— keep them apart. Every effect happens only in `use`; the renderer only reads.
+Tests: `tests/routine.cjs` (+ `tests/lib/sandbox.cjs` loader); traces:
+`tools/trace-daily-base.cjs`; screenshots: `tools/capture-daily-base.cjs`.
+All station art in game is a marked placeholder; the visual gate stays blocked.
+
 ## Open questions for Phase 2 — don't guess at these, ask
 
 1. **Character walk-cycle animation** — raised by the user, not yet

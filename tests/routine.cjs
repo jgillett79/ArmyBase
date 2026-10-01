@@ -116,6 +116,11 @@ function playDay(g, seconds = DAY_S + 30, dt = 0.1, extraCheck = null) {
   const meals = ['breakfast', 'lunch', 'dinner'].reduce((sum, id) => sum + line(s, id).completed, 0);
   assert.ok(meals < 18, `six soldiers on one counter miss meals (${meals}/18)`);
   assert.match(line(s, 'lunch').text, /serving counter was the bottleneck/);
+  // Nobody is charged for a meal they cannot eat (last-serving cutoff).
+  const charged = six.run(`state.activityLog.filter(e => e.event === 'served' && e.window.startsWith('1:')).length`);
+  const results = unitResults(six);
+  const eaten = ['breakfast', 'lunch', 'dinner'].reduce((sum, id) => sum + Object.values(results[id]).filter(r => r.result !== 'missed').length, 0);
+  assert.equal(charged, eaten, `every meal charged on day 1 was eaten, fully or cut by the grace (${charged} charged, ${eaten} eaten)`);
   assert.match(s.advice, /Upgrade the Mess Hall/);
   // Every missed entry carries a reason, recorded once.
   for (const [blockId, units] of Object.entries(unitResults(six))) {

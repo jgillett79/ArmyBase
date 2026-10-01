@@ -90,7 +90,7 @@ const STATION_RULES = {
   barbell: { activity: 'lift', label: 'barbell', minutes: 30, training: true },
   beam: { activity: 'traverse', label: 'balance beam', minutes: 30, training: true },
   drill_post: { activity: 'drill', label: 'drill post', minutes: 30, training: true },
-  waiting_chair: { activity: 'wait', label: 'chair' },
+
 };
 
 // Needs that drift every game hour regardless of activity (sleeping in a bed
@@ -118,7 +118,6 @@ const FACILITY_STATIONS = {
 };
 const SLOT_STATION_TYPES = {
   shooting_range: 'range_lane', weight_room: 'barbell', obstacle_course: 'beam', drill_yard: 'drill_post', rec_room: 'bench',
-  entrance_hall: 'waiting_chair',
 };
 
 // Queue groups: one FIFO line per (facility, group). Seats are never queued

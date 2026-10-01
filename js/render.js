@@ -264,8 +264,23 @@ function drawFacilityBack(ctx, building, revealed, now) {
     ctx.restore();
     return;
   }
+  if (OPEN_ART_AWAITING_STATIONS.includes(building.type)) {
+    // Brief 09: this open-sided art predates the station contract (its
+    // counter and benches are not where people are served or sit), so it is
+    // shown faded over a plain floor until the contract art exists.
+    traceSmoothPolygon(ctx, zone.footprint);
+    ctx.fillStyle = '#a58d64';
+    ctx.fill();
+    ctx.save();
+    ctx.globalAlpha = 0.32;
+    drawFacilityImage(ctx, building, rect);
+    ctx.restore();
+    return;
+  }
   drawFacilityImage(ctx, building, rect);
 }
+
+const OPEN_ART_AWAITING_STATIONS = ['mess_hall'];
 
 function drawFacilityFront(ctx, building, revealed, now) {
   if (!building.isBuilt || now - (building.constructedAt || -Infinity) < CONSTRUCTION_MS) return;
@@ -383,12 +398,13 @@ function checkpointArtReady() {
   return assetInUse(art) && ['kioskBack', 'kioskFront', 'boom', 'post'].every(k => spriteReady(checkpointSprite(art[k])));
 }
 
-// Should the boom be open now? Someone crossing the gap, or a visitor whose
-// check-in pause is about to end (so the arm is open when they step off).
+// Should the boom be open now? Only for someone allowed to cross (brief 09:
+// admitted recruits, soldiers) walking through the gap. Applicants queuing
+// or turned away outside never open it.
 function boomWantsOpen(gameState, nowMs) {
   const hinge = WORLD.checkpoint.boomHinge;
   return gameState.units.some(u => {
-    if (u.checkpointUntil) return u.checkpointUntil - nowMs < 900;
+    if (u.isCivilian && !u.admitted) return false;
     const moving = u.path.length > 0;
     return moving && Math.abs(u.x - hinge.x) < 46 && Math.abs(u.y - 611) < 30;
   });
@@ -747,6 +763,16 @@ function drawWalkingSprite(ctx, img) {
 }
 
 function statusLabel(unit) {
+  const r = unit.routine;
+  if (r && r.window && ![UNIT_STATUS.HOSPITAL, UNIT_STATUS.ON_MISSION, UNIT_STATUS.RECRUITING].includes(unit.status)) {
+    if (r.stage === 'queued') return 'queuing';
+    if (r.stage === 'waiting') return r.reason === 'no_station' ? 'no station' : r.reason === 'no_bed' ? 'no bed' : 'waiting';
+    if (r.stage === 'standby') return r.step === 'bedside' ? 'bed prep' : 'standing by';
+    if (r.carrying) return 'tray';
+    if (r.stage === 'use' && unit.slot) return { range_lane: 'firing', barbell: 'lifting', beam: 'beam', drill_post: 'drill', bench: 'relaxing',
+      basin: 'washing', counter: 'collecting', seat: 'eating', bed: 'asleep' }[unit.slot.type] || 'busy';
+    if (r.stage === 'travel') return r.queueKey ? 'to queue' : unit.slot ? `to ${STATION_RULES[unit.slot.type].label.split(' ').pop()}` : 'walking';
+  }
   if (unit.routePhase === 'queued') return 'queuing';
   switch (unit.status) {
     case UNIT_STATUS.ON_MISSION: return 'deploying';
@@ -907,6 +933,240 @@ function drawDebugOverlay(ctx, gameState) {
   ctx.restore();
 }
 
+// --- brief 09: placeholder station art ------------------------------------------
+//
+// Every station prop below is a PLACEHOLDER drawn from the measured station
+// contract (routine.js STATION_GEOMETRY, CLAUDE_IMPLEMENTATION/
+// 09_STATION_VISUAL_CONTRACT.md) so the routine is reviewable before Codex's
+// interaction art exists. Placeholders carry a magenta dashed outline and
+// the map shows a "PLACEHOLDER station art" legend while any is on screen.
+// None of this is release art, and none of it grants anything: it reads
+// station occupancy and unit.routine only.
+
+const PLACEHOLDER_STROKE = 'rgba(232, 64, 200, 0.9)';
+let placeholdersDrawn = false;
+
+function markPlaceholder(ctx, x, y, w, h) {
+  ctx.save();
+  ctx.strokeStyle = PLACEHOLDER_STROKE;
+  ctx.lineWidth = px(1.2);
+  ctx.setLineDash([px(3), px(2)]);
+  ctx.strokeRect(x, y, w, h);
+  ctx.restore();
+  placeholdersDrawn = true;
+}
+
+function stationHolder(gameState, station) {
+  const id = gameState.stationOccupants.get(station.id);
+  return id ? gameState.units.find(u => u.id === id) : null;
+}
+
+function isUsingStation(unit, station) {
+  return !!unit && unit.slot && unit.slot.id === station.id && unit.routine && unit.routine.stage === 'use';
+}
+
+// Floor-level station props, under people (beds, tables, counter, stalls'
+// back walls, basins). Indoor facilities show them only while revealed.
+function drawStationBack(ctx, gameState, building, revealed) {
+  if (!building.isBuilt || !STATION_GEOMETRY[building.type]) return;
+  const indoor = facilityKind(building.type) === 'indoor';
+  if (indoor && !revealed) return;
+  const stations = gameState.stationsOf(building);
+  const geometry = STATION_GEOMETRY[building.type];
+  ctx.save();
+  if (building.type === 'barracks') {
+    const [bw, bh] = geometry.bedSize;
+    for (const bed of stations) {
+      const x = bed.x - bw / 2, y = bed.y - bh / 2;
+      ctx.fillStyle = '#6b5a3f'; ctx.fillRect(x, y, bw, bh);               // frame
+      ctx.fillStyle = '#c9c1a6'; ctx.fillRect(x + 2, y + 2, bw - 4, bh - 4); // mattress
+      const head = bed.head;
+      ctx.fillStyle = '#ede7d2'; ctx.fillRect(head.x - 5, head.y - 6, 10, 12); // pillow at the aisle end
+      markPlaceholder(ctx, x, y, bw, bh);
+    }
+  } else if (building.type === 'showers') {
+    const [sw, sh] = geometry.stallSize;
+    for (const s of stations.filter(st => st.stall)) {
+      ctx.fillStyle = s.type === 'shower' ? '#7fa6ad' : '#9c9a88';
+      ctx.fillRect(s.stall.x - sw / 2, s.stall.y - sh / 2, sw, sh);
+      ctx.fillStyle = '#3b4642';
+      ctx.font = `${px(8)}px monospace`; ctx.textAlign = 'center';
+      ctx.fillText(s.type === 'shower' ? 'SH' : 'WC', s.stall.x, s.stall.y - sh / 2 + px(9));
+      markPlaceholder(ctx, s.stall.x - sw / 2, s.stall.y - sh / 2, sw, sh);
+    }
+    for (const b of stations.filter(st => st.type === 'basin')) {
+      ctx.fillStyle = '#d9dcd6'; ctx.fillRect(b.contact.x - 8, b.contact.y - 4, 16, 8);
+      ctx.fillStyle = '#7fb3c2'; ctx.fillRect(b.contact.x - 5, b.contact.y - 2, 10, 4);
+      markPlaceholder(ctx, b.contact.x - 8, b.contact.y - 4, 16, 8);
+    }
+  } else if (building.type === 'mess_hall') {
+    const anchor = gameState.zoneAnchor(buildingZone(building)), s = gameState.stationFitScale(building.type, buildingZone(building));
+    for (const c of stations.filter(st => st.type === 'counter')) {
+      ctx.fillStyle = '#8a6a44'; ctx.fillRect(c.contact.x - 10, c.contact.y - 4, 20, 8);
+      markPlaceholder(ctx, c.contact.x - 10, c.contact.y - 4, 20, 8);
+      // The cook (placeholder figure) behind the counter.
+      drawPlaceholderFigure(ctx, c.cook.x, c.cook.y, '#e8e2cf', 'down', 0.9);
+    }
+    for (const [dx, dy, w, d] of geometry.tables) {
+      const x = anchor.x + dx * s - w * s / 2, y = anchor.y + dy * s - d / 2;
+      ctx.fillStyle = '#7b5a36'; ctx.fillRect(x, y, w * s, d);
+      markPlaceholder(ctx, x, y, w * s, d);
+    }
+    // Trays on the table for people eating.
+    for (const seat of stations.filter(st => st.type === 'seat')) {
+      const holder = stationHolder(gameState, seat);
+      if (isUsingStation(holder, seat)) drawTray(ctx, seat.contact.x, seat.contact.y);
+    }
+  }
+  ctx.restore();
+}
+
+// Near-side layers drawn after people: closed stall doors (privacy — the
+// occupant is not drawn at all), the occupancy plate at the door, and the
+// bed blanket over a sleeper's body.
+function drawStationFront(ctx, gameState, building, revealed, now) {
+  if (!building.isBuilt || !STATION_GEOMETRY[building.type]) return;
+  const indoor = facilityKind(building.type) === 'indoor';
+  const stations = gameState.stationsOf(building);
+  ctx.save();
+  if (building.type === 'showers') {
+    const [sw, sh] = STATION_GEOMETRY.showers.stallSize;
+    if (revealed) {
+      for (const s of stations.filter(st => st.stall)) {
+        const holder = stationHolder(gameState, s);
+        if (!isUsingStation(holder, s)) continue;
+        ctx.fillStyle = '#5e6b55'; ctx.fillRect(s.stall.x - sw / 2 + 1, s.stall.y - sh / 2 + 4, sw - 2, sh - 4); // closed door
+        ctx.fillStyle = '#c4473f'; ctx.beginPath(); ctx.arc(s.stall.x + sw / 2 - 4, s.stall.y - sh / 2 + 7, 2, 0, Math.PI * 2); ctx.fill();
+        if (s.type === 'shower') { // water effect, only during use
+          ctx.fillStyle = 'rgba(160, 210, 230, 0.8)';
+          for (let i = 0; i < 4; i++) { const fall = ((now / 90) + i * 5) % 12; ctx.fillRect(s.stall.x - 6 + i * 4, s.stall.y - sh / 2 - 6 + fall, 1.5, 3); }
+        }
+      }
+    }
+    drawOccupancyPlate(ctx, gameState, building, stations);
+  } else if (building.type === 'barracks' && revealed) {
+    const [bw, bh] = STATION_GEOMETRY.barracks.bedSize;
+    for (const bed of stations) {
+      const holder = gameState.units.find(u => u.bedId === bed.id && u.routine && u.routine.stage === 'use' && u.slot && u.slot.id === bed.id);
+      if (!holder) continue;
+      drawLyingPlaceholder(ctx, holder, bed, bw, bh);
+    }
+  } else if (building.type === 'mess_hall' && !indoor) {
+    drawOccupancyPlate(ctx, gameState, building, stations.filter(s => s.type === 'counter'));
+  }
+  ctx.restore();
+}
+
+// Small plate beside the entrance: one pip per station, red when taken —
+// the visible occupied indicator for stalls whose users are hidden.
+function drawOccupancyPlate(ctx, gameState, building, stations) {
+  const zone = buildingZone(building);
+  const groups = [...new Set(stations.map(s => s.type))];
+  const x0 = zone.entrance.x - px(30), y0 = zone.entrance.y - px(2);
+  ctx.save();
+  ctx.font = `bold ${px(9)}px monospace`;
+  ctx.textAlign = 'left';
+  groups.forEach((type, row) => {
+    const list = stations.filter(s => s.type === type);
+    const y = y0 + row * px(11);
+    ctx.fillStyle = 'rgba(18, 26, 22, 0.82)';
+    ctx.fillRect(x0 - px(2), y - px(8), px(26) + list.length * px(8), px(10));
+    ctx.fillStyle = '#e9e2c9';
+    ctx.fillText({ toilet: 'WC', basin: 'WS', shower: 'SH', counter: 'SV' }[type] || type.slice(0, 2).toUpperCase(), x0, y);
+    list.forEach((s, i) => {
+      ctx.fillStyle = gameState.stationOccupants.has(s.id) ? '#d8574b' : '#7fbf62';
+      ctx.beginPath(); ctx.arc(x0 + px(22) + i * px(8), y - px(3), px(2.8), 0, Math.PI * 2); ctx.fill();
+    });
+  });
+  ctx.restore();
+}
+
+function drawTray(ctx, x, y) {
+  ctx.fillStyle = '#c7c9c3'; ctx.fillRect(x - 6, y - 3, 12, 6);
+  ctx.fillStyle = '#d8a35a'; ctx.fillRect(x - 4, y - 2, 4, 3);
+  ctx.fillStyle = '#7e9c52'; ctx.fillRect(x + 1, y - 2, 3, 3);
+}
+
+// A plain stand-in figure (no sprite) for the cook — no character art is
+// faked for it; brief 09C's cook loop replaces it.
+function drawPlaceholderFigure(ctx, x, y, colour, facing, scale = 1) {
+  const h = UNIT_H * 0.8 * scale;
+  ctx.fillStyle = 'rgba(8, 20, 17, 0.3)';
+  ctx.beginPath(); ctx.ellipse(x + 2, y - 1, 8, 3, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = colour; ctx.fillRect(x - 5, y - h * 0.75, 10, h * 0.75);
+  ctx.fillStyle = '#c99a72'; ctx.beginPath(); ctx.arc(x, y - h * 0.85, 4.5, 0, Math.PI * 2); ctx.fill();
+  markPlaceholder(ctx, x - 7, y - h - 2, 14, h + 3);
+}
+
+// Sleeping soldier: blanket over the mattress in the soldier's hue, head on
+// the pillow. Not a rotated standing sprite (the contract forbids faking an
+// unsupported view); the painted sleep set replaces it.
+function drawLyingPlaceholder(ctx, unit, bed, bw, bh) {
+  const x = bed.x - bw / 2, y = bed.y - bh / 2;
+  ctx.fillStyle = `hsl(${unit.colorSeed}, 28%, 42%)`;
+  const headLeft = bed.head.x < bed.x;
+  ctx.fillRect(headLeft ? x + 12 : x + 2, y + 2, bw - 14, bh - 4);
+  ctx.fillStyle = '#c99a72';
+  ctx.beginPath(); ctx.arc(bed.head.x, bed.head.y, 4.5, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#4c5b3c';
+  ctx.beginPath(); ctx.arc(bed.head.x, bed.head.y - 1.5, 4.5, Math.PI, 0); ctx.fill(); // hair/cap
+}
+
+// Who is drawn as an ordinary standing figure. Stall users are behind a
+// closed door (privacy), and sleepers are drawn by drawLyingPlaceholder.
+function hiddenByStation(unit) {
+  const r = unit.routine;
+  if (!r || r.stage !== 'use' || !unit.slot) return false;
+  return ['toilet', 'shower', 'bed'].includes(unit.slot.type);
+}
+
+// Seated eaters: only the upper body shows above the table edge (the
+// table's near edge is redrawn over the legs by clipping).
+function isSeatedEater(unit) {
+  return unit.routine && unit.routine.stage === 'use' && unit.slot && unit.slot.type === 'seat';
+}
+
+function drawPlaceholderLegend(ctx, viewW) {
+  if (!placeholdersDrawn) return;
+  ctx.save();
+  ctx.font = 'bold 11px monospace';
+  const text = viewW < 560 ? 'PLACEHOLDER station art' : 'PLACEHOLDER station art (brief 09) — not release art';
+  const w = text.length * 6.7 + 16; // 11px monospace advance
+  ctx.fillStyle = 'rgba(30, 10, 28, 0.78)';
+  ctx.fillRect(64, 8, w, 20);
+  ctx.strokeStyle = PLACEHOLDER_STROKE; ctx.setLineDash([3, 2]); ctx.strokeRect(64, 8, w, 20);
+  ctx.fillStyle = '#f6d6ef';
+  ctx.textAlign = 'left';
+  ctx.fillText(text, 72, 22);
+  ctx.restore();
+}
+
+// Debug overlay additions: stations (use point + approach), queue spots,
+// parade-ground spots and the perimeter anchors.
+function drawRoutineDebug(ctx, gameState) {
+  ctx.save();
+  ctx.font = `${px(9)}px monospace`;
+  for (const building of gameState.allBuildings) {
+    for (const s of gameState.stationsOf(building)) {
+      ctx.strokeStyle = '#ff9de2'; ctx.lineWidth = px(1);
+      ctx.beginPath(); ctx.moveTo(s.approach.x, s.approach.y); ctx.lineTo(s.x, s.y); ctx.stroke();
+      ctx.fillStyle = gameState.stationOccupants.has(s.id) ? '#ff5a4a' : '#ffd6f5';
+      ctx.beginPath(); ctx.arc(s.x, s.y, px(3), 0, Math.PI * 2); ctx.fill();
+    }
+    const groups = [...new Set(gameState.stationsOf(building).map(s => s.group))];
+    for (const group of groups) gameState.queueSpots(building, group).forEach((q, i) => {
+      ctx.fillStyle = '#ffd84a'; ctx.fillRect(q.x - px(2.5), q.y - px(2.5), px(5), px(5));
+      if (i === 0) ctx.fillText(group, q.x + px(4), q.y + px(3));
+    });
+  }
+  for (const spot of WORLD.muster.spots) { ctx.strokeStyle = '#9fe0ff'; ctx.strokeRect(spot.x - px(4), spot.y - px(4), px(8), px(8)); }
+  const p = WORLD.perimeter;
+  ctx.strokeStyle = '#ff5a4a'; ctx.setLineDash([px(4), px(3)]);
+  ctx.beginPath(); ctx.moveTo(p.barrierX, 540); ctx.lineTo(p.barrierX, 700); ctx.stroke(); ctx.setLineDash([]);
+  for (const q of [p.service, ...p.queue]) { ctx.fillStyle = '#ffd84a'; ctx.beginPath(); ctx.arc(q.x, q.y, px(3), 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+
 // --- frame -------------------------------------------------------------------------
 
 let fallbackCamera = null;
@@ -917,6 +1177,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   const dpr = view.dpr || 1;
   const now = view.now ?? performance.now();
   renderZoom = camera.zoom;
+  placeholdersDrawn = false;
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.fillStyle = '#1a1d14';
@@ -940,6 +1201,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
     .sort((a, b) => polygonBounds(buildingZone(a).footprint).maxY - polygonBounds(buildingZone(b).footprint).maxY);
   for (const building of buildings) drawFacilityShadow(ctx, building);
   for (const building of buildings) drawFacilityBack(ctx, building, revealed.has(building.id), now);
+  for (const building of buildings) drawStationBack(ctx, gameState, building, revealed.has(building.id));
 
   // People and trees, depth-sorted by ground contact.
   const inView = (x, y) => x > bounds.minX && x < bounds.maxX && y > bounds.minY && y < bounds.maxY + 100;
@@ -955,6 +1217,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
       if (indoor && !(unit.status === UNIT_STATUS.ON_MISSION)) hiddenCount.set(indoor.id, (hiddenCount.get(indoor.id) || 0) + 1);
       continue;
     }
+    if (hiddenByStation(unit)) continue; // behind a stall door, or drawn lying in bed
     if (inView(unit.x, unit.y)) items.push({ y: unit.y, unit });
   }
   items.sort((a, b) => a.y - b.y);
@@ -963,19 +1226,35 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
     else if (item.bridge) drawBridgeFront(ctx, item.bridge);
     else if (item.prop) drawSceneProp(ctx, item.prop);
     else if (item.draw) item.draw(ctx);
-    else {
+    else if (isSeatedEater(item.unit)) {
+      // Placeholder seated pose: the standing figure lowered 8 px and cut at
+      // the bench line, so only the upper body shows above the table.
+      ctx.save();
+      ctx.beginPath(); ctx.rect(item.unit.x - 40, item.unit.y - 80, 80, 70); ctx.clip();
+      ctx.translate(0, 8);
+      drawUnit(ctx, item.unit, item.unit.id === selectedUnitId, now);
+      ctx.restore();
+      markPlaceholder(ctx, item.unit.x - UNIT_W / 2, item.unit.y - UNIT_H + 8, UNIT_W, UNIT_H - 18);
+    } else {
       drawUnit(ctx, item.unit, item.unit.id === selectedUnitId, now);
       drawFacilityActivity(ctx, item.unit, gameState, now);
+      // Placeholder tray carried from the counter to the seat.
+      if (item.unit.routine && item.unit.routine.carrying && item.unit.routine.stage === 'travel') {
+        drawTray(ctx, item.unit.x, item.unit.y - 18);
+        markPlaceholder(ctx, item.unit.x - 7, item.unit.y - 22, 14, 8);
+      }
     }
   }
 
   for (const building of buildings) drawFacilityFront(ctx, building, revealed.has(building.id), now);
+  for (const building of buildings) drawStationFront(ctx, gameState, building, revealed.has(building.id), now);
   drawUnitLabels(ctx, items.filter(item => item.unit).map(item => item.unit), selectedUnitId);
   for (const [buildingId, count] of hiddenCount) drawOccupancyBadge(ctx, gameState.buildingByAnyId(buildingId), count);
   if (!view.buildMode) drawGuideHighlight(ctx, gameState, view.guide, now);
   if (view.buildMode) drawBuildOverlay(ctx, gameState, view.buildMode, now);
-  if (view.debug) drawDebugOverlay(ctx, gameState);
+  if (view.debug) { drawDebugOverlay(ctx, gameState); drawRoutineDebug(ctx, gameState); }
 
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   drawClock(ctx, gameState.hourOfDay, gameState.isDaytime, camera.viewW);
+  drawPlaceholderLegend(ctx, camera.viewW);
 }
