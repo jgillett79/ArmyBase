@@ -1,5 +1,5 @@
 {
-  "status": "pose guide only; paint with the approved soldier master",
+  "status": "anatomical paint guide only; not approved art",
   "cell": [
     256,
     384
@@ -8,77 +8,80 @@
     128,
     330
   ],
+  "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
-  "footTrack": [
+  "frames": 6,
+  "direction": "right",
+  "track": [
     {
       "right": {
-        "x": 147,
-        "y": 293,
+        "x": 165,
+        "y": 338,
         "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 367,
-        "planted": false
-      }
-    },
-    {
-      "right": {
-        "x": 147,
-        "y": 318,
-        "planted": true
-      },
-      "left": {
-        "x": 109,
+        "x": 91,
         "y": 322,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 343,
+        "x": 140,
+        "y": 338,
         "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 256,
+        "x": 116,
+        "y": 302,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 367,
-        "planted": false
+        "x": 115,
+        "y": 338,
+        "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 293,
-        "planted": true
+        "x": 141,
+        "y": 262,
+        "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
+        "x": 91,
+        "y": 338,
+        "planted": false
+      },
+      "left": {
+        "x": 165,
         "y": 322,
-        "planted": false
-      },
-      "left": {
-        "x": 109,
-        "y": 318,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 256,
+        "x": 116,
+        "y": 318,
         "planted": false
       },
       "left": {
-        "x": 109,
-        "y": 343,
+        "x": 140,
+        "y": 322,
+        "planted": true
+      }
+    },
+    {
+      "right": {
+        "x": 141,
+        "y": 278,
+        "planted": false
+      },
+      "left": {
+        "x": 115,
+        "y": 322,
         "planted": true
       }
     }

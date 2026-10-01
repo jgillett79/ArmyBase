@@ -1,0 +1,27 @@
+{
+  "status": "anatomical paint guide only; not approved art",
+  "cell": [
+    256,
+    384
+  ],
+  "pivot": [
+    128,
+    330
+  ],
+  "sourcePxPerWorld": 6.818181818181818,
+  "strideWorld": 22,
+  "frames": 2,
+  "direction": "up",
+  "feet": [
+    [
+      108,
+      330,
+      true
+    ],
+    [
+      148,
+      330,
+      true
+    ]
+  ]
+}

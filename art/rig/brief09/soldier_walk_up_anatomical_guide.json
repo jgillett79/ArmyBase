@@ -1,5 +1,5 @@
 {
-  "status": "pose guide only; paint with the approved soldier master",
+  "status": "anatomical paint guide only; not approved art",
   "cell": [
     256,
     384
@@ -8,76 +8,79 @@
     128,
     330
   ],
+  "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
-  "footTrack": [
+  "frames": 6,
+  "direction": "up",
+  "track": [
     {
       "right": {
-        "x": 147,
+        "x": 108,
         "y": 293,
         "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 367,
+        "x": 148,
+        "y": 343,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
+        "x": 108,
         "y": 318,
         "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 322,
+        "x": 148,
+        "y": 300,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
+        "x": 108,
         "y": 343,
         "planted": true
       },
       "left": {
-        "x": 109,
-        "y": 256,
+        "x": 148,
+        "y": 252,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 367,
+        "x": 108,
+        "y": 343,
         "planted": false
       },
       "left": {
-        "x": 109,
+        "x": 148,
         "y": 293,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 322,
+        "x": 108,
+        "y": 300,
         "planted": false
       },
       "left": {
-        "x": 109,
+        "x": 148,
         "y": 318,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 147,
-        "y": 256,
+        "x": 108,
+        "y": 252,
         "planted": false
       },
       "left": {
-        "x": 109,
+        "x": 148,
         "y": 343,
         "planted": true
       }

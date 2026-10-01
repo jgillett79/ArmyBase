@@ -40,8 +40,10 @@ def frame(direction, phase):
         # Continuous stance foot shifts 25 px per frame in screen depth;
         # the other foot swings up ~60 px at the passing pose.
         stance_right=phase<3
-        track=37-phase_in_half*STANCE_STEP
-        swing=-37+phase_in_half*STANCE_STEP
+        # Walking north moves the body UP screen: a world-planted foot must
+        # move DOWN inside the cell to cancel that displacement.
+        track=-37+phase_in_half*STANCE_STEP
+        swing=37-phase_in_half*STANCE_STEP
         for right in (True,False):
             planted=right==stance_right
             x=cx+(19 if right else -19)
