@@ -1,4 +1,12 @@
-# Command Base — current game design
+# Command Base — game design
+> **Approved target, 1 October 2026:** daily base life now leads the design. [Brief 09](CLAUDE_IMPLEMENTATION/09_DAILY_BASE_SIMULATION.md) and its [build plan](CLAUDE_IMPLEMENTATION/09_DAILY_BASE_BUILD_PLAN.md) supersede conflicting schedules, civilian interior access, first-soldier training overrides and unlimited amenity rules below. The remaining sections describe the older playable build, not completion of this target.
+
+## Target player experience: an inhabited, managed base
+
+Applicants stay outside the perimeter guardhouse until admitted. Soldiers follow a readable daily routine: bed → toilets/wash → breakfast → morning equipment training → lunch → afternoon training → recreation → dinner → shower → bed. Each task has real station capacity, visible queues and usage durations. Meals require serving then a dining seat; sleepers use assigned beds; hygiene benefits require actual toilet/basin/shower use. Scheduled soldiers travel to their station or wait with a clear shortage reason, rather than wandering aimlessly. Equipment—not a generic building assignment—grants its own stat while used. Players choose Auto, stat Focus or a Specific station.
+
+Players manage bottlenecks through daily completion/missed-use summaries and upgrades, grow attached to named/customised soldiers and send them on resource missions. Four soldiers completing one visible day is the first proof; a six-soldier shortage and capacity upgrade proves the management loop. Claude builds simulation, routes, queues, UI and station contracts; Codex supplies the required sprite/action/layer art listed in [DAILY_BASE_ACTION_ASSETS.md](art/DAILY_BASE_ACTION_ASSETS.md). Missing walk/interaction art continues to block public visual release. Numeric schedule state alone is not evidence of visible facility use.
+
 
 This document describes the **current playable build**. `README.md` records the development history, `CLAUDE.md` explains earlier decisions, and `ASSETS.md` retains the art prompts. Historical sections in those files may describe features as pending even after they were built.
 
