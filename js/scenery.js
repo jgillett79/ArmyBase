@@ -101,7 +101,7 @@ function drawSceneProp(ctx, placement) {
 // Free for a prop: on open ground, clear of every footprint, path, placed
 // scene prop and the gate. `clearance` is the prop's own radius.
 function isOpenGround(x, y, clearance, edges) {
-  if (x < 8 || y < 8 || x > WORLD_W - 8 || y > WORLD_H - 8) return false;
+  if (x < WORLD_X0 + 8 || y < 8 || x > WORLD_W - 8 || y > WORLD_H - 8) return false;
   if (SCENE_PROP_PLACEMENTS.some(p => Math.hypot(x - p.x, y - p.y) < clearance + p.base + 10)) return false;
   if (distanceToTerrain(x, y) < clearance * 0.4) return false;
   for (const zone of WORLD.zones) if (pointPolygonDistance(x, y, zone.footprint) < clearance + 18) return false;
@@ -117,7 +117,7 @@ function buildSceneryPlacement() {
   const edges = worldEdgeList(null);
   const trees = [], rocks = [], tufts = [];
   for (let gy = 20; gy < WORLD_H; gy += 34) {
-    for (let gx = 20; gx < WORLD_W; gx += 34) {
+    for (let gx = WORLD_X0 + 20; gx < WORLD_W; gx += 34) {
       const x = gx + (random() - 0.5) * 26, y = gy + (random() - 0.5) * 26;
       const roll = random(), kindRoll = random(), sizeRoll = random();
       const nearFrame = WORLD.terrain.some(a => a.kind !== 'rock' && pointPolygonDistance(x, y, a.polygon) < 110)
@@ -648,15 +648,16 @@ function drawFenceLines(ctx) {
 // given set of visible zones. Returns the offscreen canvas.
 function paintStaticLayer(visibleZones, builtZones) {
   const canvas = document.createElement('canvas');
-  canvas.width = Math.round(WORLD_W * STATIC_LAYER_SCALE);
+  canvas.width = Math.round((WORLD_W - WORLD_X0) * STATIC_LAYER_SCALE);
   canvas.height = Math.round(WORLD_H * STATIC_LAYER_SCALE);
   const ctx = canvas.getContext('2d');
   if (!ctx || !ctx.scale) return canvas; // headless test stub
   ctx.scale(STATIC_LAYER_SCALE, STATIC_LAYER_SCALE);
+  ctx.translate(-WORLD_X0, 0); // the layer starts at the outside road (world.js WORLD_X0)
   const random = seededRandom(SCENERY_SEED + 7);
 
   ctx.fillStyle = scenePattern(ctx, 'ground_grass', 0.42) || '#78804e';
-  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+  ctx.fillRect(WORLD_X0, 0, WORLD_W - WORLD_X0, WORLD_H);
   // Broad tonal variation so the meadow doesn't read as one repeated tile.
   for (let i = 0; i < 38; i++) {
     const x = random() * WORLD_W, y = random() * WORLD_H, r = 80 + random() * 160;
@@ -677,7 +678,7 @@ function paintStaticLayer(visibleZones, builtZones) {
   // Trails stop at bridge decks; the deck is drawn over the water instead.
   ctx.save();
   ctx.beginPath();
-  ctx.rect(0, 0, WORLD_W, WORLD_H);
+  ctx.rect(WORLD_X0, 0, WORLD_W - WORLD_X0, WORLD_H);
   for (const bridge of WORLD.bridges) bridgeDeckPolygon(bridge).forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
   ctx.clip('evenodd');
   drawPathEdges(ctx, edges, random);

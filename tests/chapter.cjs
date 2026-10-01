@@ -17,10 +17,12 @@ const sandbox = vm.createContext({
   console, Math: Object.create(Math), Date: ClockDate,
   localStorage: { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, String(value)) },
 });
-for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'state', 'save']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);
+// Brief 09: only the applicant standing at the guardhouse window can be admitted.
+run('var atWindow = (st, u) => { st.applicantLine = [u.id, ...st.applicantLine.filter(id => id !== u.id)]; u.serviceSince = Date.now(); return st; };');
 const withRandom = (value, fn) => { const saved = sandbox.Math.random; sandbox.Math.random = () => value; try { return fn(); } finally { sandbox.Math.random = saved; } };
 
 // Advance real time in 1/30 s ticks (like the browser loop), spawning visitors.
@@ -36,8 +38,9 @@ sandbox.now_ = ms => { now += ms; };
 run('var s = new GameState(); s.lastCivilianSpawn = 0;');
 assert.equal(run('s.chapterStage().id'), 'meet');
 assert.equal(run('s.guidanceActive && s.onboarding'), true);
-assert.ok(run(`until(() => { const v = s.chapterStage().visitor; return v && v.routePhase === 'using'; }, 60)`), 'a visitor reaches a chair');
-run('var visitor = s.chapterStage().visitor; s.recruit(visitor.id);');
+// Brief 09: visitors are served at the guardhouse's outside window.
+assert.ok(run(`until(() => { const v = s.chapterStage().visitor; return v && s.applicantAtWindow() === v; }, 60)`), 'a visitor reaches the guardhouse window');
+run('var visitor = s.chapterStage().visitor; atWindow(s, visitor).recruit(visitor.id);');
 assert.equal(run('s.chapter.firstSoldierId'), run('visitor.id'));
 assert.equal(run('s.chapter.targetAccuracy'), run('Math.floor(visitor.accuracy) + INTRO_READINESS_GAIN'));
 assert.equal(run('s.chapterStage().id'), 'admit');
@@ -56,29 +59,24 @@ run('var first = s.firstSoldier;');
 assert.match(run(`s.deploymentCheck(first, missionTierById('local_patrol')).reason`), /^Accuracy \d+ \/ \d+ for the first patrol$/);
 assert.equal(run(`s.dispatchMission('local_patrol', [first.id], { recall: true })`), false);
 
-// The first-soldier range drill: +3 accuracy, trained at 3x the range rate
-// during any waking hour — here 18:00, the recreation block, when the
-// normal range is closed.
+// Brief 09 removed the brief 08 first-soldier range drill: +3 accuracy is
+// trained at the normal range rate, only in the timetable's training
+// blocks. At 18:00 (recreation) the first soldier relaxes like anyone.
 assert.equal(run('INTRO_READINESS_GAIN'), 3);
 assert.equal(run('s.chapter.targetAccuracy - Math.floor(first.accuracy)'), 3);
-run(`s.gameClockMs = 18 * 3600000; first.energy = 100; s.assignToBuilding(first.id, 'shooting_range');`);
-assert.equal(run('s.isOnRangeDrill(first)'), true);
-assert.ok(run(`until(() => first.routePhase === 'using' && first.status === 'training', 60)`), 'drills at the range outside the normal training blocks');
-assert.equal(run('scheduledStatusFor(s.hourOfDay)'), 'recreation', 'the normal schedule says free time');
-run('var before = first.accuracy; advance(12.5);'); // one game hour
-const drillGain = run('first.accuracy - before');
-assert.ok(Math.abs(drillGain - 0.5 * run('FIRST_SOLDIER_DRILL.multiplier')) < 0.05, `drill gain per game hour is 3 x 0.5 (was ${drillGain.toFixed(2)})`);
-run(`var other = new Unit({ x: first.x, y: first.y, isCivilian: false }); other.outfit = 'uniform'; s.units.push(other);
-  s.assignToBuilding(other.id, 'shooting_range');`);
-assert.equal(run('s.isOnRangeDrill(other)'), false, 'only the first soldier drills');
-run('s.tick(0.05, Date.now())');
-assert.equal(run('other.status'), run('other.desiredStatus(s.hourOfDay)'), 'everyone else keeps the normal schedule');
-assert.notEqual(run('other.status'), 'training', 'nobody else trains outside the normal blocks');
-run(`s.removeUnit(other.id)`);
+assert.equal(run('typeof FIRST_SOLDIER_DRILL'), 'undefined', 'the out-of-hours drill is gone');
+run(`s.gameClockMs = 18 * 3600000; s.food = 500; first.energy = 100; s.assignToBuilding(first.id, 'shooting_range'); s.tick(0.05, Date.now());`);
+assert.equal(run('first.routine.task'), 'recreation', 'the timetable decides: recreation at 18:00');
+run('var before = first.accuracy; advance(50);'); // one game hour
+assert.equal(run('first.accuracy'), run('before'), 'no range training outside the training blocks');
+run(`s.gameClockMs = 8 * 3600000; s.tick(0.05, Date.now());`);
+assert.ok(run(`until(() => first.routine.stage === 'use' && first.slot.type === 'range_lane', 60)`), 'trains at the range in the morning block');
+run('before = first.accuracy; advance(50);');
+const hourGain = run('first.accuracy - before');
+assert.ok(hourGain > 0.4 && hourGain <= 0.5 + 1e-9, `range gain per game hour is the normal 0.5 (was ${hourGain.toFixed(2)})`);
 
 // 2. The deployment trap: an assigned trainee can go only via explicit recall.
-assert.ok(run(`until(() => s.chapterStage().id === 'patrol', 60)`), 'reaches readiness through the drill');
-assert.equal(run('s.isOnRangeDrill(first)'), false, 'the drill ends at the target');
+assert.ok(run(`until(() => s.chapterStage().id === 'patrol', 400)`), 'reaches readiness in the training blocks');
 assert.ok(run(`s.events.some(e => e.text === first.name + ' qualified for Local Patrol')`), 'readiness is announced once');
 assert.notEqual(run('first.status'), 'idle', 'busy, so dispatch needs a recall');
 const check = run(`s.deploymentCheck(first, missionTierById('local_patrol'))`);
@@ -96,8 +94,8 @@ assert.equal(run('sent'), true);
 assert.equal(run('first.missionTierId'), 'intro_patrol');
 assert.equal(run('first.missionReturnAt - Date.now()'), 75000, 'intro patrol is 75 s real time');
 assert.equal(run('first.assignedBuildingId'), 'shooting_range', 'recall keeps the training assignment');
-assert.equal(run(`[...s.slotOccupants.values()].includes(first.id)`), false, 'range slot released');
-assert.equal(run(`s.slotOccupants.has(s.slotKey('shooting_range', '${slotBefore}'))`), false);
+assert.equal(run(`[...s.stationOccupants.values()].includes(first.id)`), false, 'range slot released');
+assert.equal(run(`s.stationOccupants.has('${slotBefore}')`), false);
 assert.ok(run(`s.activityLog.some(e => e.unitId === first.id && e.event === 'recall')`), 'recall is logged');
 assert.equal(run('s.chapter.introDispatched'), true);
 assert.equal(run('s.chapterStage().id'), 'away');
@@ -136,16 +134,18 @@ assert.equal(run('s.unseenReports().length'), 0, 'seen stays seen');
 assert.ok(run('s.cash') - cashReloaded < 3, 'no reward on reload');
 assert.equal(run('s.chapterStage().id'), 'improve');
 const advice = run('s.nextConstructionAdvice()');
-assert.equal(advice.key, 'messHall', 'the Mess Hall is the useful next build');
-assert.equal(advice.affordable, true, 'patrol earnings pay for it');
-assert.equal(run(`s.constructAt('messHall', s.messHall.zoneId)`), true);
+// Brief 09: bunks, kitchen and wash block are starter facilities, so the
+// next useful build is the Rec Room (recreation has nowhere to happen yet).
+assert.equal(advice.key, 'recRoom', 'the Rec Room is the useful next build');
+run('s.cash = Math.max(s.cash, 100);');
+assert.equal(run(`s.constructAt('recRoom', s.recRoom.zoneId)`), true);
 assert.equal(run('s.chapter.done'), true);
 assert.equal(run('s.chapterStage().id'), 'complete');
 assert.equal(run('s.guidanceActive'), false);
 
 // 4. After the intro, Local Patrol uses the normal rules and rolls.
 run(`first.status = 'idle'; first.energy = 100; s.routeForStatus(first);`);
-assert.equal(run(`s.dispatchMission('local_patrol', [first.id])`), true);
+assert.equal(run(`s.dispatchMission('local_patrol', [first.id], { recall: true })`), true);
 assert.equal(run('first.missionTierId'), 'local_patrol');
 assert.equal(run('first.missionReturnAt - Date.now()'), 3 * 60 * 1000, 'regular 3-minute timer');
 run('now_(181000)');
@@ -192,13 +192,13 @@ assert.equal(run('JSON.stringify(s.deploymentCheck(probe, t2))'), '{"ok":true,"r
 
 // ---------------------------------------------------------------------------
 // 7. Skip guidance hides the card but keeps the intro and its reward.
-run(`var k = new GameState(); var kid = new Unit({ x: 100, y: 100, isCivilian: true }); k.units.push(kid); k.recruit(kid.id);
+run(`var k = new GameState(); var kid = new Unit({ x: 100, y: 100, isCivilian: true }); k.units.push(kid); atWindow(k, kid).recruit(kid.id);
   kid.outfit = 'uniform'; kid.status = 'idle'; k.dismissGuidance();`);
 assert.equal(run('k.guidanceActive'), false);
 assert.equal(run('k.onboarding'), false, 'skipping opens the base up');
 assert.equal(run('k.introAvailable'), true, 'the intro patrol is still there');
 run('kid.accuracy = k.chapter.targetAccuracy;');
-assert.equal(run(`k.dispatchMission('local_patrol', [kid.id])`), true);
+assert.equal(run(`k.dispatchMission('local_patrol', [kid.id], { recall: true })`), true);
 assert.equal(run('kid.missionTierId'), 'intro_patrol');
 run('k.resumeGuidance();');
 assert.equal(run('k.chapterStage().id'), 'away');
@@ -227,7 +227,7 @@ assert.equal(run('legacyLog.unseenReports().length'), 0);
 
 // ---------------------------------------------------------------------------
 // 8b. Customization: callsign and accent persist, migrate and reach the report.
-run(`var c = new GameState(); var cv = new Unit({ x: 100, y: 100, isCivilian: true }); c.units.push(cv); c.recruit(cv.id);
+run(`var c = new GameState(); var cv = new Unit({ x: 100, y: 100, isCivilian: true }); c.units.push(cv); atWindow(c, cv).recruit(cv.id);
   cv.outfit = 'uniform'; cv.status = 'idle';`);
 assert.equal(run('cv.soldierVariant'), 1, 'the first soldier wears the body that has a portrait');
 assert.equal(run('cv.callsign'), null, 'no callsign by default');
@@ -241,7 +241,7 @@ run(`c.save(); var c2 = GameState.load(); var cv2 = c2.units.find(u => u.id === 
 assert.equal(run('cv2.callsign'), 'Iron Kite', 'callsign survives reload');
 assert.equal(run('cv2.accent'), 'blue', 'accent survives reload');
 assert.equal(run('cv2.fieldName'), `${run("cv.name.split(' ')[0]")} "Iron Kite"`);
-run(`cv2.accuracy = c2.chapter.targetAccuracy; cv2.energy = 100; c2.dispatchMission('local_patrol', [cv2.id]);
+run(`cv2.accuracy = c2.chapter.targetAccuracy; cv2.energy = 100; c2.dispatchMission('local_patrol', [cv2.id], { recall: true });
   cv2.missionReturnAt = Date.now() - 1; c2.tick(0.05, Date.now()); var rep = c2.missionLog[0];`);
 assert.equal(run('rep.callsign'), 'Iron Kite', 'the report carries the callsign');
 assert.equal(run('rep.accent'), 'blue', 'the report carries the accent');
@@ -256,33 +256,13 @@ run(`var noFields = c.serialize(); delete noFields.units[0].callsign; delete noF
 assert.equal(run('normalizeSaveData(noFields).data.units[0].callsign'), null, 'pre-customization v2 saves migrate');
 
 // ---------------------------------------------------------------------------
-// 8c. The starter field meal: once, first soldier, no Mess Hall, from stock.
-run(`var f = new GameState(); var fv = new Unit({ x: 100, y: 100, isCivilian: true }); f.units.push(fv); f.recruit(fv.id);
-  fv.outfit = 'uniform'; fv.status = 'idle'; f.routeForStatus(fv); f.gameClockMs = 10 * 3600000;
-  var fo = new Unit({ x: 100, y: 100, isCivilian: false }); fo.outfit = 'uniform'; f.units.push(fo);
-  fo.energy = ENERGY_CRITICAL; f.tick(0.05, Date.now());`);
-assert.equal(run('f.chapter.fieldMealUsed'), false, 'other soldiers never get the starter meal');
-run(`fv.energy = ENERGY_CRITICAL + 1; var food0 = f.food; f.tick(0.05, Date.now());`);
-assert.equal(run('f.chapter.fieldMealUsed'), false, 'not before the hunger point');
-run(`fv.energy = ENERGY_CRITICAL; f.tick(0.05, Date.now());`);
-assert.equal(run('f.chapter.fieldMealUsed'), true, 'eaten at the hunger point');
-assert.ok(Math.abs(run('food0 - f.food') - run('STARTER_FIELD_MEAL.food')) < 0.01, 'paid from the existing food stock');
-assert.ok(run('fv.energy') >= run('ENERGY_CRITICAL + STARTER_FIELD_MEAL.energy') - 1, 'energy restored');
-const mealEvent = run(`(f.events.find(e => e.text.includes('starter field meal')) || {}).text`);
-assert.match(mealEvent, /only happens once/);
-assert.match(mealEvent, /Mess Hall feeds soldiers every day/);
-run(`f.save(); var f2 = GameState.load(); var fv2 = f2.firstSoldier; fv2.energy = ENERGY_CRITICAL; var food2 = f2.food; f2.tick(0.05, Date.now());`);
-assert.equal(run('f2.chapter.fieldMealUsed'), true, 'the once-only flag survives reload');
-assert.ok(run('f2.food') >= run('food2') - 0.01, 'no second meal after reload');
-assert.equal(run(`f2.activityLog.filter(e => e.event === 'field_meal').length`), 0);
-// Not once the Mess Hall exists, nor without enough food.
-run(`var g = new GameState(); var gv = new Unit({ x: 100, y: 100, isCivilian: true }); g.units.push(gv); g.recruit(gv.id);
-  gv.outfit = 'uniform'; gv.status = 'idle'; g.messHall.level = 1; gv.energy = ENERGY_CRITICAL;`);
-assert.equal(run('g.starterFieldMealDue(gv)'), false, 'the Mess Hall replaces it');
-run('g.messHall.level = 0; g.food = STARTER_FIELD_MEAL.food - 1;');
-assert.equal(run('g.starterFieldMealDue(gv)'), false, 'needs food in stock');
-run('g.food = STARTER_FIELD_MEAL.food;');
-assert.equal(run('g.starterFieldMealDue(gv)'), true);
+// 8c. The brief 08 starter field meal is retired by brief 09: every base
+// starts with a working field kitchen, and the brief forbids using the
+// one-time meal as a substitute for kitchen service. It can never fire.
+run(`var g = new GameState(); var gv = new Unit({ x: 100, y: 100, isCivilian: true }); g.units.push(gv);
+  g.applicantLine = [gv.id]; gv.serviceSince = Date.now(); g.recruit(gv.id); gv.energy = ENERGY_CRITICAL;`);
+assert.equal(run('g.messHall.isBuilt'), true, 'a fresh base has a kitchen');
+assert.equal(run('g.starterFieldMealDue(gv)'), false, 'so the field meal never applies');
 // Saves from before the meal existed get it; a malformed flag is refused.
 run(`var preMeal = g.serialize(); delete preMeal.chapter.fieldMealUsed; var restored = GameState.fromSaveData(normalizeSaveData(preMeal).data);`);
 assert.equal(run('restored.chapter.fieldMealUsed'), false);

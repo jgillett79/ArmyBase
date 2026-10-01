@@ -13,20 +13,24 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const path = require('node:path');
 
-const SESSION_S = 600; // the brief's "first ten minutes"
+// Brief 09 re-baseline (1 October 2026): the out-of-hours 3x range drill is
+// gone and the day is 20 real minutes, so +3 accuracy comes from the 08:00
+// and 13:00 training blocks at the normal rate. Measured at 1x speed: prompt
+// players dispatch at ~8.5-9 min (was 2.5-5 min under brief 08). Flagged for
+// review in 09A_PERIMETER_AND_ROUTINE_MANIFEST.md; 2x/4x speed shortens it.
+const SESSION_S = 720;
 // Reaction time per step -> latest acceptable dispatch of the first patrol.
 const PLAYERS = [
-  { delay: 3, dispatchBy: 150 },
-  { delay: 10, dispatchBy: 180 },
-  { delay: 20, dispatchBy: 240 },
-  { delay: 30, dispatchBy: 300 },
+  { delay: 3, dispatchBy: 570 },
+  { delay: 10, dispatchBy: 580 },
+  { delay: 20, dispatchBy: 590 },
+  { delay: 30, dispatchBy: 600 },
 ];
-// The slowest player: a full minute before every step. They assign the
-// soldier near 22:00 game time (they sleep first) and reach day 2 with no
-// Mess Hall, which used to mean a collapse before the patrol. The starter
-// field meal (mission.js) now carries them: exactly one meal, no collapse
-// before the patrol leaves, and the chapter completed.
-const SLOW = { delay: 60, dispatchBy: 480, completeBy: 720 };
+// The slowest player: a full minute before every step. They miss the
+// first training blocks; the starter kitchen (brief 09) feeds them, so the
+// retired starter field meal never fires and nobody collapses.
+// Measured: ~1390 s (day 2 morning block) for 4 of 5 seeds, 607 s for one.
+const SLOW = { delay: 60, dispatchBy: 1450, completeBy: 1700 };
 const SEEDS = [1, 2, 3, 4, 5];
 
 function playSession(delay, seed, sessionS = SESSION_S) {
@@ -36,7 +40,7 @@ function playSession(delay, seed, sessionS = SESSION_S) {
   class ClockDate extends Date { constructor(...a) { super(...(a.length ? a : [Math.floor(now)])); } static now() { return Math.floor(now); } }
   const math = Object.create(Math); math.random = random;
   const sandbox = vm.createContext({ console, Math: math, Date: ClockDate, localStorage: { getItem: () => null, setItem() {} } });
-  for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'state', 'save']) {
+  for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save']) {
     vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
   }
   const run = source => vm.runInContext(source, sandbox);
@@ -58,7 +62,7 @@ function playSession(delay, seed, sessionS = SESSION_S) {
       s.tick(${dt}, Date.now());`);
     const current = run('s.chapterStage().id');
     if (current !== stage) { stage = current; actAt = t + delay; }
-    const u = run(`s.firstSoldier && { status: s.firstSoldier.status, using: s.firstSoldier.routePhase === 'using', drill: !!s.firstSoldier.onDrill }`);
+    const u = run(`s.firstSoldier && { status: s.firstSoldier.status, using: !!(s.firstSoldier.routine && s.firstSoldier.routine.stage === 'use' && s.firstSoldier.slot && s.firstSoldier.slot.type === 'range_lane') }`);
     if (r.mealS === null && run('s.chapter.fieldMealUsed')) { r.mealS = t; reload(); }
     if (u && u.status === 'hospital' && r.hospitalS === null) r.hospitalS = t;
     if (u && u.status !== 'hospital' && r.hospitalS !== null && r.recoveredS === null) r.recoveredS = t;
@@ -98,16 +102,14 @@ for (const { delay, dispatchBy } of PLAYERS) {
     assert.ok(r.dispatchS !== null && r.dispatchS <= dispatchBy, `${who}: first patrol by ${dispatchBy}s (was ${r.dispatchS && r.dispatchS.toFixed(0)})`);
     assert.equal(r.hospitalS, null, `${who}: no collapse in the first ${SESSION_S}s (collapsed at ${r.hospitalS && r.hospitalS.toFixed(0)}s)`);
     assert.ok(r.completeS !== null && r.completeS <= SESSION_S, `${who}: chapter complete inside the session`);
-    assert.ok(r.firstRangeS - r.assignedS < 60, `${who}: reaches the range within a minute of assignment (${(r.firstRangeS - r.assignedS).toFixed(0)}s)`);
-    assert.ok(r.stuckS < 1, `${who}: never waits for the range to open while drilling (${r.stuckS.toFixed(1)}s)`);
-    assert.ok(r.meals <= 1, `${who}: at most one starter field meal (${r.meals})`);
+    assert.ok(r.firstRangeS <= 150, `${who}: at the range during the first training block (${r.firstRangeS && r.firstRangeS.toFixed(0)}s)`);
+    assert.equal(r.meals, 0, `${who}: the retired starter field meal never fires`);
   }
 }
 for (const seed of SEEDS) {
   const r = playSession(SLOW.delay, seed, SLOW.completeBy);
   const who = `player reacting in ${SLOW.delay}s (seed ${seed})`;
-  assert.equal(r.meals, 1, `${who}: exactly one starter field meal, across ${r.reloads} reloads`);
-  assert.equal(r.mealFlag, true, `${who}: the once-only flag is saved`);
+  assert.equal(r.meals, 0, `${who}: the retired starter field meal never fires, across ${r.reloads} reloads`);
   assert.ok(r.dispatchS !== null && r.dispatchS <= SLOW.dispatchBy, `${who}: first patrol by ${SLOW.dispatchBy}s (was ${r.dispatchS && r.dispatchS.toFixed(0)})`);
   assert.ok(r.hospitalS === null || r.hospitalS > r.dispatchS, `${who}: no collapse before the patrol (collapsed at ${r.hospitalS && r.hospitalS.toFixed(0)}s)`);
   assert.ok(r.completeS !== null && r.completeS <= SLOW.completeBy, `${who}: first chapter completed by ${SLOW.completeBy}s`);

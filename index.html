@@ -97,7 +97,7 @@
       <button id="buildMessHallBtn"><span class="build-name">Mess Hall (120)</span><small class="build-effect"></small></button>
     </div>
     <div class="hud-block" data-key="showers">
-      <button id="buildShowersBtn"><span class="build-name">Showers (100)</span><small class="build-effect"></small></button>
+      <button id="buildShowersBtn"><span class="build-name">Wash Block (100)</span><small class="build-effect"></small></button>
     </div>
     <div class="hud-block" data-key="recRoom">
       <button id="buildRecRoomBtn"><span class="build-name">Rec Room (100)</span><small class="build-effect"></small></button>
@@ -118,6 +118,21 @@
       <button id="objectiveActionBtn" type="button"></button>
       <button id="skipGuideBtn" type="button" class="link-button">Skip guidance</button>
     </div>
+  </section>
+
+  <!-- Brief 09: the base clock, the timetable block now and next, and the
+       simulation speed. Missions and recovery always run on real time. -->
+  <section id="routineBar" class="routine-bar" aria-label="Base routine">
+    <div class="routine-clock"><span class="hud-label">Day <span id="routineDay">1</span></span><strong id="routineClock">06:00</strong></div>
+    <div class="routine-blocks"><span id="routineNow" class="routine-now">Bathroom</span><span id="routineNext" class="routine-next">Next: Breakfast 07:00</span></div>
+    <div class="speed-controls" role="group" aria-label="Simulation speed">
+      <button type="button" data-speed="0" aria-label="Pause">❚❚</button>
+      <button type="button" data-speed="1">1×</button>
+      <button type="button" data-speed="2">2×</button>
+      <button type="button" data-speed="4">4×</button>
+    </div>
+    <button id="dayReportBtn" type="button" class="link-button">Day report</button>
+    <small class="routine-note">Speed and pause change the base day only; missions and recovery count real time.</small>
   </section>
 
   <main id="gameArea">
@@ -162,6 +177,20 @@
       <button id="profileRandomise" type="button" class="link-button">Randomise</button>
     </div>
     <p id="profileActivity" class="soldier-activity"></p>
+    <div class="soldier-itinerary"><span class="hud-label">Today</span><ol id="profileItinerary"></ol></div>
+    <label class="training-policy"><span class="hud-label">Training</span>
+      <select id="profilePolicy" aria-label="Training policy">
+        <option value="auto">Auto (any free station)</option>
+        <option value="focus:accuracy">Focus: accuracy</option>
+        <option value="focus:strength">Focus: strength</option>
+        <option value="focus:endurance">Focus: endurance</option>
+        <option value="specific:shooting_range">Only: Shooting Range</option>
+        <option value="specific:weight_room">Only: Weight Room</option>
+        <option value="specific:obstacle_course">Only: Obstacle Course</option>
+        <option value="specific:drill_yard">Only: Drill Yard</option>
+      </select>
+      <small id="profilePolicyNote"></small>
+    </label>
     <p id="profileRecommendation" class="soldier-recommendation"></p>
     <div class="soldier-key-stats">
       <div class="profile-row"><span id="profileKeyLabel">Accuracy</span><div class="bar"><div id="profileKeyBar" class="bar-fill"></div></div><span id="profileKeyText"></span></div>
@@ -223,6 +252,7 @@
     <canvas id="recruitPortrait" class="portrait" width="72" height="72"></canvas>
     <p id="recruitText"></p>
     <button id="recruitConfirm">Admit</button>
+    <button id="recruitReject">Turn away</button>
     <button id="recruitCancel">Not now</button>
   </div>
 
@@ -243,6 +273,13 @@
       <button id="debriefBuildBtn" type="button" class="primary hidden"></button>
       <button id="debriefContinueBtn" type="button">Continue</button>
     </div>
+  </div>
+
+  <!-- Brief 09 daily report: completed and missed uses per block, with the
+       reason and the one most useful improvement. -->
+  <div id="dayReportPanel" class="hidden" role="dialog" aria-labelledby="dayReportTitle">
+    <div class="profile-header"><span class="hud-label" id="dayReportTitle">Day report</span><button id="closeDayReport" aria-label="Close">&times;</button></div>
+    <div id="dayReportBody"></div>
   </div>
 
   <!-- Missions panel -->
@@ -281,7 +318,9 @@
   <script src="js/unit.js"></script>
   <script src="js/building.js"></script>
   <script src="js/mission.js"></script>
+  <script src="js/routine.js"></script>
   <script src="js/state.js"></script>
+  <script src="js/daily.js"></script>
   <script src="js/save.js"></script>
   <script src="js/scenery.js"></script>
   <script src="js/render.js"></script>

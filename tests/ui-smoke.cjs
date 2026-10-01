@@ -27,7 +27,7 @@ const sandbox = vm.createContext({
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
   requestAnimationFrame: callback => { sandbox.lastFrame = callback; },
 });
-for (const file of ['utils', 'world', 'asset-manifest', 'camera', 'unit', 'building', 'mission', 'state', 'save', 'scenery', 'render', 'animation', 'main']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'camera', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save', 'scenery', 'render', 'animation', 'main']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 vm.runInContext('var sample = new Unit({x:150,y:150,isCivilian:false}); gameState.units.push(sample); openProfile(sample);', sandbox);
@@ -38,10 +38,10 @@ vm.runInContext('frame(performance.now() + 16)', sandbox);
 assert.equal(input.value, 'My edited name', 'live refresh must not erase an in-progress name edit');
 assert.ok(sandbox.lastFrame, 'animation loop must continue');
 // Facility activity follows arrival at a reserved slot, not a scheduled status.
-vm.runInContext(`gameState.shootingRange.level = 1;
-  sample.status = UNIT_STATUS.TRAINING;
-  sample.assignedBuildingId = gameState.shootingRange.id;
-  gameState.routeForStatus(sample);`, sandbox);
+// Brief 09: the timetable's training block sends them to a range station.
+vm.runInContext(`gameState.shootingRange.level = 1; gameState.gameClockMs = 9 * 3600000;
+  gameState.assignToBuilding(sample.id, gameState.shootingRange.id);
+  gameState.rejoinRoutine(sample);`, sandbox);
 assert.ok(vm.runInContext('sample.slot && sample.slot.buildingId', sandbox) === 'shooting_range', 'a range slot is reserved');
 assert.equal(vm.runInContext('activeFacilityFor(sample, gameState)', sandbox), null,
   'walking soldiers must not display facility activity');

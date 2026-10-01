@@ -91,20 +91,9 @@ const MISSION_TIERS = [
 // MISSION_TIERS, so the ladder and its formulas are unchanged.
 const INTRO_READINESS_GAIN = 3; // accuracy points, e.g. 48 -> 51
 
-// FIRST-SOLDIER RANGE DRILL — a labelled special case, shown to the player
-// as "Range drill". Under the normal rules the range trains only
-// 09:00-12:00 and 13:00-17:00 of a 5-minute day at 0.5 accuracy per game
-// hour, and walking eats game hours, so a new player gained ~1.5 points on
-// day 1 and a +3 target pushed the first patrol past 12 minutes (measured,
-// see the brief 08 manifest). While the first soldier is assigned to the
-// range and not yet patrol-ready, they instead drill at `multiplier` x the
-// range's rate during any waking hour (`from`-`to`, game clock; sleep and
-// the low-energy safety net still win). It ends for good once the intro
-// patrol is dispatched; every other soldier, and this one afterwards, use
-// the unchanged schedule and rates. tests/pacing.cjs holds it to its
-// purpose: prompt and slow players both dispatch inside the first session
-// without a collapse or a missed training window.
-const FIRST_SOLDIER_DRILL = { multiplier: 3, from: 6, to: 22 };
+// The brief 08 FIRST-SOLDIER RANGE DRILL (3x accuracy at any waking hour)
+// was removed by brief 09: the first soldier trains in the shared
+// timetable's training blocks like everyone else.
 
 // STARTER FIELD MEAL — once per game, for the first soldier only, before a
 // Mess Hall exists. Without a Mess Hall nothing restores energy, so a slow

@@ -18,6 +18,12 @@
 const WORLD_ID = 'first_base_v1';
 const WORLD_W = 1600;
 const WORLD_H = 960;
+// Brief 09: the outside approach. Applicants queue and are served OUTSIDE
+// the perimeter, so the map now shows a strip of valley road west of the
+// gate (world x WORLD_X0..0). Interior coordinates are unchanged; only the
+// camera and the static layer reach further west. Everything west of the
+// barrier line (WORLD.perimeter.barrierX) is outside the base.
+const WORLD_X0 = -200;
 
 // Minimum gaps the validator enforces (world px). Placeholder values chosen
 // so footprints read as separate clearings; tune with the art pass.
@@ -39,12 +45,13 @@ const WORLD = {
 
   // Terrain exclusions: nothing may be built on or walk through these.
   terrain: [
-    { id: 'cliff_north', kind: 'cliff', polygon: [[0, 0], [1330, 0], [1300, 48], [1190, 72], [1050, 60], [910, 84], [770, 66], [630, 92], [490, 74], [350, 106], [230, 98], [130, 150], [64, 236], [0, 262]] },
+    { id: 'cliff_north', kind: 'cliff', polygon: [[0, 0], [1330, 0], [1300, 48], [1190, 72], [1050, 60], [910, 84], [770, 66], [630, 92], [490, 74], [350, 106], [230, 98], [130, 150], [64, 236], [0, 262], [WORLD_X0, 262], [WORLD_X0, 0]] },
     // Western spur: the gate sits in a rocky notch between it and rock_west.
     // Its foot stops at y 548 near the gate so the checkpoint kiosk fits
-    // between cliff and trail (WORLD.checkpoint).
-    { id: 'cliff_west_spur', kind: 'cliff', polygon: [[0, 250], [70, 236], [132, 256], [150, 330], [128, 410], [140, 470], [118, 526], [84, 540], [0, 548]] },
-    { id: 'rock_west', kind: 'rock', polygon: [[0, 705], [58, 694], [112, 742], [96, 828], [40, 852], [0, 860]] },
+    // between cliff and trail (WORLD.checkpoint). West of x 0 (outside the
+    // base) it and rock_west wall in the valley road applicants arrive on.
+    { id: 'cliff_west_spur', kind: 'cliff', polygon: [[0, 250], [70, 236], [132, 256], [150, 330], [128, 410], [140, 470], [118, 526], [84, 540], [0, 548], [-90, 552], [WORLD_X0, 546], [WORLD_X0, 250]] },
+    { id: 'rock_west', kind: 'rock', polygon: [[WORLD_X0, 690], [-96, 700], [0, 705], [58, 694], [112, 742], [96, 828], [40, 852], [0, 860], [WORLD_X0, 960]] },
     { id: 'pond_southwest', kind: 'water', polygon: [[120, 860], [210, 830], [310, 845], [340, 900], [300, 950], [190, 955], [120, 920]] },
     // Creek from the pond to the river: the base's southern edge.
     { id: 'creek_south', kind: 'water', polygon: [[332, 866], [460, 872], [600, 860], [760, 868], [900, 858], [1020, 866], [1116, 878], [1124, 906], [1020, 896], [900, 890], [760, 900], [600, 892], [460, 902], [336, 912]] },
@@ -61,6 +68,9 @@ const WORLD = {
 
   // Path graph nodes. gate_outside is off-map: visitors spawn and despawn there.
   nodes: {
+    // Outside the perimeter: the valley road's west end (applicants arrive
+    // and leave here; departing squads walk to gate_outside).
+    road_west: { x: WORLD_X0 + 4, y: 612 },
     gate_outside: { x: -40, y: 610 },
     gate: { x: 40, y: 610 },          // checkpoint in the gap of the west fence
     gate_inside: { x: 120, y: 612 },
@@ -82,6 +92,7 @@ const WORLD = {
 
   // Trunk trail. `via` points bend the drawn and walked line identically.
   edges: [
+    { from: 'road_west', to: 'gate_outside' },
     { from: 'gate_outside', to: 'gate' },
     { from: 'gate', to: 'gate_inside' },
     // Runs straight over the gate bridge deck (see bridges below).
@@ -128,6 +139,37 @@ const WORLD = {
     // Ground point of the fixed fork the closed boom's tip rests in (north
     // edge of the trail); its seat is at the pole's height above it.
     boomRest: { x: 39, y: 588 },
+  },
+
+  // Perimeter admission (brief 09). The barrier line is the closed boom at
+  // x 40: west of it is outside the base. Recruitment happens at the
+  // guardhouse's OUTSIDE window (the kiosk's west wall, x 48): one applicant
+  // at a time stands at `service` facing the window; the rest wait in the
+  // bounded outside `queue` on the north verge of the road, nearest first.
+  // An admitted recruit leaves the window by `admitted` (on the trail just
+  // outside the boom), then crosses the gate; a rejected one walks back to
+  // road_west. Applicants never enter the interior path graph.
+  perimeter: {
+    barrierX: 40,
+    window: { x: 48, y: 572 },                       // service window opening (kiosk west wall)
+    service: { x: 31, y: 576, facing: 'right' },     // applicant ground point while being served
+    guard: { x: 60, y: 576, facing: 'left' },        // guard inside the kiosk at the window
+    queue: [{ x: 8, y: 582 }, { x: -16, y: 584 }, { x: -40, y: 586 }, { x: -64, y: 587 }, { x: -88, y: 588 }],
+    roadY: 612,                                      // outside road centreline the queue steps off
+    admitted: { x: 24, y: 610 },                     // first step of the accepted route, at the barrier
+  },
+
+  // Parade ground: designated waiting/rest spots for soldiers whose
+  // scheduled task has no usable station (unbuilt facility, no bed). Each
+  // waiting soldier gets their own spot, never a shared anchor. Reached from
+  // `node` by a short local approach.
+  muster: {
+    node: 't4',
+    spots: [
+      { id: 'p1', x: 796, y: 522 }, { id: 'p2', x: 820, y: 524 }, { id: 'p3', x: 844, y: 526 },
+      { id: 'p4', x: 790, y: 546 }, { id: 'p5', x: 814, y: 548 }, { id: 'p6', x: 838, y: 550 },
+      { id: 'p7', x: 784, y: 568 }, { id: 'p8', x: 808, y: 570 }, { id: 'p9', x: 832, y: 572 },
+    ],
   },
 
   // Named safe nodes for fallbacks (migration, stuck units, departures).
@@ -281,20 +323,29 @@ const WORLD = {
     // The range sits beside the gate on a south-door site because its art's
     // open side faces south-west (see js/asset-manifest.js doorSides).
     shooting_range: 'zone_west_rise',
-    barracks: 'zone_centre_knoll',
-    mess_hall: 'zone_north_terrace',
-    weight_room: 'zone_knoll_east',
+    // Brief 09 starter layout, chosen from the measured door-to-door walk
+    // matrix (CLAUDE_IMPLEMENTATION/09A_PERIMETER_AND_ROUTINE_MANIFEST.md):
+    // a one-hour window must hold walk + queue + service. Three meals a day
+    // connect the mess to everything, so it takes the central knoll (16–20
+    // game min from the wash block, range, weights and rec room). The wash
+    // block sits between mess and barracks (13 min to the barracks), and the
+    // barracks moves to the river bend. On the old layout the evening
+    // rec -> mess -> wash walks took 28–33 min and four soldiers missed
+    // dinner and showers. Only fresh bases and v1 migrations read this.
+    barracks: 'zone_river_bend',
+    mess_hall: 'zone_centre_knoll',
+    weight_room: 'zone_north_terrace',
     obstacle_course: 'zone_southwest_flats',
     drill_yard: 'zone_riverside',
-    showers: 'zone_river_bend',
+    showers: 'zone_knoll_east',
     rec_room: 'zone_east_meadow',
   },
 
-  // Decorative fence lines along the open boundary; the single gap is the gate.
-  fences: [
-    [[4, 574], [6, 584]],
-    [[6, 640], [8, 700]],
-  ],
+  // Procedural fence lines. Empty since brief 09: the two old lines stood at
+  // x 4–8, which is now outside the barrier, beside the applicant queue. The
+  // perimeter at the gate is the guardhouse (north of the trail) and the
+  // scene_fence wing prop (south of it), both on the barrier line.
+  fences: [],
 };
 
 // ---------------------------------------------------------------------------
@@ -522,7 +573,24 @@ function locateOnGraph(x, y, edges) {
 // Full walkable polyline from (x, y) to nodeId: join the nearest edge,
 // follow the shortest graph route, finish at the node. Returns an array of
 // {x, y} points (not including the start position) or null if unreachable.
+// Routes repeat constantly (station to station, every game day), and
+// offline catch-up replays many days, so results for the live map are
+// memoised by rounded start point, goal and open spurs. Callers copy the
+// points they use; the cached arrays are never mutated.
+const routeCache = new Map();
 function findWorldRoute(x, y, goalNodeId, zoneIds = null, world = WORLD) {
+  if (world === WORLD) {
+    const key = `${Math.round(x)},${Math.round(y)}|${goalNodeId}|${zoneIds ? [...zoneIds].sort().join(',') : '*'}`;
+    if (routeCache.has(key)) return routeCache.get(key);
+    const route = findWorldRouteUncached(x, y, goalNodeId, zoneIds, world);
+    if (routeCache.size > 4000) routeCache.clear();
+    routeCache.set(key, route);
+    return route;
+  }
+  return findWorldRouteUncached(x, y, goalNodeId, zoneIds, world);
+}
+
+function findWorldRouteUncached(x, y, goalNodeId, zoneIds, world) {
   const edges = worldEdgeList(zoneIds, world);
   const adjacency = buildAdjacency(edges);
   if (!adjacency.has(goalNodeId)) return null;
@@ -590,7 +658,7 @@ function edgePrefix(edge, fraction) {
 function nearestTrunkNode(x, y, world = WORLD) {
   let best = null, bestDistance = Infinity;
   for (const [id, node] of Object.entries(world.nodes)) {
-    if (id === 'gate_outside') continue;
+    if (id === 'gate_outside' || id === 'road_west') continue; // outside the base: never a safe spot
     const d = Math.hypot(node.x - x, node.y - y);
     if (d < bestDistance) { best = id; bestDistance = d; }
   }
@@ -703,6 +771,36 @@ function validateWorld(world = WORLD) {
       const a = [edge.points[k - 1].x, edge.points[k - 1].y], b = [edge.points[k].x, edge.points[k].y];
       if (segmentPolygonDistance(a, b, kiosk) < 17) { errors.push(`checkpoint kiosk on path ${edge.from}-${edge.to}`); break; }
     }
+  }
+
+  // Perimeter admission: every applicant spot is outside the barrier, on
+  // dry ground, spaced for a person, and clear of the kiosk.
+  if (world.perimeter) {
+    const { barrierX, service, queue, admitted } = world.perimeter;
+    const spots = [['service', service], ['admitted', admitted], ...queue.map((q, i) => [`queue ${i + 1}`, q])];
+    for (const [label, spot] of spots) {
+      if (spot.x >= barrierX) errors.push(`perimeter ${label} is not outside the barrier`);
+      if (spot.x < (world.minX ?? WORLD_X0) + 4) errors.push(`perimeter ${label} is off the map`);
+      for (const area of world.terrain) if (pointPolygonDistance(spot.x, spot.y, area.polygon) < 6) errors.push(`perimeter ${label} too close to ${area.id}`);
+      if (world.checkpoint && pointPolygonDistance(spot.x, spot.y, world.checkpoint.kiosk) < 8) errors.push(`perimeter ${label} inside the kiosk`);
+    }
+    const line = [service, ...queue];
+    for (let i = 1; i < line.length; i++) {
+      if (Math.hypot(line[i].x - line[i - 1].x, line[i].y - line[i - 1].y) < 20) errors.push(`perimeter queue ${i} is closer than 20 px to the next place`);
+    }
+  }
+
+  // Parade ground: distinct spots on open ground, off sites and trails.
+  if (world.muster) {
+    if (!world.nodes[world.muster.node]) errors.push(`muster node ${world.muster.node} unknown`);
+    world.muster.spots.forEach((spot, i) => {
+      for (const area of world.terrain) if (pointPolygonDistance(spot.x, spot.y, area.polygon) < 10) errors.push(`muster ${spot.id} too close to ${area.id}`);
+      for (const zone of world.zones) if (pointPolygonDistance(spot.x, spot.y, zone.footprint) < 10) errors.push(`muster ${spot.id} on ${zone.id}`);
+      for (const edge of edges) for (let k = 1; k < edge.points.length; k++) {
+        if (pointSegmentDistance(spot.x, spot.y, edge.points[k - 1].x, edge.points[k - 1].y, edge.points[k].x, edge.points[k].y) < 12) { errors.push(`muster ${spot.id} on path ${edge.from}-${edge.to}`); break; }
+      }
+      for (const other of world.muster.spots.slice(i + 1)) if (Math.hypot(other.x - spot.x, other.y - spot.y) < 20) errors.push(`muster ${spot.id} and ${other.id} closer than 20 px`);
+    });
   }
 
   // Placements: each default is legal, and no two buildings share a zone.

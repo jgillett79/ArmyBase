@@ -15,7 +15,7 @@ const sandbox = vm.createContext({
   Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
   performance: { now: () => 0 },
 });
-for (const file of ['utils', 'world', 'asset-manifest', 'camera', 'unit', 'building', 'mission', 'state', 'save', 'scenery', 'render', 'animation']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'camera', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save', 'scenery', 'render', 'animation']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);
@@ -92,17 +92,18 @@ assert.ok(run(`waterFlowPositions(WORLD.terrain.find(a => a.id === 'brook_gate')
 // another unbuilt one; built zones and wrong types are blocked; the economy
 // check is unchanged.
 run('var state = new GameState(); state.cash = 5000;');
-assert.equal(run(`state.zonePlacementState(state.weightRoom, 'zone_knoll_east')`), 'current');
+assert.equal(run(`state.zonePlacementState(state.weightRoom, 'zone_north_terrace')`), 'current'); // brief 09 starter layout
 assert.equal(run(`state.zonePlacementState(state.weightRoom, 'zone_east_meadow')`), 'swap', 'rec room is only surveyed there');
 assert.equal(run(`state.zonePlacementState(state.weightRoom, 'zone_south_green')`), 'blocked', 'open-air zone cannot take an enclosed building');
 assert.equal(run(`state.constructAt('weightRoom', 'zone_east_meadow')`), true);
 assert.equal(run('state.weightRoom.zoneId'), 'zone_east_meadow');
-assert.equal(run('state.recRoom.zoneId'), 'zone_knoll_east', 'displaced facility takes the vacated site');
+assert.equal(run('state.recRoom.zoneId'), 'zone_north_terrace', 'displaced facility takes the vacated site');
 assert.equal(run(`state.zonePlacementState(state.recRoom, 'zone_east_meadow')`), 'blocked', 'a built site is blocked');
 run('state.cash = 0');
-assert.equal(run(`state.constructAt('messHall', 'zone_north_terrace')`), false, 'cannot build without the cash');
-assert.match(run('state.constructionShortfall(state.messHall)'), /^\$120 more$/);
-assert.equal(run('state.messHall.isBuilt'), false);
+// (the Mess Hall is a starter facility since brief 09; use the obstacle course)
+assert.equal(run(`state.constructAt('obstacleCourse', 'zone_south_green')`), false, 'cannot build without the cash');
+assert.match(run('state.constructionShortfall(state.obstacleCourse)'), /^\$80 more$/);
+assert.equal(run('state.obstacleCourse.isBuilt'), false);
 assert.equal(run(`state.constructAt('entranceHall', 'zone_reception')`), false, 'the Entrance Hall is fixed');
 // Placement survives save/load.
 run(`state.cash = 500; state.constructAt('shootingRange', 'zone_ford');`);

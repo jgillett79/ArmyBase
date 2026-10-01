@@ -1,5 +1,5 @@
 // Offline support for the static game. Increase the version when changing cached assets.
-const CACHE_NAME = 'command-base-v16';
+const CACHE_NAME = 'command-base-v17';
 const APP_FILES = [
   "./",
   "index.html",
@@ -9,9 +9,11 @@ const APP_FILES = [
   "js/asset-manifest.js",
   "js/building.js",
   "js/camera.js",
+  "js/daily.js",
   "js/main.js",
   "js/mission.js",
   "js/render.js",
+  "js/routine.js",
   "js/save.js",
   "js/scenery.js",
   "js/state.js",

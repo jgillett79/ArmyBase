@@ -30,7 +30,7 @@ const gemsValueEl = document.getElementById('gemsValue');
 // drives the training buttons.
 const needsBuildingUi = [
   { key: 'messHall', label: 'Mess Hall', buildBtn: buildMessHallBtn },
-  { key: 'showers', label: 'Showers', buildBtn: buildShowersBtn },
+  { key: 'showers', label: 'Wash Block', buildBtn: buildShowersBtn },
   { key: 'recRoom', label: 'Rec Room', buildBtn: buildRecRoomBtn },
 ];
 
@@ -208,13 +208,16 @@ function renderRoster() {
 
 // What a person is doing right now, in words.
 function activityText(unit) {
+  // Brief 09: soldiers on the routine say what the timetable has them doing.
+  const routine = !unit.isCivilian && ![UNIT_STATUS.HOSPITAL, UNIT_STATUS.ON_MISSION, UNIT_STATUS.RECRUITING].includes(unit.status)
+    && gameState.routineText(unit);
+  if (routine) return routine;
   const building = unit.slot && gameState.buildingByAnyId(unit.slot.buildingId);
   const at = building ? ` at the ${BUILDING_LABELS[building.type]}` : '';
   if (unit.routePhase === 'queued') return `Waiting for a place${unit.queuedFor ? ` at the ${BUILDING_LABELS[gameState.buildingByAnyId(unit.queuedFor).type]}` : ''}`;
   switch (unit.status) {
     case UNIT_STATUS.RECRUITING: return 'Walking to the barracks to change into uniform';
     case UNIT_STATUS.TRAINING:
-      if (unit.onDrill) return unit.routePhase === 'using' ? 'Range drill at the Shooting Range' : 'Heading to the range drill';
       return unit.routePhase === 'using' ? `Training${at}` : `Heading to training${at}`;
     case UNIT_STATUS.EATING: return gameState.messHall.isBuilt ? `Eating${at}` : 'Hungry — no Mess Hall to eat in';
     case UNIT_STATUS.SLEEPING: return gameState.barracks.isBuilt ? 'Sleeping at the barracks' : 'Resting — no barracks beds yet';
@@ -272,6 +275,8 @@ function openProfile(unit) {
   }
   profileRole.textContent = `${unit.speciality} · Level ${unit.level}`;
   profileActivity.textContent = activityText(unit);
+  renderItinerary(unit);
+  renderPolicy(unit);
   const advice = gameState.recommendationFor(unit);
   profileRecommendation.textContent = advice.text;
   profileRecommendation.dataset.code = advice.code;
@@ -325,6 +330,49 @@ function openProfile(unit) {
   recallBtn.disabled = locked || !unit.assignedBuildingId;
 }
 
+// Today's timetable for this soldier with what actually happened.
+function renderItinerary(unit) {
+  const list = document.getElementById('profileItinerary');
+  const rows = unit.isCivilian ? [] : gameState.itineraryFor(unit);
+  const key = rows.map(r => `${r.block.id}:${r.entry ? r.entry.result : ''}:${r.current}`).join('|');
+  if (list.dataset.key === key) return;
+  list.dataset.key = key;
+  list.replaceChildren();
+  for (const { block, entry, current } of rows) {
+    const li = document.createElement('li');
+    const result = entry ? ({ completed: '✓', partial: '½', missed: '✗', excluded: '–' }[entry.result] || '') : current ? '▶' : '';
+    const why = entry && entry.reason && entry.result !== 'completed' ? ` — ${ROUTINE_REASONS[entry.reason] || entry.reason}` : '';
+    const minutes = entry && block.task === 'training' && entry.minutes !== undefined ? ` (${entry.minutes} min)` : '';
+    li.textContent = `${formatGameMinute(block.start)} ${block.label} ${result}${minutes}${why}`;
+    li.className = entry ? `itinerary-${entry.result}` : current ? 'itinerary-current' : '';
+    list.append(li);
+  }
+}
+
+const profilePolicy = document.getElementById('profilePolicy');
+function renderPolicy(unit) {
+  if (document.activeElement === profilePolicy) return;
+  const policy = unit.trainingPolicy || { mode: 'auto' };
+  profilePolicy.value = policy.mode === 'focus' ? `focus:${policy.stat}` : policy.mode === 'specific' ? `specific:${policy.facilityId}` : 'auto';
+  profilePolicy.disabled = unit.isCivilian || unit.status === UNIT_STATUS.RECRUITING;
+  const note = unit.routine && unit.routine.policyNote;
+  document.getElementById('profilePolicyNote').textContent = note === 'specific_missing' ? 'That facility is not built — training on Auto meanwhile.'
+    : note === 'focus_missing' ? 'Nothing trains that stat yet — training on Auto meanwhile.' : '';
+}
+profilePolicy.addEventListener('change', () => {
+  if (!selectedUnitId) return;
+  const [mode, value] = profilePolicy.value.split(':');
+  if (mode === 'auto') gameState.unassignFromTraining(selectedUnitId);
+  else if (mode === 'focus') gameState.setTrainingFocus(selectedUnitId, value);
+  else {
+    const unit = gameState.soldierById(selectedUnitId);
+    const building = gameState.buildingById(value);
+    if (unit && building && building.isBuilt) gameState.assignToBuilding(selectedUnitId, value);
+    else if (unit) { unit.assignedBuildingId = null; unit.trainingPolicy = { mode: 'specific', facilityId: value }; gameState.replanTraining(unit); }
+  }
+  gameState.save();
+});
+
 function closeProfile() {
   selectedUnitId = null;
   profilePanel.classList.add('hidden');
@@ -375,15 +423,20 @@ profileName.addEventListener('change', () => {
 // ---------- Recruit popup ----------
 
 // Meeting a visitor: who they are, what admitting them costs and does.
+// Brief 09: applicants are interviewed at the guardhouse's outside window;
+// only the one standing there can be admitted. Anyone can be turned away.
 function openRecruitPopup(unit) {
   pendingRecruitId = unit.id;
   drawPortrait(document.getElementById('recruitPortrait'), unit);
   const full = gameState.soldierCount >= gameState.unitCap;
   const short = gameState.cash < RECRUIT_COST;
-  recruitText.textContent = full ? `${unit.name} wants to join, but every bed is taken (${gameState.soldierCount}/${gameState.unitCap}). Build or upgrade the Barracks for more room.`
-    : `${unit.name} is at the gate asking to join. Admit them for $${RECRUIT_COST}? They'll walk to the barracks and change into uniform.`
+  const atWindow = gameState.applicantAtWindow() === unit;
+  const place = gameState.applicantLine.indexOf(unit.id);
+  recruitText.textContent = full ? `${unit.name} wants to join, but the roster is full (${gameState.soldierCount}/${gameState.unitCap}). Upgrade the Barracks for more room.`
+    : !atWindow ? `${unit.name} is queuing outside the gate (${place > 0 ? `${place} ahead at the guardhouse window` : 'walking up to the window'}). You can interview them when they reach the window.`
+    : `${unit.name} is at the guardhouse window asking to join. Admit them for $${RECRUIT_COST}? Once admitted they cross the barrier and change into uniform at the barracks.`
       + (short ? ` You need $${Math.ceil(RECRUIT_COST - gameState.cash)} more.` : '');
-  recruitConfirmBtn.disabled = full || short;
+  recruitConfirmBtn.disabled = full || short || !atWindow;
   recruitConfirmBtn.textContent = `Admit ${unit.name.split(' ')[0]} · $${RECRUIT_COST}`;
   recruitPopup.classList.remove('hidden');
 }
@@ -394,6 +447,12 @@ recruitConfirmBtn.addEventListener('click', () => {
     if (unit) openProfile(unit); // straight to their card: this is who they are now
     gameState.save();
   }
+  pendingRecruitId = null;
+  recruitPopup.classList.add('hidden');
+});
+
+document.getElementById('recruitReject').addEventListener('click', () => {
+  if (pendingRecruitId) gameState.rejectApplicant(pendingRecruitId);
   pendingRecruitId = null;
   recruitPopup.classList.add('hidden');
 });
@@ -779,8 +838,8 @@ const BUILDING_EFFECTS = {
   weightRoom: 'Trains strength — 2 soldiers at a time per level.',
   obstacleCourse: 'Trains endurance — 2 soldiers at a time per level.',
   drillYard: 'Trains strength and endurance together, more slowly.',
-  messHall: 'Meals with your food stock, so soldiers stop collapsing from hunger.',
-  showers: 'Keeps hygiene up, so energy drains more slowly.',
+  messHall: 'Field kitchen: a serving counter and six seats. Level 2 adds a second serving counter.',
+  showers: 'Toilets, wash basins and shower stalls. Upgrades add stalls and basins.',
   recRoom: 'Keeps morale up, so training isn\'t halved.',
 };
 
@@ -788,9 +847,11 @@ function buildingEffectText(key) {
   const building = gameState[key];
   if (key === 'barracks' && building.isBuilt) return `Room for 5 more soldiers (now ${gameState.unitCap}).`;
   if (building.capacity !== undefined && building.isBuilt) return `2 more training places (now ${building.capacity}).`;
-  if (key === 'messHall' && gameState.chapter.fieldMealUsed) {
-    return 'Daily meals from your food stock. The starter field meal was a one-off — without a Mess Hall, hungry soldiers collapse.';
+  if (key === 'showers' && building.isBuilt) {
+    const counts = FACILITY_STATIONS.showers, next = Math.min(building.level + 1, 3);
+    return `Now ${counts.toilet[building.level]} toilets, ${counts.basin[building.level]} basins, ${counts.shower[building.level]} showers${building.isMaxLevel ? '.' : ` → ${counts.toilet[next]} / ${counts.basin[next]} / ${counts.shower[next]}.`}`;
   }
+  if (key === 'messHall' && building.isBuilt) return building.isMaxLevel ? 'Two serving counters, six seats.' : 'One serving counter now; level 2 adds a second.';
   return BUILDING_EFFECTS[key];
 }
 
@@ -829,9 +890,17 @@ function refreshBuildButtons() {
 
   for (const { key, label, buildBtn } of needsBuildingUi) {
     const building = gameState[key];
-    if (building.isBuilt) {
+    const name = (buildBtn.querySelector && buildBtn.querySelector('.build-name')) || buildBtn;
+    if (building.maxLevel !== undefined) {
+      // Brief 09: the starter kitchen and wash block are upgraded, not built.
+      if (building.isMaxLevel) { buildBtn.disabled = true; name.textContent = `${label} · level ${building.level} (max)`; }
+      else {
+        name.textContent = `Upgrade ${label} to level ${building.level + 1} (${upgradePriceText(building)})`;
+        buildBtn.disabled = building.isBuilt && !gameState.canUpgradeBuilding(building);
+      }
+    } else if (building.isBuilt) {
       buildBtn.disabled = true;
-      buildBtn.textContent = `${label} Built`;
+      name.textContent = `${label} Built`;
     } else {
       buildBtn.disabled = false;
     }
@@ -1021,9 +1090,8 @@ let lastObjectiveTime = 0;
 
 const firstName = unit => unit.name.split(' ')[0];
 
-const drillHour = h => `${String(h).padStart(2, '0')}:00`;
-// The first-soldier range drill, named as the special case it is (mission.js).
-const DRILL_TEXT = unit => `Range drill: as the base's first soldier, ${firstName(unit)} trains ${FIRST_SOLDIER_DRILL.multiplier}× faster at any waking hour (${drillHour(FIRST_SOLDIER_DRILL.from)}–${drillHour(FIRST_SOLDIER_DRILL.to)}) until patrol-ready.`;
+// Brief 09: training happens in the timetable's training blocks.
+const TRAINING_TEXT = 'Soldiers train in the 08:00–12:00 and 13:00–17:00 blocks of the daily routine.';
 
 // { step, title, detail, progress: {pct, text}|null, action: {label, run, disabled}|null, focus }
 function describeObjective(stage) {
@@ -1035,8 +1103,8 @@ function describeObjective(stage) {
       if (pending) return { step: 2, title: `Admit ${pending.name}`, detail: `$${RECRUIT_COST} to join. They'll walk to the barracks and change into uniform.`,
         action: { label: `Admit ${firstName(pending)} · $${RECRUIT_COST}`, run: () => recruitConfirmBtn.click(), disabled: recruitConfirmBtn.disabled }, focus: { unitId: pending.id } };
       const visitor = stage.visitor;
-      if (!visitor) return { step: 1, title: 'Meet your first visitor', detail: 'Someone is on the road to the gate. Visitors check in at the barrier, then wait in the Entrance Hall.', action: { label: 'Waiting at the gate…', disabled: true }, focus: {} };
-      return { step: 1, title: 'Meet your first visitor', detail: `${visitor.name} ${visitor.routePhase === 'using' ? 'is waiting in the Entrance Hall' : visitor.enteredGate ? 'is walking in from the gate' : 'is checking in at the gate'}. Tap them to meet them.`,
+      if (!visitor) return { step: 1, title: 'Meet your first visitor', detail: 'Someone is on the road outside the gate. Applicants wait outside and are interviewed at the guardhouse window.', action: { label: 'Waiting at the gate…', disabled: true }, focus: {} };
+      return { step: 1, title: 'Meet your first visitor', detail: `${visitor.name} ${gameState.applicantAtWindow() === visitor ? 'is at the guardhouse window' : 'is walking up to the guardhouse window'}, outside the gate. Tap them to meet them.`,
         action: { label: `Meet ${firstName(visitor)}`, run: () => { locateUnit(visitor); openRecruitPopup(visitor); } }, focus: { unitId: visitor.id } };
     }
     case 'admit':
@@ -1053,13 +1121,12 @@ function describeObjective(stage) {
       const title = `Train ${unit.name} at the range`;
       if (unit.status === UNIT_STATUS.HOSPITAL) return { step: 3, title, detail: `${firstName(unit)} ${activityText(unit).charAt(0).toLowerCase() + activityText(unit).slice(1)}.`, progress, action: null, focus: { unitId: unit.id } };
       if (unit.assignedBuildingId !== range.id) {
-        return { step: 3, title, detail: `Accuracy decides whether ${firstName(unit)} is ready for the first patrol. ${DRILL_TEXT(unit)} About ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s at the range.`,
+        return { step: 3, title, detail: `Accuracy decides whether ${firstName(unit)} is ready for the first patrol. ${TRAINING_TEXT} About ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s of range use at 1×.`,
           progress, action: { label: `Assign ${firstName(unit)} to the range`, run: () => { gameState.assignToBuilding(unit.id, range.id); openProfile(unit); } }, focus: { unitId: unit.id, zoneId: range.zoneId } };
       }
-      const training = unit.status === UNIT_STATUS.TRAINING && unit.routePhase === 'using';
-      const detail = training ? `Range drill (${FIRST_SOLDIER_DRILL.multiplier}× training): ${firstName(unit)} is firing at the range — about ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s to go.`
-        : unit.status === UNIT_STATUS.SLEEPING ? `${firstName(unit)} is asleep; the range drill resumes at ${drillHour(FIRST_SOLDIER_DRILL.from)}.`
-        : `${activityText(unit)}. ${DRILL_TEXT(unit)}`;
+      const training = unit.routine && unit.routine.stage === 'use' && unit.slot && unit.slot.type === 'range_lane';
+      const detail = training ? `${firstName(unit)} is firing at the range — about ${Math.ceil(gameState.trainingSecondsToTarget(unit))} s of range use to go (at 1×).`
+        : `${activityText(unit)}. ${TRAINING_TEXT}`;
       return { step: 3, title, detail, progress, action: { label: `Watch ${firstName(unit)}`, run: () => { locateUnit(unit); openProfile(unit); } }, focus: { unitId: unit.id, zoneId: range.zoneId } };
     }
     case 'patrol': {
@@ -1109,8 +1176,7 @@ function refreshObjective() {
   document.getElementById('objectiveTitle').textContent = objective.title;
   // Until the Mess Hall exists, say why the soldier ate and what comes next.
   const stageId = gameState.chapterStage().id;
-  const mealNote = gameState.chapter.fieldMealUsed && !gameState.messHall.isBuilt && ['train', 'patrol', 'away', 'debrief'].includes(stageId)
-    ? ' Your soldier has eaten the one starter field meal from your food stores; patrol earnings will pay for a Mess Hall so they can eat every day.' : '';
+  const mealNote = '';
   document.getElementById('objectiveDetail').textContent = objective.detail + mealNote;
   const progressEl = document.getElementById('objectiveProgress');
   progressEl.classList.toggle('hidden', !objective.progress);
@@ -1135,7 +1201,45 @@ document.getElementById('resumeGuideBtn').addEventListener('click', () => { game
 
 // ---------- Game loop ----------
 
+// ---------- Daily routine bar (brief 09) ----------
+
+const speedButtons = [...document.querySelectorAll('.speed-controls button')];
+for (const button of speedButtons) {
+  button.addEventListener('click', () => { gameState.simSpeed = Number(button.dataset.speed); });
+}
+
+function updateRoutineBar() {
+  const win = gameState.currentWindow();
+  const next = nextRoutineBlock(win.block);
+  document.getElementById('routineDay').textContent = gameState.day + 1;
+  document.getElementById('routineClock').textContent = formatGameMinute(gameState.gameClockMs / 60000);
+  document.getElementById('routineNow').textContent = `${win.block.label} until ${formatGameMinute(win.block.end)}`;
+  document.getElementById('routineNext').textContent = `Next: ${next.label} ${formatGameMinute(next.start)}`;
+  for (const button of speedButtons) button.setAttribute('aria-pressed', String(Number(button.dataset.speed) === gameState.simSpeed));
+}
+
+const dayReportPanel = document.getElementById('dayReportPanel');
+function renderDayReport() {
+  const body = document.getElementById('dayReportBody');
+  body.replaceChildren();
+  const days = [gameState.day, gameState.day - 1].filter(d => d >= 0);
+  for (const day of days) {
+    const report = gameState.dailySummary(day);
+    const heading = document.createElement('h4');
+    heading.textContent = day === gameState.day ? `Day ${day + 1} (today, so far)` : `Day ${day + 1}`;
+    body.append(heading);
+    if (!report.lines.length) { const p = document.createElement('p'); p.textContent = 'Nothing recorded yet.'; body.append(p); continue; }
+    const list = document.createElement('ul');
+    for (const line of report.lines) { const li = document.createElement('li'); li.textContent = line.text; list.append(li); }
+    body.append(list);
+    if (report.advice) { const p = document.createElement('p'); p.className = 'day-advice'; p.textContent = `Suggested: ${report.advice}`; body.append(p); }
+  }
+}
+document.getElementById('dayReportBtn').addEventListener('click', () => { renderDayReport(); dayReportPanel.classList.remove('hidden'); });
+document.getElementById('closeDayReport').addEventListener('click', () => dayReportPanel.classList.add('hidden'));
+
 function updateHud() {
+  updateRoutineBar();
   cashValueEl.textContent = Math.floor(gameState.cash);
   rosterValueEl.textContent = `${gameState.soldierCount} / ${gameState.unitCap}`;
   lumberValueEl.textContent = Math.floor(gameState.lumber);
@@ -1151,14 +1255,20 @@ function frame(now) {
   lastFrameTime = now;
   const nowMs = Date.now();
 
-  // civilian spawn roll — probabilistic so spawns don't clump on a fixed timer
-  if (nowMs - gameState.lastCivilianSpawn > CIVILIAN_SPAWN_INTERVAL_MS) {
+  // Brief 09 speed: pause freezes the base (no arrivals either); 2x/4x run
+  // the day, walking and services faster together. Real deadlines
+  // (missions, recovery) compare against Date.now() and never scale. A
+  // suspended tab catches up at 1x, as an offline return would.
+  const speed = gameState.simSpeed;
+  if (speed > 0 && nowMs - gameState.lastCivilianSpawn > CIVILIAN_SPAWN_INTERVAL_MS / speed) {
     gameState.spawnCivilianIfRoom();
     gameState.lastCivilianSpawn = nowMs;
   }
 
   if (dt > 1) gameState.catchUp(dt, nowMs);
-  else gameState.tick(dt, nowMs);
+  else if (speed > 0) gameState.tick(dt * speed, nowMs);
+  else gameState.lastCivilianSpawn = Math.max(gameState.lastCivilianSpawn, nowMs - CIVILIAN_SPAWN_INTERVAL_MS / 2);
+  if (!dayReportPanel.classList.contains('hidden') && nowMs - lastRosterTime > 900) renderDayReport();
 
   // keep profile panel numbers live if the selected unit is still around
   if (selectedUnitId) {

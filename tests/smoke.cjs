@@ -8,7 +8,7 @@ const sandbox = vm.createContext({
   console, Math, Date,
   localStorage: { getItem: key => storage.get(key) || null, setItem: (key, value) => storage.set(key, value) },
 });
-for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'state', 'save']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);
@@ -24,8 +24,9 @@ assert.equal(run('walker.isAtTarget()'), true);
 assert.ok(run('Math.hypot(walker.x-buildingDoor(map.shootingRange).x,walker.y-buildingDoor(map.shootingRange).y)') < 25);
 assert.equal(run('map.entranceHall.zoneId'), 'zone_reception',
   'the Entrance Hall stays in the clearing beside the gate');
-assert.ok(run('map.waitingSlots.every((_, i) => pointInPolygon(map.chairPosition(i).x, map.chairPosition(i).y, buildingZone(map.entranceHall).footprint))'),
-  'waiting chairs must be inside the entrance hall');
+// Brief 09: applicants no longer sit in the Entrance Hall (now base
+// administration); they queue outside the guardhouse (tests/routine.cjs).
+assert.equal(run('BUILDING_LABELS.entrance_hall'), 'Administration');
 
 // XP is part of the normal mission loop; a successful mission changes level.
 run(`var state = new GameState(); var soldier = new Unit({x:100,y:100,isCivilian:false});
@@ -62,7 +63,8 @@ for (const tierId of ['local_patrol', 'supply_run', 'fortified_outpost', 'high_v
   run(`recruit.strength = 90; recruit.accuracy = 90; recruit.endurance = 90;`);
   for (let tries = 0; tries < 60 && !run(`unitMeetsMissionRequirements(recruit, missionTierById('${tierId}'))`); tries++) {
     const lowerTier = { supply_run: 'local_patrol', fortified_outpost: 'supply_run', high_value_target: 'fortified_outpost' }[tierId];
-    assert.equal(run(`progression.dispatchMission('${lowerTier}', [recruit.id])`), true);
+    // Back from a mission they rejoin the routine, so the next send is a recall.
+    assert.equal(run(`progression.dispatchMission('${lowerTier}', [recruit.id], { recall: true })`), true);
     run('recruit.missionReturnAt = Date.now() - 1000; progression.tick(0.1, Date.now())');
   }
   assert.equal(run(`unitMeetsMissionRequirements(recruit, missionTierById('${tierId}'))`), true, `${tierId} reachable`);

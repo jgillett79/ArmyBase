@@ -25,7 +25,7 @@ class Camera {
   }
 
   get minZoom() {
-    return Math.max(this.viewW / WORLD_W, this.viewH / WORLD_H);
+    return Math.max(this.viewW / (WORLD_W - WORLD_X0), this.viewH / WORLD_H);
   }
 
   // Viewport resize keeps the same world point in the middle.
@@ -47,7 +47,7 @@ class Camera {
 
   fitWorld() {
     this.zoom = this.minZoom;
-    this.centreOn(WORLD_W / 2, WORLD_H / 2);
+    this.centreOn((WORLD_X0 + WORLD_W) / 2, WORLD_H / 2);
   }
 
   centreOn(worldX, worldY) {
@@ -58,7 +58,9 @@ class Camera {
 
   clampToWorld() {
     const spanX = this.viewW / this.zoom, spanY = this.viewH / this.zoom;
-    this.x = spanX >= WORLD_W ? (WORLD_W - spanX) / 2 : clamp(this.x, 0, WORLD_W - spanX);
+    // x reaches WORLD_X0: the outside approach road west of the gate (world.js).
+    const spanW = WORLD_W - WORLD_X0;
+    this.x = spanX >= spanW ? WORLD_X0 + (spanW - spanX) / 2 : clamp(this.x, WORLD_X0, WORLD_W - spanX);
     this.y = spanY >= WORLD_H ? (WORLD_H - spanY) / 2 : clamp(this.y, 0, WORLD_H - spanY);
   }
 

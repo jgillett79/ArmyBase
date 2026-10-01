@@ -16,7 +16,7 @@ const sandbox = vm.createContext({
     setItem: (key, value) => storage.set(key, String(value)),
   },
 });
-for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'state', 'save']) {
+for (const file of ['utils', 'world', 'asset-manifest', 'unit', 'building', 'mission', 'routine', 'state', 'daily', 'save']) {
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'js', `${file}.js`), 'utf8'), sandbox);
 }
 const run = source => vm.runInContext(source, sandbox);
@@ -47,7 +47,9 @@ const levelField = { barracks: 'barracksLevel', shooting_range: 'shootingRangeLe
   weight_room: 'weightRoomLevel', obstacle_course: 'obstacleCourseLevel', drill_yard: 'drillYardLevel',
   showers: 'showersLevel', rec_room: 'recRoomLevel' };
 for (const [id, field] of Object.entries(levelField)) {
-  assert.equal(migrated.buildings[id].level, fixture[field], `${id} level preserved`);
+  // Brief 09: every base gets the starter bunks, kitchen and wash block (level >= 1).
+  const starter = ['barracks', 'mess_hall', 'showers'].includes(id);
+  assert.equal(migrated.buildings[id].level, starter ? Math.max(1, fixture[field]) : fixture[field], `${id} level preserved`);
   assert.equal(migrated.buildings[id].zoneId, run(`WORLD.defaultPlacements['${id}']`), `${id} placed on its default zone`);
 }
 assert.equal(migrated.buildings.entrance_hall.level, 1);
@@ -61,7 +63,11 @@ const identityKeys = ['id', 'name', 'colorSeed', 'soldierVariant', 'outfit', 'le
 assert.equal(migrated.units.length, fixture.units.length);
 fixture.units.forEach((before, i) => {
   const after = migrated.units[i];
-  for (const key of identityKeys) assert.deepEqual(after[key], before[key], `${before.name}: ${key} preserved`);
+  for (const key of identityKeys) {
+    // Brief 09: on base, status is whatever the timetable says now; hospital and mission stay.
+    if (key === 'status' && !['hospital', 'on_mission'].includes(before.status)) continue;
+    assert.deepEqual(after[key], before[key], `${before.name}: ${key} preserved`);
+  }
 });
 
 // Positions are reprojected to safe world spots, not left in old grid pixels.

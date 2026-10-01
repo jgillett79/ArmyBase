@@ -21,56 +21,23 @@ const UNIT_STATUS = {
 // Energy thresholds/rates — placeholder numbers, same caveat as the cash
 // economy in Phase 0: these exist to make the loop testable, not balanced.
 const ENERGY_CRITICAL = 20;          // at/below this, unit abandons job to eat
-const ENERGY_RATE_TRAINING = -8;     // per game-hour
-const ENERGY_RATE_IDLE = -3;         // per game-hour
-const ENERGY_RATE_SLEEPING = -1;     // per game-hour
-const ENERGY_RATE_EATING_FED = 15;   // per game-hour, only if food is available
-const ENERGY_RATE_EATING_HUNGRY = -3; // per game-hour, standing at an empty Mess Hall
 const ARRIVAL_RADIUS = 30; // px — how close counts as "at the building"
 // Per-stat training gain rates now live on the building (building.js `trains`
 // map) since Phase 2 added multiple training buildings — a single constant
 // here stopped being able to describe "how fast does X stat grow."
 
-// Hygiene/Morale — placeholder rates, same caveat as Energy above. Per the
-// locked design (CLAUDE.md): Hygiene feeds Energy's decay rate rather than
-// being its own path to the hospital, and Morale softly reduces training
-// gain rather than being a death path either — "no permadeath, one
-// consequence funnel" stays true with these two needs stats added.
-const HYGIENE_RATE_GAIN = 60;    // per game-hour, only while at built Showers during the Hygiene block
-const HYGIENE_RATE_DECAY = -3;   // per game-hour, otherwise
+// Hygiene/Morale (brief 09 rates live in routine.js ROUTINE_NEEDS and
+// STATION_RULES). Per the locked design (CLAUDE.md): low Hygiene speeds up
+// Energy's decay rather than being its own path to the hospital, and low
+// Morale halves training gain — "no permadeath, one consequence funnel".
 const HYGIENE_LOW_THRESHOLD = 30;
 const ENERGY_DECAY_HYGIENE_PENALTY = 1.5; // energy drains 50% faster below the hygiene threshold
-
-const MORALE_RATE_GAIN = 40;     // per game-hour, only while at built Rec Room during the Recreation block
-const MORALE_RATE_DECAY = -2;    // per game-hour, otherwise
 const MORALE_LOW_THRESHOLD = 30;
 const TRAINING_GAIN_MORALE_PENALTY = 0.5; // training gain halved below the morale threshold
 
-// The fixed daily schedule — see README/CLAUDE.md for the design. Hours are
-// game-clock hours (0-24, compressed — see the three-clocks comment in
-// state.js), NOT real time. `end` past 24 means the block wraps midnight
-// (22-30 reads as 22:00-24:00 plus 00:00-06:00).
-const DAILY_SCHEDULE = [
-  { start: 22, end: 30, status: UNIT_STATUS.SLEEPING },
-  { start: 6, end: 8, status: UNIT_STATUS.EATING },
-  { start: 8, end: 9, status: UNIT_STATUS.HYGIENE },
-  { start: 9, end: 12, status: UNIT_STATUS.TRAINING },
-  { start: 12, end: 13, status: UNIT_STATUS.EATING },
-  { start: 13, end: 17, status: UNIT_STATUS.TRAINING },
-  { start: 17, end: 20, status: UNIT_STATUS.RECREATION },
-  { start: 20, end: 22, status: UNIT_STATUS.EATING },
-];
-
-function scheduledStatusFor(hourOfDay) {
-  for (const block of DAILY_SCHEDULE) {
-    if (block.end <= 24) {
-      if (hourOfDay >= block.start && hourOfDay < block.end) return block.status;
-    } else if (hourOfDay >= block.start || hourOfDay < block.end - 24) {
-      return block.status;
-    }
-  }
-  return UNIT_STATUS.IDLE; // unreachable if DAILY_SCHEDULE covers all 24h, kept as a safe fallback
-}
+// Brief 09 replaced the old status schedule (DAILY_SCHEDULE /
+// desiredStatus) with the shared timetable in routine.js; daily.js decides
+// where each soldier goes.
 
 // Player customization (brief 08, deliberately small): an optional short
 // callsign and one of four identity accent colours for the helmet band and
@@ -192,14 +159,19 @@ class Unit {
     this.legPhase = 'travel';  // phase tag of the current route leg (see setPath)
     this.departing = false;    // walking out through the gate after mission dispatch
     this.walkDistance = 0;     // world px walked; drives walk-cycle frames (animation.js)
-    this.checkpointUntil = null; // visitor pausing at the gate checkpoint (real ms)
+    // Brief 09 (saved): the daily routine record (daily.js freshRoutine), the
+    // soldier's own bed station id, and their training policy.
+    this.routine = null;
+    this.bedId = null;
+    this.trainingPolicy = { mode: 'auto' }; // 'auto' | 'focus' (stat) | 'specific' (facilityId)
+    this.lastStationId = null;              // equipment used last bout (Auto avoids repeating it)
+    this.admitted = !isCivilian;            // admission permission: only admitted people cross the barrier
   }
 
   // What the player should see this unit doing, separate from its gameplay
   // status: travel/approach along paths, enter (door to slot), using (at a
   // reserved slot), queued, leave (slot back to the door), checkpoint.
   get routePhase() {
-    if (this.checkpointUntil !== null) return 'checkpoint';
     if (this.slot && this.isAtSlot()) return 'using';
     if (this.queuedFor && this.path.length === 0 && Math.hypot(this.x - this.targetX, this.y - this.targetY) < 4) return 'queued';
     return this.legPhase;
@@ -252,47 +224,6 @@ class Unit {
     return this.status === UNIT_STATUS.HOSPITAL && nowMs >= this.hospitalUntil;
   }
 
-  // Decide what this unit *should* be doing right now. Pure function of its
-  // own state plus the game-clock hour state.js knows that it doesn't.
-  // Doesn't mutate anything — state.js applies the transition if it differs
-  // from current status.
-  desiredStatus(hourOfDay) {
-    if (this.energy <= ENERGY_CRITICAL) return UNIT_STATUS.EATING; // safety net overrides the schedule
-    const scheduled = scheduledStatusFor(hourOfDay);
-    // First-soldier range drill (mission.js FIRST_SOLDIER_DRILL): any waking
-    // hour is range time. `onDrill` is set by GameState each tick.
-    if (this.onDrill && scheduled !== UNIT_STATUS.SLEEPING
-      && hourOfDay >= FIRST_SOLDIER_DRILL.from && hourOfDay < FIRST_SOLDIER_DRILL.to) return UNIT_STATUS.TRAINING;
-    // Training is opt-in per unit (must be assigned to a training building —
-    // see CLAUDE.md's "auto-schedule, not manual job-walking" decision, which
-    // covers *when*, not *which building*). Everyone else's block applies
-    // uniformly regardless of assignment.
-    if (scheduled === UNIT_STATUS.TRAINING && !this.assignedBuildingId) return UNIT_STATUS.IDLE;
-    return scheduled;
-  }
-
-  applyEnergyDelta(gameHours, foodAvailable) {
-    let rate;
-    switch (this.status) {
-      case UNIT_STATUS.TRAINING: rate = ENERGY_RATE_TRAINING; break;
-      case UNIT_STATUS.SLEEPING: rate = ENERGY_RATE_SLEEPING; break;
-      case UNIT_STATUS.EATING: rate = foodAvailable ? ENERGY_RATE_EATING_FED : ENERGY_RATE_EATING_HUNGRY; break;
-      default: rate = ENERGY_RATE_IDLE;
-    }
-    if (rate < 0 && this.hygiene < HYGIENE_LOW_THRESHOLD) rate *= ENERGY_DECAY_HYGIENE_PENALTY;
-    this.energy = clamp(this.energy + rate * gameHours, 0, this.maxEnergy);
-  }
-
-  applyHygieneDelta(gameHours, showersBuilt) {
-    const rate = (this.status === UNIT_STATUS.HYGIENE && showersBuilt) ? HYGIENE_RATE_GAIN : HYGIENE_RATE_DECAY;
-    this.hygiene = clamp(this.hygiene + rate * gameHours, 0, 100);
-  }
-
-  applyMoraleDelta(gameHours, recRoomBuilt) {
-    const rate = (this.status === UNIT_STATUS.RECREATION && recRoomBuilt) ? MORALE_RATE_GAIN : MORALE_RATE_DECAY;
-    this.morale = clamp(this.morale + rate * gameHours, 0, 100);
-  }
-
   // Only counts as "at" the target once every leg of a multi-leg route is
   // done — otherwise a unit passing near an intermediate waypoint (e.g. the
   // road spine, on its way to a building) would look arrived prematurely
@@ -306,8 +237,7 @@ class Unit {
   // trains: { statName: gainPerGameHour, ... } — comes from whichever
   // building.trains map the unit is currently assigned to. A building that
   // trains multiple stats (Combat Drill Yard) just has multiple keys here.
-  // `multiplier` is 1 except for the first-soldier range drill.
-  applyTrainingGain(gameHours, trains, multiplier = 1) {
+  applyTrainingGain(gameHours, trains, multiplier = 1) { // multiplier: kept for tests; always 1 in play
     const moralePenalty = this.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1;
     for (const stat in trains) {
       const before = this[stat];

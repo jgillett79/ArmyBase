@@ -6,9 +6,11 @@
 
 // Player-facing facility names by type (map labels, UI, event text).
 const BUILDING_LABELS = {
-  entrance_hall: 'Entrance Hall', barracks: 'Barracks', shooting_range: 'Shooting Range',
+  // Brief 09: recruitment moved to the perimeter guardhouse; the old
+  // reception building stays as base administration, not an applicant hall.
+  entrance_hall: 'Administration', barracks: 'Barracks', shooting_range: 'Shooting Range',
   mess_hall: 'Mess Hall', weight_room: 'Weight Room', obstacle_course: 'Obstacle Course',
-  drill_yard: 'Combat Drill Yard', showers: 'Showers', rec_room: 'Rec Room',
+  drill_yard: 'Combat Drill Yard', showers: 'Wash Block', rec_room: 'Rec Room',
 };
 
 const BARRACKS_MAX_LEVEL = 3;
@@ -157,16 +159,45 @@ class NeedsBuilding {
   build() { this.level = 1; }
 }
 
-class MessHall extends NeedsBuilding {
+// Brief 09: a starter field kitchen (level 1, one serving counter, six
+// seats). Level 2 adds a second serving counter — serving throughput is the
+// measured bottleneck for six soldiers (tests/routine.cjs). Cash only so it
+// is reachable early; placeholder price. Seat upgrades come with brief 09C.
+class MessHall {
   constructor() {
-    super({ id: 'mess_hall', type: 'mess_hall', cost: 120 });
+    this.id = 'mess_hall';
+    this.type = 'mess_hall';
+    this.zoneId = null;
+    this.level = 0;
+    this.maxLevel = 2;
   }
+
+  get isBuilt() { return this.level > 0; }
+  get isMaxLevel() { return this.level >= this.maxLevel; }
+  nextUpgradeCost() { return 120 * Math.pow(1.5, this.level); }
+  upgradePriceFor() { return { cash: this.nextUpgradeCost(), lumber: 0, steel: 0 }; }
+  upgrade() { this.level += 1; }
 }
 
-class Showers extends NeedsBuilding {
+// Brief 09: the showers building is the WASH BLOCK — toilet stalls, wash
+// basins and shower stalls (routine.js FACILITY_STATIONS). Starts at level 1
+// as a field facility; upgrades add stations. Level 2 is cash-only so a
+// player hitting a hygiene shortage early can fix it before lumber exists.
+// Placeholder prices.
+class Showers {
   constructor() {
-    super({ id: 'showers', type: 'showers', cost: 100 });
+    this.id = 'showers';
+    this.type = 'showers';
+    this.zoneId = null;
+    this.level = 0;
+    this.maxLevel = 3;
   }
+
+  get isBuilt() { return this.level > 0; }
+  get isMaxLevel() { return this.level >= this.maxLevel; }
+  nextUpgradeCost() { return 100 * Math.pow(1.5, this.level); }
+  upgradePriceFor(level) { return { cash: this.nextUpgradeCost(), lumber: level === 2 ? 10 : 0, steel: 0 }; }
+  upgrade() { this.level += 1; }
 }
 
 class RecRoom extends NeedsBuilding {

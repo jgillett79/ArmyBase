@@ -924,7 +924,7 @@ function renderFrame(ctx, gameState, selectedUnitId, view = {}) {
   const s = dpr * camera.zoom;
   ctx.setTransform(s, 0, 0, s, -camera.x * s, -camera.y * s);
 
-  ctx.drawImage(staticLayer(gameState), 0, 0, WORLD_W, WORLD_H);
+  ctx.drawImage(staticLayer(gameState), WORLD_X0, 0, WORLD_W - WORLD_X0, WORLD_H);
   const bounds = camera.visibleBounds(120);
   drawWaterCurrent(ctx, now, bounds);
   if (!checkpointArtReady()) drawGatehouse(ctx);

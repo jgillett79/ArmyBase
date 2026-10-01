@@ -38,7 +38,7 @@ const MAX_SAVED_NAME_LENGTH = 40; // UI renames cap at 18, but generated names c
 const SAVED_BUILDING_IDS = ['entrance_hall', 'barracks', 'shooting_range', 'mess_hall', 'weight_room',
   'obstacle_course', 'drill_yard', 'showers', 'rec_room'];
 const TRAINING_BUILDING_IDS = ['shooting_range', 'weight_room', 'obstacle_course', 'drill_yard'];
-const SAVED_BUILDING_MAX_LEVEL = { entrance_hall: 1, mess_hall: 1, showers: 1, rec_room: 1 }; // others: 3
+const SAVED_BUILDING_MAX_LEVEL = { entrance_hall: 1, mess_hall: 2, rec_room: 1 }; // others: 3 (showers = Wash Block since brief 09)
 
 // v1 stored one flat level field per singleton building.
 const V1_LEVEL_FIELDS = {
@@ -110,7 +110,10 @@ function migrateV1ToV2(v1) {
 function chapterForSave(data) {
   const established = (Array.isArray(data.units) && data.units.length > 0)
     || (Array.isArray(data.missionLog) && data.missionLog.length > 0)
-    || Object.entries(data.buildings || {}).some(([id, b]) => id !== 'entrance_hall' && b && b.level > 0);
+    // Brief 09 starter facilities (bunks, kitchen, wash block) exist at level
+    // 1 on every new base, so only levels above that count as a player's own.
+    || Object.entries(data.buildings || {}).some(([id, b]) => id !== 'entrance_hall' && b
+      && b.level > (['barracks', 'mess_hall', 'showers'].includes(id) ? 1 : 0));
   return established
     ? { firstSoldierId: null, targetAccuracy: null, introDispatched: true, introReportId: null, done: true, dismissed: true, legacy: true }
     : { firstSoldierId: null, targetAccuracy: null, introDispatched: false, introReportId: null, done: false, dismissed: false };

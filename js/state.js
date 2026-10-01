@@ -1,12 +1,13 @@
 // state.js — single source of truth. render.js reads it, main.js drives it.
 
-const CASH_PER_SECOND_IDLE = 0.03; // ~$108/hour; missions now matter more than waiting
-const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between civilian spawns
-const CIVILIAN_WALK_TIMEOUT_MS = 30000; // let arrivals reach the hall and be noticed
+const CASH_PER_SECOND_IDLE = 0.03; // ~$108/hour of base time; missions now matter more than waiting
+const CIVILIAN_SPAWN_INTERVAL_MS = 8000; // avg time between applicant arrivals
 
 // ---------------------------------------------------------------------------
 // THREE CLOCKS — read this before touching any timing code.
-// 1. Game day/night clock: COMPRESSED. 5 real minutes = 24 game hours.
+// 1. Game day/night clock: COMPRESSED. 20 real minutes = 24 game hours at
+//    1x (brief 09; was 5 minutes). The player's pause/1x/2x/4x speed
+//    scales the simulated seconds passed to tick(); real deadlines don't.
 //    Drives training/sleep/schedule decisions. Lives in gameState.gameClockMs.
 // 2. Hospital recovery: REAL TIME, uncompressed — a per-tier duration from
 //    mission.js (5 min for Local Patrol, NEGLECT_RECOVERY_MS for energy
@@ -17,14 +18,21 @@ const CIVILIAN_WALK_TIMEOUT_MS = 30000; // let arrivals reach the hall and be no
 // Do not derive #2 or #3 from the compressed game clock. This was flagged as
 // the most likely bug class in this system — keep it that way on purpose.
 // ---------------------------------------------------------------------------
-const DAY_LENGTH_REAL_MS = 5 * 60 * 1000; // 5 real minutes = 1 full game day
-const GAME_MS_PER_REAL_MS = (24 * 60 * 60 * 1000) / DAY_LENGTH_REAL_MS; // = 288
+// Brief 09: a one-hour routine window has to fit travel + queue + service.
+// At 5 minutes a day it lasted 12.5 s, less than a walk across the base, so
+// the prototype day is 20 real minutes (one game hour = 50 s). Provisional.
+const DAY_LENGTH_REAL_MS = 20 * 60 * 1000;
+const GAME_MS_PER_REAL_MS = (24 * 60 * 60 * 1000) / DAY_LENGTH_REAL_MS; // = 72
+const DAY_MS = 24 * 60 * 60 * 1000;
+const SIM_SPEEDS = [0, 1, 2, 4]; // pause, 1x, 2x, 4x (main.js scales tick dt; never saved)
 const DAY_START_HOUR = 6;
 const DAY_END_HOUR = 22;
 const OFFLINE_CATCHUP_CAP_MS = 24 * 60 * 60 * 1000; // was 3 days in Phase 0, now 24h per spec
+const OFFLINE_STEP_SECONDS = 1;
+const OFFLINE_COARSE_STEP_SECONDS = 5;
+const OFFLINE_FINE_SECONDS = 2 * 20 * 60; // the last two game days
 
 const FOOD_COST_PER_UNIT = 1.5; // cash per food, placeholder pricing
-const FOOD_CONSUMED_PER_GAME_HOUR = 5; // per unit actively eating with food available
 
 // ---------------------------------------------------------------------------
 // LAYOUT — the base is the authored terrain map in world.js: irregular build
@@ -85,9 +93,8 @@ function freshChapter() {
     fieldMealUsed: false };
 }
 
-const CIVILIAN_CHECKPOINT_MS = 2500; // real ms a visitor pauses at the gate before admission
 const QUEUE_SPACING = 26;            // world px between people queuing at a full facility
-const ACTIVITY_LOG_LIMIT = 300;
+const ACTIVITY_LOG_LIMIT = 6000;     // enough for a full traced day of six soldiers
 
 class GameState {
   constructor() {
@@ -114,8 +121,22 @@ class GameState {
     // beside the gate on purpose: newcomers should not cross the whole base
     // to find a seat (user feedback, see CLAUDE.md).
     for (const building of this.allBuildings) building.zoneId = WORLD.defaultPlacements[building.id];
+    // Starter field facilities (brief 09): a fresh base can feed, wash and
+    // bed four soldiers on day one — bunks, a serving counter and tables, a
+    // toilet/basin/shower block. Upgrades add places; the range is the
+    // first thing to build (the first soldier chapter).
+    this.barracks.level = 1;
+    this.messHall.level = 1;
+    this.showers.level = 1;
     this.slotOccupants = new Map(); // "buildingId:slotId" -> unit id (see reserveSlot)
-    this.queues = new Map();        // buildingId -> unit ids waiting, first come first served
+    this.queues = new Map();        // "buildingId:group" -> unit ids waiting, first come first served
+    this.stationOccupants = new Map(); // station id -> unit id (daily.js)
+    this.seatHolders = new Map();      // dining seat id -> unit id, reserved when serving starts
+    this.musterOccupants = new Map();  // parade-ground spot id -> unit id
+    this.routineRecords = {};          // "day:blockId" -> { day, blockId, units: { id: result } }
+    this.applicantLine = [];           // applicant ids; [0] is at the guardhouse window
+    this.day = 0;                      // whole game days since the base opened
+    this.simSpeed = 1;                 // runtime only
     this.activityLog = [];
     this.chapter = freshChapter(); // the first soldier chapter, see FIRST SOLDIER CHAPTER below
     this.events = [];               // individual moments for the toast feed; runtime only
@@ -228,7 +249,7 @@ class GameState {
   // tests and the render/debug pass. Bounded; not saved.
   logActivity(unit, event, detail = {}) {
     this.activityLog.push({ at: Date.now(), clock: this.gameClockMs, unitId: unit.id, name: unit.name, event, ...detail });
-    if (this.activityLog.length > ACTIVITY_LOG_LIMIT) this.activityLog.splice(0, this.activityLog.length - ACTIVITY_LOG_LIMIT);
+    if (this.activityLog.length > ACTIVITY_LOG_LIMIT + 500) this.activityLog.splice(0, this.activityLog.length - ACTIVITY_LOG_LIMIT);
   }
 
   // The slots a building offers right now. Training buildings open as many
@@ -281,6 +302,12 @@ class GameState {
   // Frees whatever the unit holds (slot or queue place) and lets the next
   // queued unit in. Safe to call on a unit that holds nothing.
   releaseSlot(unit, reason) {
+    // Brief 09: soldiers on the daily routine hold stations, queue places
+    // and seats through daily.js; release all of it there, once.
+    if (unit.routine && (unit.routine.window || unit.routine.stationId || unit.routine.queueKey)) {
+      this.releaseRoutine(unit, reason);
+      return;
+    }
     if (unit.slot) {
       const building = this.buildingByAnyId(unit.slot.buildingId);
       this.noteTrainingSession(unit, building);
@@ -407,15 +434,6 @@ class GameState {
     this.routeToNode(unit, doorNodeId(building.zoneId), [], 'approach');
   }
 
-  // Idle wander: a random point along the trunk trail inside the fence, so
-  // units stay on paths even when they have nowhere in particular to be.
-  routeToRandomRoadPoint(unit) {
-    const edges = worldEdgeList(new Set()).filter(e => e.from !== 'gate_outside' && e.from !== 'gate');
-    const edge = pick(edges);
-    const walk = edgePrefix(edge, randRange(0.1, 0.9)).map(p => ({ ...p, phase: 'travel' }));
-    if (this.routeToNode(unit, edge.from)) unit.path.push(...walk);
-  }
-
   // Recovering soldiers wait together near the aid station.
   routeToAidStation(unit) {
     const index = this.units.filter(u => u.status === UNIT_STATUS.HOSPITAL).indexOf(unit);
@@ -430,32 +448,19 @@ class GameState {
   // whenever a unit needs a fresh route without a status change of its own
   // (recruiting, loading a save, waking up from the hospital). Always drops
   // any slot/queue place first.
+  // Brief 09: soldiers on base never get a random wander target any more —
+  // they rejoin the routine, which always gives them a destination.
   routeForStatus(unit) {
     this.releaseSlot(unit, 'status');
-    if (unit.status === UNIT_STATUS.EATING) {
-      if (this.messHall.isBuilt) this.routeToBuilding(unit, this.messHall);
-      else this.routeToRandomRoadPoint(unit);
-    } else if (unit.status === UNIT_STATUS.HYGIENE) {
-      if (this.showers.isBuilt) this.routeToBuilding(unit, this.showers);
-      else this.routeToRandomRoadPoint(unit);
-    } else if (unit.status === UNIT_STATUS.RECREATION) {
-      if (this.recRoom.isBuilt) this.routeToBuilding(unit, this.recRoom);
-      else this.routeToRandomRoadPoint(unit);
-    } else if (unit.status === UNIT_STATUS.TRAINING) {
-      const building = this.buildingById(unit.assignedBuildingId) || this.shootingRange;
-      if (building.isBuilt) this.routeToBuilding(unit, building);
-      else this.routeToRandomRoadPoint(unit);
-    } else if (unit.status === UNIT_STATUS.SLEEPING) {
-      this.routeToBuilding(unit, this.barracks);
-    } else if (unit.status === UNIT_STATUS.RECRUITING) {
+    if (unit.status === UNIT_STATUS.RECRUITING) {
       this.routeToDoor(unit, this.barracks);
     } else if (unit.status === UNIT_STATUS.HOSPITAL) {
       this.routeToAidStation(unit);
     } else if (unit.status === UNIT_STATUS.ON_MISSION) {
       // Away (async/black-box, see mission.js) — dispatchMission() handles
       // the walk out; nothing to route on load.
-    } else {
-      this.routeToRandomRoadPoint(unit);
+    } else if (!unit.isCivilian) {
+      this.rejoinRoutine(unit);
     }
   }
 
@@ -463,6 +468,11 @@ class GameState {
   // durationMs: the failed tier's recoveryMs, or NEGLECT_RECOVERY_MS for an
   // energy collapse (never longer than a mission failure — see mission.js).
   hospitalize(unit, nowMs, reason, durationMs = NEGLECT_RECOVERY_MS) {
+    if (unit.routine && unit.routine.window) {
+      this.releaseRoutine(unit, 'hospital');
+      this.closeWindow(unit, { result: 'excluded', reason: 'recovery' });
+      unit.routine.window = null;
+    }
     unit.sendToHospital(nowMs, durationMs);
     unit.hospitalReason = reason;
     unit.departing = false;
@@ -509,18 +519,40 @@ class GameState {
     const building = this.buildingById(buildingId);
     if (!unit || unit.isCivilian || unit.status === UNIT_STATUS.HOSPITAL || unit.status === UNIT_STATUS.RECRUITING) return false;
     if (!building || !building.isBuilt) return false;
-    if (this.occupancyOf(building) >= building.capacity) return false;
+    // Brief 09: an assignment is the "Specific" training policy. Stations
+    // are shared and queued, so there is no assignment cap any more.
     unit.assignedBuildingId = building.id;
-    if (unit.status === UNIT_STATUS.TRAINING) this.routeForStatus(unit);
+    unit.trainingPolicy = { mode: 'specific', facilityId: building.id };
+    this.replanTraining(unit);
     return true;
   }
 
+  // Back to Auto (the default policy).
   unassignFromTraining(unitId) {
     const unit = this.units.find(u => u.id === unitId);
     if (!unit) return false;
     unit.assignedBuildingId = null;
-    if (unit.status === UNIT_STATUS.TRAINING) this.transitionUnit(unit, UNIT_STATUS.IDLE);
+    unit.trainingPolicy = { mode: 'auto' };
+    this.replanTraining(unit);
     return true;
+  }
+
+  // Focus on a stat: prefers equipment that trains it, falls back to Auto.
+  setTrainingFocus(unitId, stat) {
+    const unit = this.soldierById(unitId);
+    if (!unit || !['accuracy', 'strength', 'endurance'].includes(stat)) return false;
+    unit.assignedBuildingId = null;
+    unit.trainingPolicy = { mode: 'focus', stat };
+    this.replanTraining(unit);
+    return true;
+  }
+
+  // A policy change takes effect at once during a training block.
+  replanTraining(unit) {
+    const r = unit.routine;
+    if (!r || r.task !== 'training' || r.stage === 'use') return;
+    this.releaseRoutine(unit, 'policy');
+    this.planNext(unit);
   }
 
   // Shared "buy it once, no levels" build action for the NeedsBuilding trio
@@ -541,6 +573,7 @@ class GameState {
   }
 
   upgradePrice(building) {
+    if (building.upgradePriceFor) return building.upgradePriceFor(building.level);
     return { cash: building.nextUpgradeCost(), lumber: building.level === 1 ? 10 : 0,
       steel: building.level === 2 ? 6 : 0 };
   }
@@ -578,7 +611,7 @@ class GameState {
 
   get completedFacilities() {
     return [this.barracks, ...this.trainingBuildings].filter(b => b.isMaxLevel).length
-      + [this.messHall, this.showers, this.recRoom].filter(b => b.isBuilt).length;
+      + [this.recRoom].filter(b => b.isBuilt).length + [this.messHall, this.showers].filter(b => b.isMaxLevel).length;
   }
 
   get baseComplete() {
@@ -595,36 +628,39 @@ class GameState {
     return true;
   }
 
+  // Applicants arrive on the outside road and join the bounded line at the
+  // guardhouse window (WORLD.perimeter): one being served, the rest
+  // queuing outside. A full line means no new arrivals — nobody overflows
+  // inside. They never use the interior path graph (daily.js).
   spawnCivilianIfRoom() {
     if (this.soldierCount >= this.unitCap) return; // no point spawning if base is full
-    const approaching = this.units.filter(u => u.status === UNIT_STATUS.CIVILIAN_APPROACHING);
-    // Capped at the Entrance Hall's chair count, not an arbitrary number —
-    // no point letting more civilians in than there's a seat for.
-    if (approaching.length >= this.waitingSlots.length) return;
-
-    // The fence means there's only one way in: the gate. Spawn just outside
-    // it and head for the gate checkpoint first — tickCivilian() sends
-    // them to a waiting chair in the Entrance Hall once they've actually
-    // passed through.
-    // The check-in stop is just outside the barrier (WORLD.checkpoint.pause).
-    const outside = gatePosition('gate_outside'), stop = WORLD.checkpoint.pause;
-    const civ = new Unit({ x: outside.x, y: outside.y + randRange(-12, 12), isCivilian: true });
+    if (this.applicantLine.length >= 1 + WORLD.perimeter.queue.length) return;
+    const road = worldNodePosition('road_west');
+    const civ = new Unit({ x: road.x, y: WORLD.perimeter.roadY, isCivilian: true });
     civ.spawnedAt = Date.now();
-    civ.enteredGate = false;
-    civ.setPath([{ x: stop.x, y: stop.y, phase: 'approach' }]);
+    civ.serviceSince = null;
     this.units.push(civ);
+    this.applicantLine.push(civ.id);
+    this.routeApplicant(civ, this.applicantLine.length - 1);
+    this.logActivity(civ, 'arrived', { position: this.applicantLine.length });
   }
 
+  // Admission happens at the guardhouse window only: the applicant there,
+  // after reaching it. Admission (not clothing) is what lets them cross.
   recruit(unitId) {
     const unit = this.units.find(u => u.id === unitId);
     if (!unit || !unit.isCivilian) return false;
+    if (this.applicantAtWindow() !== unit) return false;
     if (this.soldierCount >= this.unitCap) return false;
     const cost = 50;
     if (this.cash < cost) return false;
     this.cash -= cost;
-    unit.checkpointUntil = null;
+    this.applicantLine = this.applicantLine.filter(id => id !== unit.id);
+    unit.serviceSince = null;
+    unit.admitted = true;
     unit.recruit();
     this.logActivity(unit, 'recruited');
+    this.shiftApplicantLine();
     if (!this.chapter.firstSoldierId && !this.chapter.done) {
       this.chapter.firstSoldierId = unit.id;
       this.chapter.targetAccuracy = Math.min(95, Math.floor(unit.accuracy) + INTRO_READINESS_GAIN);
@@ -634,14 +670,18 @@ class GameState {
       // nobody else's identity changes.
       unit.soldierVariant = 1;
     }
-    this.routeForStatus(unit); // frees their chair; RECRUITING -> walks to the Barracks, see tick()
+    // The accepted route starts at the barrier: off the verge onto the
+    // trail just outside the boom, then through the gate to the Barracks.
+    const admitted = WORLD.perimeter.admitted;
+    this.routeVia(unit, [{ x: admitted.x, y: admitted.y, phase: 'approach' }], doorNodeId(this.barracks.zoneId), [], 'approach');
     return true;
   }
 
   removeUnit(unitId) {
     const unit = this.units.find(u => u.id === unitId);
-    if (unit) this.releaseSlot(unit, 'removed');
+    if (unit) { this.releaseSlot(unit, 'removed'); this.releaseRoutine(unit, 'removed'); }
     this.units = this.units.filter(u => u.id !== unitId);
+    this.applicantLine = this.applicantLine.filter(id => id !== unitId);
   }
 
   // --- Missions — see mission.js for the tier data/pure-function rules ---
@@ -669,7 +709,11 @@ class GameState {
       if (avg < tier.minStatAvg) return no(`Needs stat average ${tier.minStatAvg} (now ${Math.floor(avg)})`);
     }
     if (unit.energy <= ENERGY_CRITICAL) return no('Too tired — needs food and rest first');
-    return { ok: true, recall: unit.status !== UNIT_STATUS.IDLE, reason: '' };
+    // Standing by or waiting on the parade ground needs no recall; anyone
+    // queuing, walking to or using a station does (their place is freed).
+    const r = unit.routine;
+    const free = !r || ['standby', 'waiting', 'idle'].includes(r.stage);
+    return { ok: true, recall: !free, reason: '' };
   }
 
   eligibleUnitsForTier(tier) {
@@ -710,8 +754,13 @@ class GameState {
     const returnAt = Date.now() + tier.durationMs;
     if (tier.intro) this.chapter.introDispatched = true;
     squad.forEach((unit, i) => {
-      if (checks[i].recall) this.logActivity(unit, 'recall', { from: unit.status });
+      if (checks[i].recall) this.logActivity(unit, 'recall', { from: unit.status, stage: unit.routine && unit.routine.stage });
       this.releaseSlot(unit, 'mission');
+      if (unit.routine && unit.routine.window) {
+        this.releaseRoutine(unit, 'mission');
+        this.closeWindow(unit, { result: 'excluded', reason: 'mission' });
+        unit.routine.window = null;
+      }
       unit.status = UNIT_STATUS.ON_MISSION;
       unit.missionReturnAt = returnAt;
       unit.missionTierId = tier.id;
@@ -763,7 +812,7 @@ class GameState {
       unit.x = gate.x;
       unit.y = gate.y;
       unit.status = UNIT_STATUS.IDLE;
-      this.routeForStatus(unit);
+      this.rejoinRoutine(unit); // the current timetable task, not the missed ones
     } else {
       // No permadeath: a short real-time recovery set by the tier (see
       // mission.js), never shorter for neglect than for failure. CLAUDE.md.
@@ -966,7 +1015,7 @@ class GameState {
     if (unit.energy <= 35) return { code: 'rest', text: 'Rest before deployment' };
     if (unit.id === this.chapter.firstSoldierId && this.introAvailable) {
       if (unit.accuracy >= this.chapter.targetAccuracy) return { code: 'ready', text: 'Ready for patrol' };
-      return { code: 'train', text: this.shootingRange.isBuilt ? 'Range drill: train accuracy' : 'Build the range to train accuracy' };
+      return { code: 'train', text: this.shootingRange.isBuilt ? 'Train accuracy at the range (training blocks)' : 'Build the range to train accuracy' };
     }
     const next = MISSION_TIERS.find(tier => !unitMeetsMissionRequirements(unit, tier));
     const best = MISSION_TIERS.filter(tier => unitMeetsMissionRequirements(unit, tier)).pop();
@@ -974,21 +1023,14 @@ class GameState {
     return { code: 'ready', text: best ? `Ready for ${best.name}` : 'Ready for patrol' };
   }
 
-  // The first-soldier range drill (mission.js FIRST_SOLDIER_DRILL): only the
-  // first soldier, only while assigned to a built range, only until they
-  // reach the patrol target and only before the intro patrol leaves.
-  isOnRangeDrill(unit) {
-    return unit.id === this.chapter.firstSoldierId && this.introAvailable && this.shootingRange.isBuilt
-      && unit.assignedBuildingId === this.shootingRange.id && unit.accuracy < this.chapter.targetAccuracy;
-  }
-
-  // Real seconds of range time until the first soldier reaches the patrol
-  // target (range gain per game-hour x the drill, halved at low morale).
+  // Real seconds (at 1x) of range use until the first soldier reaches the
+  // patrol target: range gain per game hour, halved at low morale. Brief 09
+  // removed the brief 08 out-of-hours range drill: this time only accrues
+  // in the training blocks.
   trainingSecondsToTarget(unit) {
     const need = this.chapter.targetAccuracy - unit.accuracy;
     if (!(need > 0)) return 0;
-    const rate = this.shootingRange.trains.accuracy * FIRST_SOLDIER_DRILL.multiplier
-      * (unit.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1);
+    const rate = this.shootingRange.trains.accuracy * (unit.morale < MORALE_LOW_THRESHOLD ? TRAINING_GAIN_MORALE_PENALTY : 1);
     return (need / rate) * 3600 / GAME_MS_PER_REAL_MS;
   }
 
@@ -996,18 +1038,20 @@ class GameState {
   // (small dt, every frame) and for offline catch-up (bounded steps).
   tick(dtSeconds, nowMs) {
     this.cash += CASH_PER_SECOND_IDLE * dtSeconds;
-    this.gameClockMs = (this.gameClockMs + dtSeconds * 1000 * GAME_MS_PER_REAL_MS) % (24 * 60 * 60 * 1000);
-    // dtSeconds (real) * GAME_MS_PER_REAL_MS = game-ms elapsed per real-second-of-dt.
+    const clock = this.gameClockMs + dtSeconds * 1000 * GAME_MS_PER_REAL_MS;
+    this.day += Math.floor(clock / DAY_MS);
+    this.gameClockMs = clock % DAY_MS;
+    // dtSeconds (simulated) * GAME_MS_PER_REAL_MS = game-ms elapsed per second of dt.
     // Divide by 3600 (not 3.6M) since dtSeconds is already in seconds, not ms.
     const gameHours = (dtSeconds * GAME_MS_PER_REAL_MS) / 3600;
+    const gameMinutes = gameHours * 60;
     const foodAvailable = this.food > 0;
 
     const toRemove = new Set();
-    let foodConsumedThisTick = 0;
 
     for (const unit of this.units) {
       if (unit.isCivilian) {
-        this.tickCivilian(unit, dtSeconds, nowMs, toRemove);
+        this.tickApplicant(unit, dtSeconds, nowMs, toRemove);
         this.notePhase(unit);
         continue;
       }
@@ -1018,7 +1062,7 @@ class GameState {
           unit.status = UNIT_STATUS.IDLE;
           unit.hospitalReason = null;
           this.pushEvent(unit, `${unit.name} is back on duty`);
-          this.routeForStatus(unit); // bypasses transitionUnit, so route explicitly here
+          this.rejoinRoutine(unit); // joins whatever the timetable says now
         }
         this.notePhase(unit);
         continue;
@@ -1043,7 +1087,7 @@ class GameState {
         // they've actually enlisted. The uniform swap is the "arrival"
         // moment at the Barracks entrance (see Unit.isAtTarget()'s path check).
         unit.step(dtSeconds);
-        unit.applyEnergyDelta(gameHours, foodAvailable);
+        unit.energy = clamp(unit.energy + ROUTINE_NEEDS.energyDrainAwake * gameHours, 0, unit.maxEnergy);
         if (unit.energy <= 0) {
           this.collapse(unit, nowMs);
         } else if (unit.isAtTarget()) {
@@ -1051,48 +1095,37 @@ class GameState {
           unit.status = UNIT_STATUS.IDLE;
           this.logActivity(unit, 'uniform', { buildingId: this.barracks.id });
           this.pushEvent(unit, `${unit.name} is in uniform`);
-          this.routeForStatus(unit);
+          this.assignBeds();
+          this.rejoinRoutine(unit);
         }
         this.notePhase(unit);
         continue;
       }
 
-      // Decide + apply transition if the desired status differs from current
-      unit.onDrill = this.isOnRangeDrill(unit); // runtime only, re-derived every tick
-      const desired = unit.desiredStatus(this.hourOfDay);
-      if (desired !== unit.status) this.transitionUnit(unit, desired);
-
-      unit.step(dtSeconds);
-
-      // Effects start only once the unit stands on its reserved slot at a
-      // built facility — the same condition render.js uses to draw activity.
-      const eating = unit.status === UNIT_STATUS.EATING && this.isUsingFacility(unit, this.messHall);
-      unit.applyEnergyDelta(gameHours, eating && foodAvailable);
-      unit.applyHygieneDelta(gameHours, this.isUsingFacility(unit, this.showers));
-      unit.applyMoraleDelta(gameHours, this.isUsingFacility(unit, this.recRoom));
-      if (eating && foodAvailable) {
-        foodConsumedThisTick += FOOD_CONSUMED_PER_GAME_HOUR * gameHours;
-      }
-      if (unit.status === UNIT_STATUS.TRAINING) {
-        const building = this.buildingById(unit.assignedBuildingId);
-        const drill = unit.onDrill && building === this.shootingRange ? FIRST_SOLDIER_DRILL.multiplier : 1;
-        if (this.isUsingFacility(unit, building)) unit.applyTrainingGain(gameHours, building.trains, drill);
-      }
-
-      this.maybeStarterFieldMeal(unit);
-      if (unit.energy <= 0) {
-        this.collapse(unit, nowMs);
-      }
+      // Brief 09: the shared timetable decides what everyone on base does;
+      // daily.js walks them to a real station, a queue place, or a
+      // parade-ground spot with a reason. Effects happen only in use.
+      this.tickRoutine(unit, dtSeconds, gameMinutes, nowMs);
       this.noteReadiness(unit);
       this.notePhase(unit);
     }
-
-    this.food = Math.max(0, this.food - foodConsumedThisTick);
+    this.serviceQueues();
 
     if (toRemove.size > 0) {
-      for (const unit of this.units) if (toRemove.has(unit.id)) this.releaseSlot(unit, 'removed');
+      for (const unit of this.units) if (toRemove.has(unit.id)) { this.releaseSlot(unit, 'removed'); this.releaseRoutine(unit, 'removed'); }
       this.units = this.units.filter(u => !toRemove.has(u.id));
+      this.applicantLine = this.applicantLine.filter(id => !toRemove.has(id));
     }
+  }
+
+  // A soldier coming back (recovered, returned from a mission, enlisted,
+  // loaded) joins the window the timetable is in now — missed tasks of the
+  // day are not replayed.
+  rejoinRoutine(unit) {
+    unit.routine = unit.routine || freshRoutine();
+    this.releaseRoutine(unit, 'rejoin');
+    unit.routine.window = null;
+    this.beginWindow(unit, this.currentWindow());
   }
 
   // Logs route-phase changes (approach -> enter -> using, queue, leave...)
@@ -1128,50 +1161,6 @@ class GameState {
     this.routeForStatus(unit);
   }
 
-  // Every visitor's walk is funneled through the single gate (there's no
-  // other opening in the fence): outside -> gate checkpoint (a short pause
-  // to be checked in) -> path to a reserved Entrance Hall chair -> after the
-  // timeout, back along the path -> outside -> despawn.
-  tickCivilian(unit, dtSeconds, nowMs, toRemove) {
-    const reached = unit.step(dtSeconds);
-    if (unit.status === UNIT_STATUS.CIVILIAN_APPROACHING) {
-      if (!unit.enteredGate) {
-        if (unit.checkpointUntil !== null) {
-          if (nowMs < unit.checkpointUntil) return;
-          unit.checkpointUntil = null;
-          unit.enteredGate = true;
-          const chair = this.reserveSlot(unit, this.entranceHall);
-          if (chair) {
-            const door = buildingDoor(this.entranceHall);
-            this.logActivity(unit, 'admitted', { slotId: chair.slotId });
-            this.routeToNode(unit, WORLD.safeNodes.waiting,
-              [{ ...door, phase: 'approach' }, { x: chair.x, y: chair.y, phase: 'enter' }], 'approach');
-          } else {
-            // Every chair taken by another visitor still mid-walk — wait
-            // just inside the gate rather than crossing the base with
-            // nowhere to actually sit (spawnCivilianIfRoom keeps this rare,
-            // not impossible).
-            this.logActivity(unit, 'admitted', { slotId: null });
-            this.routeToNode(unit, WORLD.safeNodes.gate);
-          }
-        } else if (reached) {
-          unit.checkpointUntil = nowMs + CIVILIAN_CHECKPOINT_MS;
-          unit.facing = 'right';
-          this.logActivity(unit, 'checkpoint');
-        }
-        return;
-      }
-      const waited = nowMs - unit.spawnedAt;
-      if (waited > CIVILIAN_WALK_TIMEOUT_MS && reached) {
-        this.releaseSlot(unit, 'gave_up');
-        unit.status = UNIT_STATUS.CIVILIAN_LEAVING;
-        this.routeToNode(unit, 'gate_outside', [], 'leave_base');
-      }
-    } else if (unit.status === UNIT_STATUS.CIVILIAN_LEAVING) {
-      if (reached) toRemove.add(unit.id); // outside the fence, gone
-    }
-  }
-
   // Current save schema (v2, see save.js). Building placement is saved
   // beside the level so a future build menu can choose zones.
   serialize() {
@@ -1204,7 +1193,17 @@ class GameState {
           missionReturnAt: u.missionReturnAt, missionTierId: u.missionTierId,
           trained: u.trained, serviceTag: u.serviceTag, serviceRecord: u.serviceRecord,
           callsign: u.callsign, accent: u.accent,
+          // brief 09
+          bedId: u.bedId, trainingPolicy: u.trainingPolicy, lastStationId: u.lastStationId,
+          routine: u.routine && u.routine.window ? {
+            window: u.routine.window, task: u.routine.task, step: u.routine.step, stage: u.routine.stage,
+            stationId: u.routine.stationId, progress: u.routine.progress, reason: u.routine.reason,
+            meal: u.routine.meal, log: u.routine.log, queueKey: u.routine.queueKey || null,
+            queueIndex: u.routine.queueIndex, pendingWindow: u.routine.pendingWindow, graceEnd: u.routine.graceEnd,
+          } : null,
         })),
+      day: this.day,
+      routineRecords: this.routineRecords,
     };
   }
 
@@ -1220,12 +1219,18 @@ class GameState {
     state.missionLog = Array.isArray(data.missionLog) ? data.missionLog.slice(0, 30) : [];
     state.chapter = { ...freshChapter(), ...(data.chapter || chapterForSave(data)) };
     state.gameClockMs = data.gameClockMs ?? state.gameClockMs;
+    state.day = Number.isInteger(data.day) && data.day >= 0 ? data.day : 0;
+    state.routineRecords = data.routineRecords && typeof data.routineRecords === 'object' ? data.routineRecords : {};
     for (const building of state.allBuildings) {
       const saved = data.buildings[building.id];
       if (!saved) continue; // older data without this building keeps its default site
       building.zoneId = saved.zoneId;
       if (building !== state.entranceHall) building.level = saved.level;
     }
+    // Starter field facilities (brief 09): every base has bunks, a serving
+    // counter and a wash block. Paid levels are kept; older bases without
+    // them get level 1 free so the routine can work (see save.js header).
+    for (const building of [state.barracks, state.messHall, state.showers]) building.level = Math.max(1, building.level);
 
     state.units = (data.units || []).map(d => {
       const u = new Unit({ x: d.x, y: d.y, isCivilian: false });
@@ -1244,9 +1249,12 @@ class GameState {
       if (WORLD.terrain.some(area => pointInPolygon(u.x, u.y, area.polygon))) {
         Object.assign(u, worldNodePosition(nearestTrunkNode(u.x, u.y)));
       }
-      state.routeForStatus(u); // fresh route on load rather than resuming a stale one
+      if (!u.trainingPolicy || typeof u.trainingPolicy !== 'object') u.trainingPolicy = u.assignedBuildingId ? { mode: 'specific', facilityId: u.assignedBuildingId } : { mode: 'auto' };
+      u.admitted = true;
       return u;
     });
+    state.assignBeds();
+    state.restoreRoutines(data.units || []);
 
     // Offline catch-up: 24h real-time cap, per spec — log off, come back
     // within a day, everything (hospital stays included) has accrued
@@ -1286,11 +1294,19 @@ class GameState {
   }
 
   // The same bounded steps serve reload and suspended-tab catch-up. Each
-  // step reevaluates the schedule and needs, unlike a single 24-hour tick.
+  // step re-evaluates windows, queues, services and needs in order. Brief 09:
+  // the last OFFLINE_FINE_SECONDS (two game days) run in 1 s steps (1.2 game
+  // minutes), so a 4-minute wash or a queue hand-off is simulated, not
+  // skipped. Anything older — a 24 h absence is 72 game days at the 20-minute
+  // day — runs in 5 s steps (6 game minutes): services and windows still
+  // happen in order, but walks and hand-offs are coarser (tests/routine.cjs
+  // measures both and the time it takes).
   catchUp(elapsedSec, nowMs) {
     const start = nowMs - elapsedSec * 1000;
+    const coarseUntil = elapsedSec - OFFLINE_FINE_SECONDS;
     for (let elapsed = 0; elapsed < elapsedSec;) {
-      const step = Math.min(10, elapsedSec - elapsed);
+      const size = elapsed < coarseUntil ? OFFLINE_COARSE_STEP_SECONDS : OFFLINE_STEP_SECONDS;
+      const step = Math.min(size, elapsedSec - elapsed, elapsed < coarseUntil ? coarseUntil - elapsed : Infinity);
       elapsed += step;
       this.tick(step, start + elapsed * 1000);
     }
