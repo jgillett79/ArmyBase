@@ -1,8 +1,10 @@
 // Review sheets for a Blender soldier appearance study (brief 10). Review
 // material only: nothing here is registered as game art.
 //
-//   node tools/blender/compose-soldier-review.cjs <studyDir> <outDir>
+//   node tools/blender/compose-soldier-review.cjs <studyDir> <outDir> [otherStudyDir ...]
 //   e.g. art/local-blender/soldier-study-02 art/review/blender-soldier-01
+//   Extra study dirs only add columns to the 44 px comparison (e.g. the same
+//   geometry rendered with --outline), so variants are compared side by side.
 //
 // Writes, from the study's four transparent renders:
 //   turnaround.png      front / right / back / three-quarter on a neutral backdrop
@@ -19,12 +21,16 @@ const path = require('node:path');
 const { startStaticServer, launchBrowser, sleep } = require('../lib/browser.cjs');
 
 const root = path.resolve(__dirname, '..', '..');
-const [studyArg, outArg] = process.argv.slice(2);
-if (!studyArg || !outArg) { console.error('usage: compose-soldier-review.cjs <studyDir> <outDir>'); process.exit(2); }
-const study = path.relative(root, path.resolve(studyArg)).split(path.sep).join('/');
+const [studyArg, outArg, ...extraArgs] = process.argv.slice(2);
+if (!studyArg || !outArg) { console.error('usage: compose-soldier-review.cjs <studyDir> <outDir> [otherStudyDir ...]'); process.exit(2); }
+const rel = dir => path.relative(root, path.resolve(dir)).split(path.sep).join('/');
+const study = rel(studyArg);
+const readReport = dir => JSON.parse(fs.readFileSync(path.join(root, dir, 'study-report.json'), 'utf8'));
+const variantName = report => report.outline ? 'outlined' : 'plain';
+const comparisons = [study, ...extraArgs.map(rel)].map(dir => ({ dir, name: variantName(readReport(dir)) }));
 const outDir = path.resolve(outArg);
 const studyReport = JSON.parse(fs.readFileSync(path.join(root, study, 'study-report.json'), 'utf8'));
-const caption = `Blender appearance study, revision ${studyReport.revision || 1}${studyReport.lighting ? `, ${studyReport.lighting} lighting` : ''} (Blender ${studyReport.blender}) — not game art, not rigged, standard ortho camera at ${studyReport.camera.elevationDegrees}°`;
+const caption = `Blender appearance study, revision ${studyReport.revision || 1}${studyReport.lighting ? `, ${studyReport.lighting} lighting` : ''}${studyReport.revision >= 3 ? (studyReport.outline ? ', OUTLINE ON' : ', outline off') : ''} (Blender ${studyReport.blender}) — not game art, not rigged, standard ortho camera at ${studyReport.camera.elevationDegrees}°`;
 
 const PAGE = `(async () => {
   const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error(src)); i.src = src; });
@@ -103,18 +109,28 @@ async function crop(page, cx, cy, w, h) {
     const cmp = await page.evaluate(`(async () => {
       const load = src => new Promise(ok => { const i = new Image(); i.onload = () => ok(i); i.src = src; });
       const live = await load('data:image/png;base64,${shots.live}'), master = await load('data:image/png;base64,${shots.master}');
-      const views = { front: await load('/${study}/front.png'), three_quarter: await load('/${study}/three_quarter.png') };
-      const b = ${JSON.stringify(bounds)};
-      const base = document.createElement('canvas'); base.width = 360; base.height = 80; const g = base.getContext('2d');
+      const comparisons = ${JSON.stringify(comparisons)};
+      const bounds = img => { const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0); const d = g.getImageData(0, 0, c.width, c.height).data;
+        let x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+        for (let y = 0; y < c.height; y++) for (let x = 0; x < c.width; x++) if (d[(y * c.width + x) * 4 + 3] > 8) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+        return { x0, y0, w: x1 - x0 + 1, h: y1 - y0 + 1 }; };
+      const cols = 2 + comparisons.length * 2, W = cols * 90;
+      const base = document.createElement('canvas'); base.width = W; base.height = 80; const g = base.getContext('2d');
       g.drawImage(live, 0, 0); g.drawImage(master, 90, 0);
-      // Grass strip from the live crop as the study's ground, then the study figures at 44 px tall.
-      g.drawImage(live, 0, 0, 30, 80, 180, 0, 90, 80); g.drawImage(live, 0, 0, 30, 80, 270, 0, 90, 80);
-      ['front', 'three_quarter'].forEach((v, i) => { const r = b[v], s = 44 / r.h;
-        g.drawImage(views[v], r.x0, r.y0, r.w, r.h, 180 + i * 90 + 45 - r.w * s / 2, 80 - 20 - 44 + 1, r.w * s, r.h * s); });
-      const big = document.createElement('canvas'); big.width = 360 * 4; big.height = 80 * 4 + 70; const bg = big.getContext('2d');
-      bg.fillStyle = '#1b2420'; bg.fillRect(0, 0, big.width, big.height); bg.imageSmoothingEnabled = false; bg.drawImage(base, 0, 0, 360 * 4, 80 * 4);
+      const labels = ['live game (interim still)', 'painted down master'];
+      // Grass strip from the live crop as the study's ground, then each study figure at 44 px tall.
+      let col = 2;
+      for (const cmpStudy of comparisons) for (const v of ['front', 'three_quarter']) {
+        const img = await load('/' + cmpStudy.dir + '/' + v + '.png'), r = bounds(img), s = 44 / r.h;
+        g.drawImage(live, 0, 0, 30, 80, col * 90, 0, 90, 80);
+        g.drawImage(img, r.x0, r.y0, r.w, r.h, col * 90 + 45 - r.w * s / 2, 80 - 20 - 44 + 1, r.w * s, r.h * s);
+        labels.push(cmpStudy.name + ' ' + (v === 'front' ? 'front' : '3/4') + ' @44px'); col++;
+      }
+      const big = document.createElement('canvas'); big.width = W * 4; big.height = 80 * 4 + 70; const bg = big.getContext('2d');
+      bg.fillStyle = '#1b2420'; bg.fillRect(0, 0, big.width, big.height); bg.imageSmoothingEnabled = false; bg.drawImage(base, 0, 0, W * 4, 80 * 4);
       bg.fillStyle = '#eee'; bg.font = 'bold 15px sans-serif';
-      ['live game (interim still)', 'painted down master', 'study front @44px', 'study 3/4 @44px'].forEach((t, i) => bg.fillText(t, i * 360 + 10, 80 * 4 + 24));
+      labels.forEach((t, i) => bg.fillText(t, i * 360 + 10, 80 * 4 + 24));
       bg.font = '13px sans-serif'; bg.fillText('4x enlargement of a zoom-1 crop (1 px = 1 world px). Appearance comparison only: the study camera is a standard 35° ortho view, not the game projection.', 10, 80 * 4 + 52);
       return { big: big.toDataURL('image/png'), one: base.toDataURL('image/png') }; })()`);
     fs.writeFileSync(path.join(outDir, 'game-size-44px.png'), Buffer.from(cmp.big.split(',')[1], 'base64'));

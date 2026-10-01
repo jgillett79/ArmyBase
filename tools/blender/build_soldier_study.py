@@ -260,6 +260,10 @@ def main():
         line_set.select_silhouette = True
         line_set.select_border = True
         line_set.select_contour = True
+        # A new line set in a factory-startup scene has no line style in
+        # Blender 5.2 (linestyle is None); create one (Claude's local run).
+        if line_set.linestyle is None:
+            line_set.linestyle = bpy.data.linestyles.new('Soldier contour style')
         line_set.linestyle.color = (.045,.065,.035)
         line_set.linestyle.thickness = 12
 
