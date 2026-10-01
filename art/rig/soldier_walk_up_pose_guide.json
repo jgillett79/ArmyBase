@@ -13,72 +13,72 @@
     {
       "right": {
         "x": 147,
-        "y": 367,
-        "planted": true
-      },
-      "left": {
-        "x": 109,
         "y": 293,
-        "planted": false
-      }
-    },
-    {
-      "right": {
-        "x": 147,
-        "y": 342,
         "planted": true
-      },
-      "left": {
-        "x": 109,
-        "y": 298,
-        "planted": false
-      }
-    },
-    {
-      "right": {
-        "x": 147,
-        "y": 317,
-        "planted": true
-      },
-      "left": {
-        "x": 109,
-        "y": 282,
-        "planted": false
-      }
-    },
-    {
-      "right": {
-        "x": 147,
-        "y": 293,
-        "planted": false
       },
       "left": {
         "x": 109,
         "y": 367,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 318,
+        "planted": true
+      },
+      "left": {
+        "x": 109,
+        "y": 322,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 343,
+        "planted": true
+      },
+      "left": {
+        "x": 109,
+        "y": 256,
+        "planted": false
+      }
+    },
+    {
+      "right": {
+        "x": 147,
+        "y": 367,
+        "planted": false
+      },
+      "left": {
+        "x": 109,
+        "y": 293,
         "planted": true
       }
     },
     {
       "right": {
         "x": 147,
-        "y": 298,
+        "y": 322,
         "planted": false
       },
       "left": {
         "x": 109,
-        "y": 342,
+        "y": 318,
         "planted": true
       }
     },
     {
       "right": {
         "x": 147,
-        "y": 282,
+        "y": 256,
         "planted": false
       },
       "left": {
         "x": 109,
-        "y": 317,
+        "y": 343,
         "planted": true
       }
     }
