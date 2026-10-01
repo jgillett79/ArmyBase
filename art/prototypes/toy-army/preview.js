@@ -47,6 +47,8 @@ function render(){const st=stateAt(time),css=scene.getBoundingClientRect(),ratio
  g.setTransform(ratio,0,0,ratio,0,0);g.fillStyle='#aabd7b';g.fillRect(0,0,css.width,css.height);const mobile=css.width<500,scale=mobile?css.width/360:Math.min(css.width/580,css.height/370),camera=mobile?Math.max(0,Math.min(220,st.x-180)):0;
  g.save();g.translate(mobile?0:(css.width-580*scale)/2,mobile?0:(css.height-370*scale)/2);g.scale(scale,scale);g.translate(-camera,0);ground(st.time);
  const chefServing=st.pose==='collect';person(325,169,'down',chefServing?'serve':'idle',chefServing?st.u:st.time*.25,'#e4e6d3');
+ // The counter is behind applicants on its near side.
+ round(296,181,96,15,2,'#89946a');round(300,182,88,3,1,'#b7c58c',null);
  // Another recruit finishes service as Omar joins the queue.
  let nx=325,ny=195,np='idle',nd='up',ph=0;
  if(st.time>=mealStart&&st.time<mealStart+2){const p=(st.time-mealStart)/2;ny=195+70*p;np='carry';nd='down';ph=70*p/R.STRIDE;}
@@ -56,8 +58,8 @@ function render(){const st=stateAt(time),css=scene.getBoundingClientRect(),ratio
  const pose=st.pose==='queue'?'idle':st.pose,seat=st.pose==='sit'?st.u:st.pose==='rise'?1-st.u:undefined;
  person(st.x,st.y,st.direction,pose,pose==='eat'?st.time*.55:st.phase,accent,seat);
  if(ny>=st.y)person(nx,ny,nd,np,ph,'#5185a5');
- // Counter front overlaps legs; tabletop front overlaps seated legs.
- round(296,181,96,15,2,'#89946a');round(300,182,88,3,1,'#b7c58c',null);round(389,253,110,7,2,'#b4986a');
+ // Tabletop front overlaps seated legs.
+ round(389,253,110,7,2,'#b4986a');
  if(st.pose==='eat'||st.pose==='sit'||st.pose==='rise'){round(438,243,23,7,2,'#d2ddcb');ellipse(446,245,5,2,'#e9c675');}
  g.restore();
  const label=names[st.pose]||names.walk;document.getElementById('step').textContent=(callsign||'Omar')+' · '+label;document.getElementById('record').textContent=label;
