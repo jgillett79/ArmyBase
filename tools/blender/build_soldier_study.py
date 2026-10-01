@@ -16,6 +16,7 @@ def arguments():
     parser.add_argument('--samples', type=int, default=48)
     parser.add_argument('--elevation', type=float, default=35)
     parser.add_argument('--no-render', action='store_true')
+    parser.add_argument('--soft-lighting', action='store_true', help='Study-01 lighting for comparison')
     return parser.parse_args(sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else [])
 
 
@@ -128,16 +129,22 @@ def soldier():
     accent = material('Editable helmet band and patch', (.53,.36,.12))
     # Anatomical right is negative X; soldier faces negative Y.
     torso = loft('Tunic shaped torso', [(0,0,1.00,.17,.11),(0,0,1.06,.19,.13),
-        (0,0,1.17,.16,.105),(0,0,1.32,.21,.14),(0,0,1.43,.235,.135),
+        (0,0,1.17,.16,.105),(0,0,1.32,.195,.13),(0,0,1.43,.205,.12),
         (0,0,1.49,.18,.11),(0,0,1.52,.08,.075)], olive)
     sleeves = []
     for sign, side in [(-1,'R'),(1,'L')]:
-        sleeves.append(loft('Sleeve_'+side, [(sign*.34,0,.98,.055,.06),
-            (sign*.33,0,1.04,.06,.065),(sign*.31,0,1.15,.072,.073),
-            (sign*.29,0,1.27,.08,.08),(sign*.24,0,1.43,.09,.10)], olive))
-        ellipsoid('Hand_'+side,(sign*.34,-.015,.94),(.048,.04,.073),skin)
-        box('Cuff_'+side,(sign*.34,0,1.005),(.12,.135,.025),edge,.005)
-        box('Cargo pocket_'+side,(sign*.19,.01,.74),(.065,.15,.17),trouser)
+        sleeves.append(loft('Sleeve_'+side, [(sign*.268,0,.855,.045,.049),
+            (sign*.268,0,.91,.049,.053),(sign*.265,0,1.065,.055,.057),
+            (sign*.25,0,1.16,.059,.062),(sign*.225,0,1.37,.067,.072),
+            (sign*.19,0,1.435,.067,.077)], olive))
+        loft('Hand_'+side, [(sign*.268,-.01,.74,.025,.019),
+            (sign*.268,-.014,.77,.034,.024),(sign*.268,-.013,.82,.036,.025),
+            (sign*.268,-.008,.875,.027,.027)],skin)
+        ellipsoid('Thumb_'+side,(sign*.244,-.029,.809),(.015,.019,.032),skin)
+        loft('Cuff_'+side,[(sign*.268,0,.858,.048,.052),
+                           (sign*.268,0,.878,.049,.053)],edge)
+        # Thin cloth pockets hug the thigh rather than forming holsters.
+        box('Cargo pocket_'+side,(sign*.184,.0,.755),(.018,.115,.13),trouser,.007)
     fuse([torso,*sleeves], 'Uniform continuous surface')
     pelvis = loft('Trousers pelvis', [(0,0,.86,.155,.115),(0,0,.98,.175,.12),
                                     (0,0,1.07,.17,.115)], trouser)
@@ -147,8 +154,10 @@ def soldier():
             (sign*.105,0,.25,.072,.075),(sign*.105,0,.47,.077,.08),
             (sign*.105,-.005,.56,.084,.085),(sign*.105,0,.76,.091,.095),
             (sign*.092,0,.96,.095,.109)], trouser))
-        box('Sole_'+side,(sign*.105,-.045,.027),(.145,.29,.054),sole,.02)
-        ellipsoid('Boot toe_'+side,(sign*.105,-.075,.08),(.07,.137,.065),boots)
+        box('Sole_'+side,(sign*.105,-.064,.027),(.145,.32,.054),sole,.02)
+        loft('Boot shaped upper_'+side,[(sign*.105,-.062,.045,.067,.15),
+            (sign*.105,-.065,.082,.065,.146),(sign*.105,-.045,.115,.059,.114),
+            (sign*.105,.009,.15,.058,.063)],boots)
         loft('Boot ankle_'+side,[(sign*.105,.015,.055,.067,.077),
              (sign*.105,.012,.12,.065,.069),(sign*.105,.009,.205,.064,.065)],boots)
         for z in [.105,.13,.155]:
@@ -160,8 +169,9 @@ def soldier():
         (0,.006,1.79,.083,.079),(0,.008,1.815,.045,.05)],skin)
     for sign in [-1,1]:
         ellipsoid('Ear_'+str(sign),(sign*.092,0,1.69),(.018,.022,.032),skin)
-        ellipsoid('Eye_'+str(sign),(sign*.034,-.091,1.712),(.017,.008,.008),ivory)
-        ellipsoid('Iris_'+str(sign),(sign*.034,-.098,1.712),(.006,.003,.006),iris)
+        # Restrained inset-looking eyes; no projecting white eyeballs.
+        ellipsoid('Eye_'+str(sign),(sign*.034,-.081,1.712),(.012,.004,.005),hair)
+        ellipsoid('Iris_'+str(sign),(sign*.034,-.085,1.713),(.004,.002,.004),iris)
         seam('Eyebrow_'+str(sign),[(sign*.015,-.093,1.735),(sign*.037,-.09,1.74),
                                  (sign*.054,-.082,1.733)],.004,hair)
     ellipsoid('Nose',(0,-.098,1.69),(.016,.024,.025),skin)
@@ -171,18 +181,19 @@ def soldier():
         (0,.008,1.82,.107,.105),(0,.012,1.866,.076,.078),
         (0,.014,1.889,.025,.026)],olive)
     loft('Helmet accent band',[(0,0,1.752,.113,.11),(0,0,1.763,.114,.111)],accent)
-    box('Helmet brow rim',(0,-.10,1.753),(.22,.055,.015),edge,.007)
+    loft('Helmet continuous lip',[(0,0,1.745,.113,.11),
+        (0,0,1.751,.119,.115),(0,0,1.759,.114,.11)],edge)
     for sign in [-1,1]:
         seam('Chin strap_'+str(sign),[(sign*.10,-.02,1.76),(sign*.071,-.046,1.62),
                                      (sign*.045,-.058,1.587)],.004,web)
-        seam('Harness_'+str(sign),[(sign*.135,-.104,1.45),(sign*.13,-.141,1.34),
-                                  (sign*.11,-.115,1.16),(sign*.105,-.133,1.08)],.014,web)
-        box('Chest pocket_'+str(sign),(sign*.108,-.139,1.31),(.09,.021,.085),olive,.006)
-        box('Belt pouch_'+str(sign),(sign*.116,-.145,1.08),(.079,.045,.084),web,.009)
-    loft('Belt',[(0,0,1.075,.179,.127),(0,0,1.105,.177,.126)],web)
-    box('Buckle',(0,-.132,1.09),(.042,.015,.033),steel,.004)
-    box('Shoulder accent patch',(.315,-.072,1.31),(.035,.013,.043),accent,.004)
-    seam('Tunic opening',[(0,-.139,1.42),(0,-.111,1.18)],.002,edge)
+        seam('Harness_'+str(sign),[(sign*.135,-.115,1.45),(sign*.13,-.126,1.34),
+                                  (sign*.11,-.089,1.16),(sign*.105,-.112,1.08)],.014,web)
+        box('Chest pocket_'+str(sign),(sign*.108,-.111,1.31),(.08,.018,.072),olive,.006)
+        box('Belt pouch_'+str(sign),(sign*.116,-.124,1.09),(.072,.034,.071),web,.009)
+    loft('Belt',[(0,0,1.075,.196,.138),(0,0,1.105,.193,.136)],web)
+    box('Buckle',(0,-.144,1.09),(.042,.015,.033),steel,.004)
+    box('Shoulder accent patch',(.258,-.057,1.31),(.032,.012,.037),accent,.004)
+    # Omit the broken centre seam: it adds noise at 44 px.
     # No rifle in this appearance pass: settle anatomy and silhouette first.
 
 
@@ -223,11 +234,11 @@ def main():
     scene.world = bpy.data.worlds.new('Studio ambient')
     scene.world.use_nodes = True
     scene.world.node_tree.nodes['Background'].inputs[0].default_value = (.55,.59,.65,1)
-    scene.world.node_tree.nodes['Background'].inputs[1].default_value = .3
+    scene.world.node_tree.nodes['Background'].inputs[1].default_value = .3 if args.soft_lighting else .12
     for name, location, power, size, colour in [
-        ('Warm upper-left key',(-3,-4,6),550,4,(1,.88,.72)),
-        ('Soft fill',(3,-1,3),180,5,(.80,.88,1)),
-        ('Rear separation',(0,3,4),220,3,(1,.95,.84))]:
+        ('Warm upper-left key',(-3,-4,6),550,4 if args.soft_lighting else 2.5,(1,.88,.72)),
+        ('Soft fill',(3,-1,3),180 if args.soft_lighting else 70,5,(.80,.88,1)),
+        ('Rear separation',(0,3,4),220 if args.soft_lighting else 110,3,(1,.95,.84))]:
         data = bpy.data.lights.new(name,'AREA')
         data.energy,data.size,data.color = power,size,colour
         obj = bpy.data.objects.new(name,data)
@@ -262,6 +273,7 @@ def main():
               'blender':bpy.app.version_string,'heightMetres':1.889,
               'camera':{'type':'ORTHO','elevationDegrees':args.elevation,'scale':2.35},
               'views':[name for name,_ in views], 'rendered':not args.no_render,
+              'revision':2,'lighting':'soft' if args.soft_lighting else 'contrast',
               'productionProjectionMatched':False,
               'notes':'Standard orthographic study. Existing equal-ground-axis oblique projection requires a separate export calibration. Garment remesh needs animation topology/weights before rigging.'}
     (out/'study-report.json').write_text(json.dumps(report,indent=2)+'\n')
