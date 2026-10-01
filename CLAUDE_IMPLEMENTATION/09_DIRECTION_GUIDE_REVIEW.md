@@ -45,7 +45,7 @@ I have not changed the runtime for this; it changes the feel of all walking.
 ### Notes for painting (consistency between views; not blockers)
 
 - **Stance width.** The camera's ground axes are equal, so feet that are 40 source px apart side to side in the up view (x 108/148, 5.9 world px) should also be about 40 px apart in depth in the right view. The right guide has them 16 px apart (near sole row 338, far 322). Paint the right view's near/far soles about 20 px either side of row 330, or narrow the up view; just keep them equal.
-- **Lift at passing.** Swing-foot height above the planted sole at the passing frame: down master 82 source px, up guide 91, right guide 60. Use one height (about 80) in every view.
+- ~~**Lift at passing.** Swing-foot height above the planted sole at the passing frame: down master 82 source px, up guide 91, right guide 60. Use one height (about 80) in every view.~~ **Wrong — see the second pass below: the master's passing lift is 8 px; 82 was frame 4 (step depth + lift).**
 - **Toe-off.** At the frame where a foot stops being planted, the right guide keeps it moving backward (still cancelling body travel); the up guide leaves it where it was (it travels with the body). Either reads fine; pick one.
 - **Left = mirrored right** moves the rifle to the right shoulder when facing left. The manifest already says left may mirror right only after a kit review. If Jason wants the rifle on the same shoulder in every direction, a left set must be painted.
 
