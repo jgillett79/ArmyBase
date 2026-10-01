@@ -23,6 +23,8 @@ const [studyArg, outArg] = process.argv.slice(2);
 if (!studyArg || !outArg) { console.error('usage: compose-soldier-review.cjs <studyDir> <outDir>'); process.exit(2); }
 const study = path.relative(root, path.resolve(studyArg)).split(path.sep).join('/');
 const outDir = path.resolve(outArg);
+const studyReport = JSON.parse(fs.readFileSync(path.join(root, study, 'study-report.json'), 'utf8'));
+const caption = `Blender appearance study, revision ${studyReport.revision || 1}${studyReport.lighting ? `, ${studyReport.lighting} lighting` : ''} (Blender ${studyReport.blender}) — not game art, not rigged, standard ortho camera at ${studyReport.camera.elevationDegrees}°`;
 
 const PAGE = `(async () => {
   const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error(src)); i.src = src; });
@@ -39,7 +41,7 @@ const PAGE = `(async () => {
   const out = {};
   const sheet = (w, h, fill = BG) => { const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); g.fillStyle = fill; g.fillRect(0, 0, w, h); return [c, g]; };
   const label = (g, text, x, y) => { g.font = 'bold 22px sans-serif'; g.fillStyle = INK; g.fillText(text, x, y); };
-  const NOTE = 'Blender appearance study 01 — not game art, not rigged, standard ortho camera at 35°';
+  const NOTE = ${JSON.stringify(caption)};
   // Turnaround: crops at 0.6 on one ground line.
   { const S = 0.6, pad = 30, H = Math.max(...views.map(v => b[v].h)) * S;
     const W = views.reduce((s, v) => s + b[v].w * S + pad, pad);
