@@ -11,77 +11,79 @@
   "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
   "frames": 6,
+  "stanceWidthSourcePx": 40,
+  "passingLiftSourcePx": 80,
   "direction": "right",
   "track": [
     {
       "right": {
         "x": 165,
-        "y": 338,
+        "y": 350,
         "planted": true
       },
       "left": {
         "x": 91,
-        "y": 322,
+        "y": 310,
         "planted": false
       }
     },
     {
       "right": {
         "x": 140,
-        "y": 338,
+        "y": 350,
         "planted": true
       },
       "left": {
         "x": 116,
-        "y": 302,
+        "y": 290,
         "planted": false
       }
     },
     {
       "right": {
         "x": 115,
-        "y": 338,
+        "y": 350,
         "planted": true
       },
       "left": {
         "x": 141,
-        "y": 262,
+        "y": 230,
         "planted": false
       }
     },
     {
       "right": {
         "x": 91,
-        "y": 338,
+        "y": 350,
         "planted": false
       },
       "left": {
         "x": 165,
-        "y": 322,
+        "y": 310,
         "planted": true
       }
     },
     {
       "right": {
         "x": 116,
-        "y": 318,
+        "y": 330,
         "planted": false
       },
       "left": {
         "x": 140,
-        "y": 322,
+        "y": 310,
         "planted": true
       }
     },
     {
       "right": {
         "x": 141,
-        "y": 278,
+        "y": 270,
         "planted": false
       },
       "left": {
         "x": 115,
-        "y": 322,
+        "y": 310,
         "planted": true
       }
     }

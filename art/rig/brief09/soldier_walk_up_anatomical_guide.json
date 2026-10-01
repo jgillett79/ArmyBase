@@ -11,6 +11,8 @@
   "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
   "frames": 6,
+  "stanceWidthSourcePx": 40,
+  "passingLiftSourcePx": 80,
   "direction": "up",
   "track": [
     {
@@ -45,7 +47,7 @@
       },
       "left": {
         "x": 108,
-        "y": 252,
+        "y": 263,
         "planted": false
       }
     },
@@ -76,7 +78,7 @@
     {
       "right": {
         "x": 148,
-        "y": 252,
+        "y": 263,
         "planted": false
       },
       "left": {
