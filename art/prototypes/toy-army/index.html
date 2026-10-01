@@ -1,0 +1,12 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Command Base — Cartoon Preview</title><link rel="stylesheet" href="style.css"></head>
+<body><main>
+<header><a href="../../../index.html" class="brand">★ COMMAND BASE</a><span class="preview">STYLE PREVIEW</span></header>
+<div class="intro"><div><h1>Meet your first recruit.</h1><p>A small preview of a warmer base, a familiar face and a visible daily routine.</p></div><button id="play" type="button" aria-pressed="false">Pause</button></div>
+<section class="layout">
+<div class="scene"><canvas id="scene" role="img" aria-label="Animated soldier walks around the base, queues at a kitchen, collects a tray and sits to eat."></canvas><div class="action"><span id="step">Getting ready</span><span id="follow">Following your soldier</span></div></div>
+<aside class="soldier-card"><div class="portrait-wrap"><canvas id="portrait" width="256" height="256" role="img" aria-label="Portrait of your soldier"></canvas><span class="rank">CADET</span></div><p class="name">Omar <strong id="name">“Kestrel”</strong></p><p class="role">Your first recruit</p><label for="callsign">Callsign</label><input id="callsign" maxlength="12" value="Kestrel" autocomplete="off"><label>Uniform accent</label><div class="colours" role="group" aria-label="Uniform accent"><button data-colour="#dba852" style="--swatch:#dba852" aria-label="Gold" aria-pressed="true"></button><button data-colour="#b95b4b" style="--swatch:#b95b4b" aria-label="Red" aria-pressed="false"></button><button data-colour="#5185a5" style="--swatch:#5185a5" aria-label="Blue" aria-pressed="false"></button><button data-colour="#e4e6d3" style="--swatch:#e4e6d3" aria-label="White" aria-pressed="false"></button></div><div class="record"><span>Today’s routine</span><strong id="record">Exploring the base</strong><p id="detail">Watch the same soldier move, wait and use the kitchen.</p></div></aside>
+</section>
+<nav class="controls" aria-label="Preview scenes"><button id="routine" class="selected" aria-pressed="true">Full routine</button><button id="walk" aria-pressed="false">Walking</button><button id="meal" aria-pressed="false">Mealtime</button><button id="restart">↻ Restart</button></nav>
+<p class="note">This is a separate visual prototype. It does not use or change your game save.</p>
+</main><script src="soldier-rig.js"></script><script src="preview.js"></script></body></html>
