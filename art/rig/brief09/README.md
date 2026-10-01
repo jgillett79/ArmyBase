@@ -1,18 +1,20 @@
-# Brief 09 direction guides — Tenth round corrections, 1 October 2026
+# Brief 09 direction guides — Eleventh round, 1 October 2026
 
-These are **paint guides, not finished sprites**. Never add them to the runtime manifest or promote the walk release gate. Use the accepted painted down-v3 soldier for face, helmet, proportions and kit; the simple guide rendering is not the style target.
+**Paint templates only, never runtime art.** These four PNG/JSON pairs supersede the Tenth round's40/80 measurements. The accepted down-v3 identity is still the paint reference. No finished up/right painting is delivered by this pack.
 
-Four PNGs cover six-frame up/right walks and two-frame up/right idle. Source cells: **256×384**, pivot **(128,330)**, source density **300/44 = 6.818 px/world**. Deliver painted sources and same-grid accent masks at this density. Claude makes the runtime exports. Do not shrink or repack character sources to 3×. Facility/station layers alone remain fixed at 3 px/world. Lying/sitting/climbing sources keep 6.818 px/world on wider cells, with an explicit consistent body pivot.
+Cells256×384; pivot(128,330); source density300/44px/world; stride22world px; six walk frames/two idle frames. Characters are not rescaled to3×. Claude makes runtime exports; facility/station layers remain3px/world.
 
-## Corrected geometry
+The generator uses exactly `docs/screenshots/2026-10-01-direction-guides/proposed-tracks-tenth-round-followup.json`:
 
-- Anatomical right foot plants in frames 1–3 in every view. In up (back view), it is at screen x148; the left foot is at x108. Rifle stays on the anatomical left shoulder, screen-left from behind. Claude's correction is retained.
-- Stance width is 40 source px (5.87 world px) in both views. Up: x108/148. Right: near/right sole ground row350, far/left row310. Idle uses the same spacing.
-- Passing swing-foot lift is 80 source px in both guides, close to the down master's measured82. Up passing sole is row263 versus ground343. Right far passing sole row230 versus ground310; near passing sole row270 versus ground350.
-- Stance-foot movement remains25 source px per frame: right decreases x; up increases y. Contact frames1 and4 plant opposite anatomical feet. No stride, runtime timing or speed changes.
+- Stance width52 in both walks/idles. Rear right foot/hip is x154, left x102. Right-facing near ground row356, far304; hip depths follow those rows.
+- Passing lift8 at frames3/6, feet at equal forward depth. Mid-swing lift12 at frames2/5.
+- Toe-off lift8, with up trailing soles row359 at frames1/4. Near/far boots retain their anatomical identities.
+- Planted feet move25source px per frame with the correct sign. Same anatomical foot plants in every direction at every phase. Rifle remains on anatomical left shoulder.
 
-Run `node tools/render-direction-contact-guides.cjs` with `@napi-rs/canvas` installed. It regenerates the PNGs/JSON and asserts signed cancellation, leg alternation, anatomical up identity,40-pixel width and80-pixel lift. These assertions test geometry, **not painted pixels**. Claude's `node tools/check-direction-guides.cjs` on `brief-09-daily-base` also passes: frame-start drift0, footprint spacing11 world px, runtime density6.818.
+Knees are solved in forward-depth/vertical-height space before projection. A screen row difference includes both ground depth and elevation; it must not be used directly as a lift measurement. Boot sole points remain exactly the proposed tracks.
 
-The runtime still has3.667 world px of within-frame drift because it moves the body continuously while holding each pose. This occurs in the down master too. No foot-lock change was made. Review the painted cycle in a30-second direction-change/idle clip before deciding on rendering changes or extra frames.
+Regenerate: `node tools/render-direction-contact-guides.cjs` (`@napi-rs/canvas` dependency). Validate: `node tools/check-direction-guides.cjs`. It exits0 and prints **ready to paint one cell at a time**. Generator also checks width52/lift8, signed stance cancellation and alternating contact legs. Geometry checks do not validate painted raster contacts.
 
-Paint one cell at a time. Preserve the anatomical limb path and sole contact, shared identity, opacity and kit. Reassemble without per-frame resizing. Deliver separate white helmet-band/shoulder accent masks. Run measured-raster foot tracks, asset/gait validation and the game clip before registration. This guide pack does not deliver an approved painted up/right cycle.
+The guides remain absent from `js/asset-manifest.js` and `service-worker.js`. No walking speed, stride or foot-lock change. The6-frame renderer still has3.667world px of within-frame drift; that separate behaviour is unchanged.
+
+Paint each cell over these guides using the accepted down-v3 face/helmet/uniform/webbing/rifle identity. Fully opaque interior, no glow/backpack/shadow/effect. Keep boots on recorded contacts. Supply a white helmet-band/shoulder accent mask on identical canvases. Reassemble without individual frame resizing. Claude measures painted boot pixels, runs gait validation and reviews a30-second turn-and-idle clip before registration or gate promotion.

@@ -11,17 +11,17 @@
   "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
   "frames": 2,
-  "stanceWidthSourcePx": 40,
-  "passingLiftSourcePx": 80,
+  "stanceWidthSourcePx": 52,
+  "passingLiftSourcePx": 8,
   "direction": "up",
   "feet": [
     [
-      148,
+      154,
       330,
       true
     ],
     [
-      108,
+      102,
       330,
       true
     ]

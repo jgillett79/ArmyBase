@@ -11,79 +11,79 @@
   "sourcePxPerWorld": 6.818181818181818,
   "strideWorld": 22,
   "frames": 6,
-  "stanceWidthSourcePx": 40,
-  "passingLiftSourcePx": 80,
+  "stanceWidthSourcePx": 52,
+  "passingLiftSourcePx": 8,
   "direction": "right",
   "track": [
     {
       "right": {
         "x": 165,
-        "y": 350,
+        "y": 356,
         "planted": true
       },
       "left": {
         "x": 91,
-        "y": 310,
+        "y": 296,
         "planted": false
       }
     },
     {
       "right": {
         "x": 140,
-        "y": 350,
+        "y": 356,
         "planted": true
       },
       "left": {
-        "x": 116,
-        "y": 290,
+        "x": 103,
+        "y": 292,
         "planted": false
       }
     },
     {
       "right": {
         "x": 115,
-        "y": 350,
+        "y": 356,
         "planted": true
       },
       "left": {
-        "x": 141,
-        "y": 230,
+        "x": 115,
+        "y": 296,
         "planted": false
       }
     },
     {
       "right": {
         "x": 91,
-        "y": 350,
+        "y": 348,
         "planted": false
       },
       "left": {
         "x": 165,
-        "y": 310,
+        "y": 304,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 116,
-        "y": 330,
+        "x": 103,
+        "y": 344,
         "planted": false
       },
       "left": {
         "x": 140,
-        "y": 310,
+        "y": 304,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 141,
-        "y": 270,
+        "x": 115,
+        "y": 348,
         "planted": false
       },
       "left": {
         "x": 115,
-        "y": 310,
+        "y": 304,
         "planted": true
       }
     }
