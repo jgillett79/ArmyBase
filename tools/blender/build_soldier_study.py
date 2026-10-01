@@ -241,7 +241,11 @@ def main():
     scene.collection.objects.link(camera)
     scene.camera = camera
     elevation = math.radians(args.elevation)
-    views = [('front',0),('right',90),('back',180),('three_quarter',35)]
+    # The soldier faces -Y with anatomical right on -X. The game's "right"
+    # view shows the soldier facing screen-right with the RIGHT side to the
+    # camera, so that camera sits on -X (-90 degrees). +90 showed the left
+    # side facing screen-left (Claude's local run, Blender 5.2.2, 1 Oct).
+    views = [('front',0),('right',-90),('back',180),('three_quarter',35)]
     def aim(degrees):
         angle = math.radians(degrees)
         camera.location = (5*math.sin(angle)*math.cos(elevation),

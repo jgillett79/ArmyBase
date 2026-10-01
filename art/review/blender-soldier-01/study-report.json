@@ -1,0 +1,19 @@
+{
+  "status": "appearance candidate; not rigged or approved",
+  "blender": "5.2.2 LTS",
+  "heightMetres": 1.889,
+  "camera": {
+    "type": "ORTHO",
+    "elevationDegrees": 35,
+    "scale": 2.35
+  },
+  "views": [
+    "front",
+    "right",
+    "back",
+    "three_quarter"
+  ],
+  "rendered": true,
+  "productionProjectionMatched": false,
+  "notes": "Standard orthographic study. Existing equal-ground-axis oblique projection requires a separate export calibration. Garment remesh needs animation topology/weights before rigging."
+}
