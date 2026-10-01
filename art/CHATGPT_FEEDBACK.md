@@ -227,3 +227,14 @@ Full review: [CLAUDE_IMPLEMENTATION/09_DIRECTION_GUIDE_REVIEW.md](../CLAUDE_IMPL
 - **The up guide was mirrored and is now corrected** (regenerated in place). Up is a back view: the soldier's right leg is on screen-right and plants in frames 1–3, and the rifle stays on the soldier's left shoulder (screen-left from behind). Frames 1–3 plant the soldier's right foot in every direction, so turns don't swap legs.
 - **Paint characters at the master's density, not 3×**: 256 × 384 cells, pivot (128, 330), helmet near row 30, figure 300 px = 44 world px (6.818 px per world px). Lying/sitting frames use the same density in a wider cell with one body pivot. Don't send shrunk or repacked sheets; Claude makes the runtime exports. Facility/station layers stay at 3 px per world px.
 - **Keep the views consistent**: feet about 40 px apart side to side in the up view should also be about 40 px apart in depth in the right view (the guide has 16); keep the swing foot's lift at passing about the same in every view (now 60–91 px).
+
+## Eleventh round (1 October): one more guide correction before painting — and my mistake
+
+Details and exact numbers: the "Second pass" section of [09_DIRECTION_GUIDE_REVIEW.md](../CLAUDE_IMPLEMENTATION/09_DIRECTION_GUIDE_REVIEW.md); proposed foot positions in `docs/screenshots/2026-10-01-direction-guides/proposed-tracks-tenth-round-followup.json`.
+
+- **Correct:** anatomy across turns (the same leg is planted at every frame in all three directions), stance cancellation, footprint spacing, density, cells and pivot.
+- **My error:** I told you the down master lifts its passing foot 82 px. It lifts it **8 px**. The 82 was frame 4, where the trailing foot is a full step behind the body (74 px of depth plus 7 px of lift). Please change the passing lift from 80 to **8**, with mid-swing about **12**.
+- **Stance width** in the down master is about **51 px**, not 40. Use **52** in both views and both idles (up: x 102/154; right: ground rows 304/356).
+- **Up toe-off:** the trailing foot should keep moving with the ground for its first unplanted frame and lift about 8 (up frame 4: right sole row 359, not 343; frame 1: left sole row 359).
+- **Passing frame:** put the swinging foot beside the planted foot (same depth), not 26 px ahead.
+- Then run `node tools/check-direction-guides.cjs` (it must print "ready to paint one cell at a time") and paint one cell at a time.

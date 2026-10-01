@@ -226,19 +226,19 @@
       "feet": [
         [
           132,
-          338,
+          350,
           true
         ],
         [
           124,
-          322,
+          310,
           true
         ]
       ],
       "bothGrounded": true,
       "soleRows": [
-        338,
-        322
+        350,
+        310
       ]
     },
     "up": {
@@ -266,6 +266,103 @@
     "downFrames1to3": "right",
     "rightFrames1to3": "right",
     "upFrames1to3": "right",
-    "upRightLegOnScreenRight": true
+    "upRightLegOnScreenRight": true,
+    "plantedByFrame": {
+      "down": [
+        "right",
+        "right",
+        "right",
+        "left",
+        "left",
+        "left"
+      ],
+      "right": [
+        "right",
+        "right",
+        "right",
+        "left",
+        "left",
+        "left"
+      ],
+      "up": [
+        "right",
+        "right",
+        "right",
+        "left",
+        "left",
+        "left"
+      ]
+    }
+  },
+  "turnJumpWorld": {
+    "down->right": [
+      9.51,
+      4.67,
+      4.5,
+      8.91,
+      5.74,
+      6.28
+    ],
+    "right->up": [
+      8.72,
+      4.84,
+      4.95,
+      8.72,
+      4.84,
+      4.95
+    ],
+    "up->down": [
+      13.11,
+      7.06,
+      6.92,
+      13.65,
+      8.18,
+      7.84
+    ],
+    "down->up": [
+      13.11,
+      7.06,
+      6.92,
+      13.65,
+      8.18,
+      7.84
+    ]
+  },
+  "consistency": {
+    "master": {
+      "stanceWidth": 51.3,
+      "passingLift": 8,
+      "toeOffLift": 7
+    },
+    "tolerance": {
+      "stanceWidth": 6,
+      "passingLift": 6,
+      "toeOffLift": 8
+    },
+    "right": {
+      "stanceWidth": 40,
+      "passingLift": 80,
+      "toeOffLift": 0
+    },
+    "up": {
+      "stanceWidth": 40,
+      "passingLift": 80,
+      "toeOffLift": 25
+    },
+    "corrections": [
+      "right stanceWidth 40 source px vs down master 51.3 (tolerance ±6)",
+      "right passingLift 80 source px vs down master 8 (tolerance ±6)",
+      "up stanceWidth 40 source px vs down master 51.3 (tolerance ±6)",
+      "up passingLift 80 source px vs down master 8 (tolerance ±6)",
+      "up toeOffLift 25 source px vs down master 7 (tolerance ±8)",
+      "right idle stanceWidth 40 source px vs down master 51.3",
+      "up idle stanceWidth 40 source px vs down master 51.3"
+    ],
+    "rightIdle": {
+      "stanceWidth": 40
+    },
+    "upIdle": {
+      "stanceWidth": 40
+    }
   }
 }

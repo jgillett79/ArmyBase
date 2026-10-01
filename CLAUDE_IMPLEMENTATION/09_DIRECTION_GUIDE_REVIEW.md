@@ -61,3 +61,59 @@ The station contract's sentence "export at 3 art px per world px; character cell
 ## What Codex paints next
 
 Paint the corrected up guide and the right guide over the approved down-v3 identity, one cell at a time, at 6.818 px/world, keeping the soles on the recorded points. Use the consistency notes above. Then Claude runs `tools/measure-foot-track.cjs`, `validate-assets --gait`, `check-direction-guides.cjs`-style signed checks on the measured tracks, and the 30-second direction/idle clip before anything is registered. The walking release gate stays blocked until then.
+
+---
+
+# Second pass — Tenth round guides (main 16f153f), 1 October 2026
+
+Merged 16f153f into `brief-09-daily-base` (two text conflicts: the generator and README took main's versions, which keep the rear-view correction). Regenerating with `tools/render-direction-contact-guides.cjs` reproduces the committed PNGs byte for byte. Overlays, zoom-1.6 strips and the 30-second direction-change/idle loop were re-captured from these guides (`docs/screenshots/2026-10-01-direction-guides/`; the `.webm` stays local). The guides are still absent from `js/asset-manifest.js` and `service-worker.js`, and `walkReleaseGate()` is still blocked (tests assert both). No walking speed, stride or foot-lock change.
+
+## What passes
+
+- **Runtime geometry**: planted soles cancel body travel exactly at every frame start (0.000 world px) in right and up; footprints 11 world px apart; frames 1 and 4 plant opposite feet.
+- **Turns keep the planted leg**: at every frame index the same anatomical foot is planted in down, right and up (frames 1–3 the soldier's right foot, 4–6 the left), so a turn at any frame keeps the same leg on the ground. The rifle stays on the left shoulder.
+- The planted boot still jumps on screen at a turn, because each view draws the foot in a different place relative to the body: 4.5–9.5 world px for 90° turns (down↔right, right↔up), 7–14 for reversals (up↔down). That is inherent to snapping between views without in-between frames; judge it in painted footage.
+
+## Correction to my first review
+
+I wrote that the down master's swing foot is 82 source px above the planted sole at passing. **That was wrong**: 82 is frame 4, where the trailing foot is a whole step *behind* the body. In this camera, depth and height both move a foot up the screen, so 82 = a 74 px step + about 7 px of lift. Measured from the master's track (and confirmed on its raster):
+
+| Down master, measured | Source px | How |
+|---|---|---|
+| Passing lift (frames 3, 6) | **8** | planted sole row 320.5 vs swinging 312.5; at passing both soles are at the same depth |
+| Stance width | **51.3** (48–56) | planted-sole centres: f1/f4 103.5 vs 159.5, f2/f5 108.5 vs 156.5, f3/f6 106.5 vs 156.5 |
+| Toe-off lift (frame 4) | **7** | trailing sole drawn at 288.5; its ground position is 320.5 − 25 = 295.5 |
+| Contact step (frame 4) | **74** | 82 row gap − 8 lift |
+
+The master's frame-1 trailing-foot point (x 128–130, 3 px wide) is the planted boot crossing the cell midline, so frame 1 is not used. Codex matched 80 px to my wrong number.
+
+## Remaining corrections (not ready to paint yet)
+
+`node tools/check-direction-guides.cjs` now compares the guides with these master values and exits 2 when they differ. On the committed Tenth round guides:
+
+| Measure (source px) | Down master | Right guide | Up guide | Tolerance |
+|---|---|---|---|---|
+| Stance width | 51.3 | **40** | **40** | ±6 |
+| Passing lift | 8 | **80** | **80** | ±6 |
+| Toe-off lift | 7 | 0 | **25** | ±8 |
+| Idle stance width | 51.3 | **40** | **40** | ±6 |
+
+At game size the 80 px lift reads as a high march (knee near the hip) in the right and up strips, next to a down walk whose feet barely leave the ground. The up guide's toe-off: its trailing foot stops moving at the first unplanted frame (row 343 where its ground position is 368), so it reads as lifted 25 px or dragged.
+
+### Exact proposed tracks (pass every check)
+
+Also in [`proposed-tracks-tenth-round-followup.json`](../docs/screenshots/2026-10-01-direction-guides/proposed-tracks-tenth-round-followup.json). Rules: stance width 52, centred on the pivot; planted soles unchanged (25 px/frame, same cancellation); toe-off frame keeps cancelling and lifts 8; the mid-swing frame sits halfway between toe-off and passing, lifted 12; the passing foot is beside the planted foot (same depth), lifted 8; contact unchanged. `P` = planted.
+
+| Frame | Right view: right (near) sole | left (far) sole | Up view: right sole | left sole |
+|---|---|---|---|---|
+| 1 | (165, 356) P | (91, 296) | (154, 293) P | (102, 359) |
+| 2 | (140, 356) P | (103, 292) | (154, 318) P | (102, 343) |
+| 3 | (115, 356) P | (115, 296) | (154, 343) P | (102, 335) |
+| 4 | (91, 348) | (165, 304) P | (154, 359) | (102, 293) P |
+| 5 | (103, 344) | (140, 304) P | (154, 343) | (102, 318) P |
+| 6 | (115, 348) | (115, 304) P | (154, 335) | (102, 343) P |
+| Idle | (132, 356) | (124, 304) | (154, 330) | (102, 330) |
+
+Ground rows: right view near 356, far 304 (±26 about 330); up view x 154/102 (±26 about 128). With these values the checker reports: runtime geometry pass; stance width 52/52; passing lift 8/8; toe-off lift 8/9; identity kept at every frame — **"ready to paint one cell at a time"**. Hip positions in the generator should follow the new foot columns (up: hips at x 154/102), and the generator's own assertion (`width 40, lift 80`) needs updating to 52/8.
+
+Once the generator produces these and the checker exits 0, the templates are ready for Codex to paint one cell at a time. The walk release gate stays blocked until painted cells pass the measured-raster track, `validate-assets --gait` and the 30-second clip.

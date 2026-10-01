@@ -138,6 +138,83 @@ if (new Set([report.identity.downFrames1to3, report.identity.rightFrames1to3, re
   report.problems.push(`frames 1-3 plant different anatomical feet (down ${downF1}, right ${report.identity.rightFrames1to3}, up ${report.identity.upFrames1to3}): a turn would swap legs mid-stance`);
 }
 
+// Every frame, not just frame 1: at any frame a turn can happen, so the
+// planted anatomical foot must agree across views at each frame index.
+// The down master's measured feet are labelled by screen half: in a front
+// view screen-left is the soldier's right.
+const anatomicalPlanted = {
+  down: down.track.map(t => { const [label] = Object.entries(t).find(([, p]) => p.planted); return label === 'left' ? 'right' : 'left'; }),
+  right: guides.right.track.map(t => Object.entries(t).find(([, p]) => p.planted)[0]),
+  up: guides.up.track.map(t => Object.entries(t).find(([, p]) => p.planted)[0]),
+};
+report.identity.plantedByFrame = anatomicalPlanted;
+for (let k = 0; k < FRAMES; k++) {
+  const set = new Set(Object.values(anatomicalPlanted).map(list => list[k]));
+  if (set.size !== 1) report.problems.push(`frame ${k + 1}: views plant different anatomical feet (${JSON.stringify(Object.fromEntries(Object.entries(anatomicalPlanted).map(([d, l]) => [d, l[k]])))})`);
+}
+// How far the planted boot jumps on screen when a turn swaps the drawing at
+// the same frame (body at the same world point). Inherent to turning
+// without in-between frames; reported for the clip review, not a fault.
+const plantedOffset = (dir, k) => {
+  const track = dir === 'down' ? down.track : guides[dir].track;
+  const [, p] = Object.entries(track[k]).find(([, s]) => s.planted);
+  return { x: (p.x - 128) / RUNTIME_SOURCE_PX_PER_WORLD, y: (p.y - 330) / RUNTIME_SOURCE_PX_PER_WORLD };
+};
+report.turnJumpWorld = {};
+for (const [a, b] of [['down', 'right'], ['right', 'up'], ['up', 'down'], ['down', 'up']]) {
+  report.turnJumpWorld[`${a}->${b}`] = Array.from({ length: FRAMES }, (_, k) => {
+    const p = plantedOffset(a, k), q = plantedOffset(b, k);
+    return +Math.hypot(p.x - q.x, p.y - q.y).toFixed(2);
+  });
+}
+
+// Consistency with the accepted down master, measured from its own track
+// (lowest opaque boot pixels; confirmed against its raster, 1 Oct review):
+//   stance width  = side-to-side distance between the two feet's planted soles
+//   passing lift  = planted sole row − swinging sole row at passing frames 3/6
+//                   (in a front view both soles are at the same depth there,
+//                   so the row difference is pure height)
+//   toe-off lift  = how far above its ground position the trailing sole is
+//                   drawn in the first frame after it stops being planted
+//                   (ground position = its last planted contact carried one
+//                   more frame of body travel, 25 source px). Master frame 4:
+//                   ground row 320.5 − 25 = 295.5, drawn 288.5 → 7 px.
+// Guides must match within the tolerances below before Codex paints.
+const TOLERANCE = { stanceWidth: 6, passingLift: 6, toeOffLift: 8 };
+const dm = down.track;
+const master = {
+  stanceWidth: +([[0, 3], [1, 4], [2, 5]].map(([a, b]) => Math.abs(dm[b].right.x - dm[a].left.x)).reduce((s, v) => s + v, 0) / 3).toFixed(1),
+  passingLift: +(((dm[2].left.y - dm[2].right.y) + (dm[5].right.y - dm[5].left.y)) / 2).toFixed(1),
+  toeOffLift: +((dm[2].left.y - 25) - dm[3].left.y).toFixed(1), // soldier's right foot: planted f1-3, lifts at f4
+};
+const guideMetrics = dir => {
+  const t = guides[dir].track;
+  if (dir === 'up') return {
+    stanceWidth: Math.abs(t[0].right.x - t[0].left.x),
+    passingLift: ((t[2].right.y - t[2].left.y) + (t[5].left.y - t[5].right.y)) / 2,
+    // Back view, travel north: a planted sole moves +25 rows per frame.
+    toeOffLift: ((t[2].right.y + 25 - t[3].right.y) + (t[5].left.y + 25 - t[0].left.y)) / 2,
+  };
+  // Right view: the near (right) sole's ground row is below the far (left) one's.
+  const nearRow = t[0].right.y, farRow = t[3].left.y;
+  return {
+    stanceWidth: Math.abs(nearRow - farRow),
+    passingLift: ((farRow - t[2].left.y) + (nearRow - t[5].right.y)) / 2,
+    // Side view: lift shows as rows above the sole's ground row.
+    toeOffLift: ((nearRow - t[3].right.y) + (farRow - t[0].left.y)) / 2,
+  };
+};
+report.consistency = { master, tolerance: TOLERANCE, right: guideMetrics('right'), up: guideMetrics('up'), corrections: [] };
+for (const dir of ['right', 'up']) for (const [key, tol] of Object.entries(TOLERANCE)) {
+  const value = report.consistency[dir][key];
+  if (Math.abs(value - master[key]) > tol) report.consistency.corrections.push(`${dir} ${key} ${value} source px vs down master ${master[key]} (tolerance ±${tol})`);
+}
+for (const [dir, idle] of Object.entries(idles)) {
+  const width = dir === 'up' ? Math.abs(idle.feet[0][0] - idle.feet[1][0]) : Math.abs(idle.feet[0][1] - idle.feet[1][1]);
+  report.consistency[`${dir}Idle`] = { stanceWidth: width };
+  if (Math.abs(width - master.stanceWidth) > TOLERANCE.stanceWidth) report.consistency.corrections.push(`${dir} idle stanceWidth ${width} source px vs down master ${master.stanceWidth}`);
+}
+
 for (const [dir, idle] of Object.entries(idles)) {
   const grounded = idle.feet.every(([, , planted]) => planted);
   const rows = idle.feet.map(([, y]) => y);
@@ -150,5 +227,12 @@ if (out) fs.writeFileSync(out, JSON.stringify(report, null, 2) + '\n');
 const fmt = r => `stance error max ${Math.max(...r.stanceErrors.map(s => Math.abs(s.errorWorld)))} world px; footprints ${r.spacing.join(', ')}; contact feet ${r.contact1}/${r.contact4}; within-frame drift ${r.maxWithinFrameDriftWorld} world px (${r.maxWithinFrameDriftSourcePx} source px)`;
 for (const [dir, r] of Object.entries(report.directions)) console.log(`${dir.padEnd(12)} ${fmt(r)}`);
 console.log(`runtime density ${RUNTIME_SOURCE_PX_PER_WORLD.toFixed(3)} source px/world; down export ${report.runtime.downExportFrameHeight} px frames = ${report.runtime.downExportPxPerWorld} px/world; 3 px/world = ${report.runtime.fixed3xFrameHeight} px frames`);
+console.log(`planted anatomical foot by frame: ${Object.entries(report.identity.plantedByFrame).map(([d, l]) => `${d} ${l.join(',')}`).join(' | ')}`);
+console.log(`turn jump of the planted boot (world px, frames 1-6): ${Object.entries(report.turnJumpWorld).map(([k, v]) => `${k} ${v.join('/')}`).join('; ')}`);
+const m = report.consistency;
+console.log(`down master: stance width ${m.master.stanceWidth}, passing lift ${m.master.passingLift}, toe-off lift ${m.master.toeOffLift} source px`);
+for (const dir of ['right', 'up']) console.log(`${dir.padEnd(5)} guide: stance width ${m[dir].stanceWidth}, passing lift ${m[dir].passingLift}, toe-off lift ${m[dir].toeOffLift}; idle width ${m[dir + 'Idle'].stanceWidth}`);
 if (report.problems.length) { console.log('PROBLEMS:\n- ' + report.problems.join('\n- ')); process.exit(1); }
-console.log('Direction guides agree with the runtime walk geometry (guides only; no painted art checked)');
+console.log('Runtime geometry: PASS (guides only; no painted art checked)');
+if (m.corrections.length) { console.log('NOT READY TO PAINT — corrections vs the accepted down master:\n- ' + m.corrections.join('\n- ')); process.exit(2); }
+console.log('Consistent with the accepted down master: ready to paint one cell at a time');

@@ -1,0 +1,176 @@
+{
+ "right": [
+  {
+   "right": {
+    "x": 165,
+    "y": 356,
+    "planted": true
+   },
+   "left": {
+    "x": 91,
+    "y": 296,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 140,
+    "y": 356,
+    "planted": true
+   },
+   "left": {
+    "x": 103,
+    "y": 292,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 115,
+    "y": 356,
+    "planted": true
+   },
+   "left": {
+    "x": 115,
+    "y": 296,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 91,
+    "y": 348,
+    "planted": false
+   },
+   "left": {
+    "x": 165,
+    "y": 304,
+    "planted": true
+   }
+  },
+  {
+   "right": {
+    "x": 103,
+    "y": 344,
+    "planted": false
+   },
+   "left": {
+    "x": 140,
+    "y": 304,
+    "planted": true
+   }
+  },
+  {
+   "right": {
+    "x": 115,
+    "y": 348,
+    "planted": false
+   },
+   "left": {
+    "x": 115,
+    "y": 304,
+    "planted": true
+   }
+  }
+ ],
+ "up": [
+  {
+   "right": {
+    "x": 154,
+    "y": 293,
+    "planted": true
+   },
+   "left": {
+    "x": 102,
+    "y": 359,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 154,
+    "y": 318,
+    "planted": true
+   },
+   "left": {
+    "x": 102,
+    "y": 343,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 154,
+    "y": 343,
+    "planted": true
+   },
+   "left": {
+    "x": 102,
+    "y": 335,
+    "planted": false
+   }
+  },
+  {
+   "right": {
+    "x": 154,
+    "y": 359,
+    "planted": false
+   },
+   "left": {
+    "x": 102,
+    "y": 293,
+    "planted": true
+   }
+  },
+  {
+   "right": {
+    "x": 154,
+    "y": 343,
+    "planted": false
+   },
+   "left": {
+    "x": 102,
+    "y": 318,
+    "planted": true
+   }
+  },
+  {
+   "right": {
+    "x": 154,
+    "y": 335,
+    "planted": false
+   },
+   "left": {
+    "x": 102,
+    "y": 343,
+    "planted": true
+   }
+  }
+ ],
+ "idle": {
+  "right": [
+   [
+    132,
+    356,
+    true
+   ],
+   [
+    124,
+    304,
+    true
+   ]
+  ],
+  "up": [
+   [
+    154,
+    330,
+    true
+   ],
+   [
+    102,
+    330,
+    true
+   ]
+  ]
+ }
+}
