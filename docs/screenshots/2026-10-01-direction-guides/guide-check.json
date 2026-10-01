@@ -1,0 +1,271 @@
+{
+  "runtime": {
+    "unitWorldHeight": 44,
+    "framesPerDirection": 6,
+    "strideWorld": 22,
+    "worldPxPerFrame": 3.6667,
+    "sourcePxPerWorldFromPivotAndHeadroom": 6.818181818181818,
+    "downPivot": [
+      128,
+      330
+    ],
+    "downHeadroom": 30,
+    "downExportFrameHeight": 144,
+    "downExportPxPerWorld": 2.557,
+    "fixed3xFrameHeight": 168.96,
+    "facing": "dominant axis of each movement step (unit.js updateFacing); left mirrors the right strip (animation.js)"
+  },
+  "directions": {
+    "right": {
+      "stanceErrors": [
+        {
+          "from": 1,
+          "to": 2,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        }
+      ],
+      "maxWithinFrameDriftWorld": 3.667,
+      "maxWithinFrameDriftSourcePx": 25,
+      "plants": [
+        {
+          "frame": 1,
+          "foot": "right",
+          "at": 5.43
+        },
+        {
+          "frame": 4,
+          "foot": "left",
+          "at": 16.43
+        },
+        {
+          "frame": 1,
+          "foot": "right",
+          "at": 27.43
+        },
+        {
+          "frame": 4,
+          "foot": "left",
+          "at": 38.43
+        }
+      ],
+      "spacing": [
+        11,
+        11,
+        11
+      ],
+      "contact1": "right",
+      "contact4": "left",
+      "leads": [
+        "right",
+        "left"
+      ],
+      "problems": []
+    },
+    "up": {
+      "stanceErrors": [
+        {
+          "from": 1,
+          "to": 2,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        }
+      ],
+      "maxWithinFrameDriftWorld": 3.667,
+      "maxWithinFrameDriftSourcePx": 25,
+      "plants": [
+        {
+          "frame": 1,
+          "foot": "right",
+          "at": -5.43
+        },
+        {
+          "frame": 4,
+          "foot": "left",
+          "at": -16.43
+        },
+        {
+          "frame": 1,
+          "foot": "right",
+          "at": -27.43
+        },
+        {
+          "frame": 4,
+          "foot": "left",
+          "at": -38.43
+        }
+      ],
+      "spacing": [
+        -11,
+        -11,
+        -11
+      ],
+      "contact1": "right",
+      "contact4": "left",
+      "leads": [
+        "right",
+        "left"
+      ],
+      "problems": []
+    },
+    "down_master": {
+      "stanceErrors": [
+        {
+          "from": 1,
+          "to": 2,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 2,
+          "to": 3,
+          "foot": "left",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 4,
+          "to": 5,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        },
+        {
+          "from": 5,
+          "to": 6,
+          "foot": "right",
+          "errorWorld": 0,
+          "errorSourcePx": 0
+        }
+      ],
+      "maxWithinFrameDriftWorld": 3.667,
+      "maxWithinFrameDriftSourcePx": 25,
+      "plants": [
+        {
+          "frame": 1,
+          "foot": "left",
+          "at": 5.94
+        },
+        {
+          "frame": 4,
+          "foot": "right",
+          "at": 16.94
+        },
+        {
+          "frame": 1,
+          "foot": "left",
+          "at": 27.94
+        },
+        {
+          "frame": 4,
+          "foot": "right",
+          "at": 38.94
+        }
+      ],
+      "spacing": [
+        11,
+        11,
+        11
+      ],
+      "contact1": "left",
+      "contact4": "right",
+      "leads": [
+        "left",
+        "right"
+      ],
+      "problems": []
+    }
+  },
+  "idle": {
+    "right": {
+      "feet": [
+        [
+          132,
+          338,
+          true
+        ],
+        [
+          124,
+          322,
+          true
+        ]
+      ],
+      "bothGrounded": true,
+      "soleRows": [
+        338,
+        322
+      ]
+    },
+    "up": {
+      "feet": [
+        [
+          148,
+          330,
+          true
+        ],
+        [
+          108,
+          330,
+          true
+        ]
+      ],
+      "bothGrounded": true,
+      "soleRows": [
+        330,
+        330
+      ]
+    }
+  },
+  "problems": [],
+  "identity": {
+    "downFrames1to3": "right",
+    "rightFrames1to3": "right",
+    "upFrames1to3": "right",
+    "upRightLegOnScreenRight": true
+  }
+}

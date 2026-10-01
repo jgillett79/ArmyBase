@@ -6,7 +6,10 @@ Claude, 1 October 2026, branch `brief-09-daily-base`. This is the measured layou
 
 ## How to read the numbers
 
-- **Camera, scale and density are unchanged from the Gate 0 contract** ([06_GATE0_VISUAL_CONTRACT.md](06_GATE0_VISUAL_CONTRACT.md)): top-down oblique, 1 world px = 1 screen px at zoom 1 on both axes, heights straight up, warm upper-left light, renderer-drawn contact shadows. A person is **44 world px** from sole to helmet top. **Export at 3 art px per world px**; character cells stay 256 × 384 with the ground pivot at (128, 330) unless a row below says a wider cell is needed.
+- **Camera, scale and density are unchanged from the Gate 0 contract** ([06_GATE0_VISUAL_CONTRACT.md](06_GATE0_VISUAL_CONTRACT.md)): top-down oblique, 1 world px = 1 screen px at zoom 1 on both axes, heights straight up, warm upper-left light, renderer-drawn contact shadows. A person is **44 world px** from sole to helmet top.
+- **Two densities — don't mix them** (clarified 1 October, see [09_DIRECTION_GUIDE_REVIEW.md](09_DIRECTION_GUIDE_REVIEW.md)):
+  - **Facility, prop and station layers** (beds, stalls, counters, tables, kiosk): paint at **3 art px per world px**, ground pivot on the facility anchor. The export px columns below are in this density.
+  - **Characters** (soldier walk/idle/actions): paint at the master's **6.818 source px per world px** — 256 × 384 cells, ground pivot (128, 330), helmet top near row 30, so the standing figure is 300 px = 44 world px. Convert a world offset with `source = pivot + world × 300/44`. Lying/sitting/climbing frames use the **same** density in a wider cell with one body pivot shared by every frame and `sourcePxPerWorld: 300/44` declared. Claude's pipeline makes the runtime export (3 px/world = 169 px frames, scale 0.44); don't send pre-shrunk or repacked character sheets and never enlarge the soldier.
 - **Anchor**: each facility's art ground pivot sits on its zone's anchor, *footprint centre x, footprint bottom − 6* (Gate 0 rule). New facility layers for brief 09 are painted **at fixed density 3 px/world** (no per-zone stretching), so a station offset is the same on every site.
 - Each point is given three ways: `world x, y · (offset from anchor) · [export px from the pivot]`. Negative y is north (up the screen). A station's **use** point is where the person's feet (ground pivot) are while using it; **approach** is where they stand just before entering and after leaving; **contact** is the numeric action contact (hands on the counter or basin, tray on the table top). **Facing** is the direction the person faces while using it.
 - **Example person**: at any use point, the figure's 44 px column rises straight up from that point; at 3 px/world that is a 132 px tall figure whose pivot is the exported point. The screenshots below show real soldiers standing on these points in the running game.
@@ -195,7 +198,7 @@ Queue lines (world px, nearest first): **bench** (1264, 508) (1286, 508) (1308, 
 
 | Item | World size | Export px (3/world) | Layers |
 |---|---|---|---|
-| Single bed | 46 × 18 (lying axis east–west, heads to the centre aisle) | 138 × 54 | bed back (frame, mattress, pillow), **blanket/front rail** drawn over the sleeper's body; lying soldier = a **wider cell** (suggest 384 × 256, pivot at the body centre) |
+| Single bed | 46 × 18 (lying axis east–west, heads to the centre aisle) | 138 × 54 | bed back (frame, mattress, pillow), **blanket/front rail** drawn over the sleeper's body; lying soldier = a **wider cell** at 6.818 px/world (suggest 384 × 256 source px, body-centre pivot; the bed itself is 314 × 123 source px at that density) |
 | Toilet / shower stall | 20 wide × 24 deep, door on the south side | 60 × 72 | stall back (walls, fixture), **door open** and **door closed** states, occupied indicator, shower **water** separate and only in use |
 | Wash basin | 16 × 8 basin at `contact` | 48 × 24 | basin back, **basin front** over the user's legs |
 | Serving counter | 20 × 8 at `contact` | 60 × 24 | counter back (cook side), **counter front** over the soldier's legs; cook idle/serve; tray full/empty |

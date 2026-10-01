@@ -85,6 +85,16 @@ function accentStrip(entry, hex) {
   return accentStripCache.get(key);
 }
 
+// Source px per world px for a frame set. Standing sets derive it from the
+// standing figure (pivot row − helmet headroom = UNIT_H, i.e. 300 / 44 =
+// 6.818 for the 256 x 384 master cells). Sets whose cell is not a standing
+// figure — lying in bed, sitting, climbing, in a wider cell — must declare
+// `sourcePxPerWorld` explicitly, because their pivot (the body centre) says
+// nothing about height. Brief 09, 09_STATION_VISUAL_CONTRACT.md.
+function frameSourcePxPerWorld(entry) {
+  return entry.sourcePxPerWorld || (entry.pivot[1] - (entry.headroom || 20)) / UNIT_H;
+}
+
 // Draws a strip frame with its pivot on the person's feet, scaled so the
 // figure matches the standing height, then the soldier's chosen accent
 // through the set's mask (helmet band and shoulder patch only). Returns
@@ -97,7 +107,7 @@ function drawFramePose(ctx, unit, pose) {
   // Pivot and figure height are in source px; `frames` sets were resampled.
   const sourceFrameH = entry.frames ? entry.frames[0][3] : frameH;
   const scale = frameH / sourceFrameH; // strip px per source px
-  const worldPerStrip = (UNIT_H / (entry.pivot[1] - (entry.headroom || 20))) / scale;
+  const worldPerStrip = 1 / (frameSourcePxPerWorld(entry) * scale);
   const w = frameW * worldPerStrip, h = frameH * worldPerStrip;
   const pivotX = entry.pivot[0] * scale * worldPerStrip, pivotY = entry.pivot[1] * scale * worldPerStrip;
   const accent = accentById(unit.accent);

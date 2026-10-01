@@ -17,3 +17,6 @@ dist/
 
 # Local browser review output (tools/browser-capture.cjs)
 captures/
+
+# Review clips (regenerate with tools/capture-*.cjs; too large to commit)
+docs/screenshots/**/*.webm

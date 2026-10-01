@@ -218,3 +218,12 @@ Order, unchanged from `art/DAILY_BASE_ACTION_ASSETS.md`: the approved shared sol
 - **Guardhouse west window**: applicants are now interviewed *outside* the barrier, at a window on the kiosk's west wall, world (48, 572); applicant stands at (31, 576) facing right, guard at (60, 576) facing left. The kiosk back/front layers need re-cutting so the applicant is outside the front layer.
 - **Mess Hall** moved to the Centre knoll site (smaller than North terrace): the provisional bitmap is shown faded there; it needs a new kit drawn to the counter/table positions in the contract.
 - **Barracks** moved to the River bend site, six single beds east–west with heads to a centre aisle.
+
+## Tenth round (1 October): up/right direction guides checked in game
+
+Full review: [CLAUDE_IMPLEMENTATION/09_DIRECTION_GUIDE_REVIEW.md](../CLAUDE_IMPLEMENTATION/09_DIRECTION_GUIDE_REVIEW.md), with foot overlays, zoom-1.6 strips and a game-size loop in `docs/screenshots/2026-10-01-direction-guides/`.
+
+- **The guide geometry is right**: planted soles cancel the body's travel exactly at every frame in both directions, footprints land 11 world px apart, and frames 1 and 4 plant opposite feet — the same result as the painted down master.
+- **The up guide was mirrored and is now corrected** (regenerated in place). Up is a back view: the soldier's right leg is on screen-right and plants in frames 1–3, and the rifle stays on the soldier's left shoulder (screen-left from behind). Frames 1–3 plant the soldier's right foot in every direction, so turns don't swap legs.
+- **Paint characters at the master's density, not 3×**: 256 × 384 cells, pivot (128, 330), helmet near row 30, figure 300 px = 44 world px (6.818 px per world px). Lying/sitting frames use the same density in a wider cell with one body pivot. Don't send shrunk or repacked sheets; Claude makes the runtime exports. Facility/station layers stay at 3 px per world px.
+- **Keep the views consistent**: feet about 40 px apart side to side in the up view should also be about 40 px apart in depth in the right view (the guide has 16); keep the swing foot's lift at passing about the same in every view (now 60–91 px).

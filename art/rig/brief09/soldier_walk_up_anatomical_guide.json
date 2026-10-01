@@ -15,72 +15,72 @@
   "track": [
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 293,
         "planted": true
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 343,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 318,
         "planted": true
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 300,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 343,
         "planted": true
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 252,
         "planted": false
       }
     },
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 343,
         "planted": false
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 293,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 300,
         "planted": false
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 318,
         "planted": true
       }
     },
     {
       "right": {
-        "x": 108,
+        "x": 148,
         "y": 252,
         "planted": false
       },
       "left": {
-        "x": 148,
+        "x": 108,
         "y": 343,
         "planted": true
       }

@@ -110,4 +110,17 @@ run(`state.cash = 500; state.constructAt('shootingRange', 'zone_ford');`);
 const reloaded = run('GameState.fromSaveData(normalizeSaveData(JSON.parse(JSON.stringify(state.serialize()))).data)');
 assert.equal(reloaded.shootingRange.zoneId, 'zone_ford');
 assert.equal(reloaded.shootingRange.level, 1);
+
+// Character density (brief 09 art handoff): standing sets derive 300 source
+// px = 44 world px from pivot and headroom; a lying/sitting set in a wider
+// cell declares sourcePxPerWorld and is drawn at the same density, not
+// stretched to make its body-centre pivot "44 px tall".
+const down = run('ASSET_MANIFEST.units.soldier.walk.drawn.down');
+assert.ok(Math.abs(run(`frameSourcePxPerWorld(ASSET_MANIFEST.units.soldier.walk.drawn.down)`) - 300 / 44) < 1e-9, 'standing master: 6.818 source px/world');
+assert.ok(Math.abs(run(`frameSourcePxPerWorld({ pivot: [192, 160], headroom: 30, sourcePxPerWorld: 300 / 44 })`) - 300 / 44) < 1e-9,
+  'a 384 x 256 lying cell with a body-centre pivot keeps the master density');
+assert.equal(down.pivot[1] - down.headroom, 300, 'the down master figure is 300 source px tall');
+// The guides are review templates: never registered in the game manifest.
+assert.equal(run(`JSON.stringify(ASSET_MANIFEST).includes('anatomical_guide')`), false, 'direction guides stay out of the runtime manifest');
+assert.equal(run('walkReleaseGate().ready'), false, 'the walk release gate stays blocked');
 console.log('Render/build data tests passed');
