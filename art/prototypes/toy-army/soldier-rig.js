@@ -70,7 +70,7 @@ function draw(g,opt={}){
   if(dir!=='up'){for(const x of side?[122]:[104,139])path(g,[[x,330-hip-12],[x+18,330-hip-12],[x+18,330-hip+11],[x,330-hip+11]],col.strap,3);}
  }
  for(const name of ['left','right']){
-  const lat=name==='right'?46:-46,swing=moving?Math.cos(angle+(name==='left'?Math.PI:0)-.35)*28:0;
+  const lat=name==='right'?46:-46,swing=moving?-Math.cos(angle+(name==='left'?Math.PI:0)-.35)*28:0;
   const S=project(dir,lat,0,shoulder-3),E=project(dir,lat,swing*.4,hip+40+Math.abs(swing)*.12),hand=project(dir,lat,swing,hip-1);
   if(pose==='carry'||pose==='collect'){hand.splice(0,2,...project(dir,lat*.55,24,hip+15));E.splice(0,2,...project(dir,lat,10,hip+24));}
   if(pose==='collect'||pose==='serve'){hand.splice(0,2,...project(dir,lat*.5,88,82));E.splice(0,2,...project(dir,lat,40,130));}
