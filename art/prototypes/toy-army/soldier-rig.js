@@ -2,12 +2,12 @@
    Ground axes are equal, height rises straight up. One identity in every view. */
 (function(root){
 'use strict';
-const W=256,H=384,P={x:128,y:330},D=300/44,STRIDE=22,A=STRIDE*D/4;
+const W=256,H=384,P={x:128,y:330},D=300/44,STRIDE=18,A=STRIDE*D/4;
 const ink='#253628',col={coat:'#728745',shade:'#516534',light:'#a4ad68',pants:'#b5a46e',pantShade:'#8e8257',boot:'#51402c',skin:'#e4b78b',strap:'#785e3c',metal:'#475248'};
 const vectors={down:[0,1],up:[0,-1],right:[1,0],left:[-1,0]};
 function gait(phase){
  const foot=q=>{q=((q%1)+1)%1;if(q<.5)return{depth:A-4*A*q,lift:0,planted:true};
- const t=(q-.5)*2;return{depth:-A+2*A*t,lift:Math.sin(Math.PI*t)*12,planted:false};};
+ const t=(q-.5)*2;return{depth:-A+2*A*(-t+6*t*t-4*t*t*t),lift:Math.sin(Math.PI*t)**2*24,planted:false};};
  return{right:foot(phase),left:foot(phase+.5)};
 }
 function path(g,pts,fill,width=4){g.beginPath();g.moveTo(...pts[0]);for(const p of pts.slice(1))g.lineTo(...p);g.closePath();g.fillStyle=fill;g.fill();if(width>0){g.strokeStyle=ink;g.lineWidth=width;g.lineJoin='round';g.stroke();}}
@@ -32,18 +32,20 @@ function draw(g,opt={}){
  const dir=vectors[opt.direction]?opt.direction:'down',pose=opt.pose||'walk',phase=opt.phase||0,accent=opt.accent||'#dba852',mask=!!opt.maskOnly;
  const idle=pose==='idle',seated=pose==='eat'||pose==='sit'||pose==='rise',feet=(pose!=='walk'&&pose!=='carry')?{right:{depth:0,lift:0},left:{depth:0,lift:0}}:gait(phase);
  const seatBlend=seated?(Number.isFinite(opt.seatBlend)?Math.max(0,Math.min(1,opt.seatBlend)):1):0;
- const hipH=114-49*seatBlend,bodyBob=idle?Math.sin(phase*2*Math.PI)*1.2:seated?0:Math.sin(phase*4*Math.PI)*1.5;
+ const moving=pose==='walk'||pose==='carry',angle=phase*2*Math.PI;
+ const sway=moving?Math.sin(angle)*4:0,lean=moving?3:0;
+ const hipH=114-49*seatBlend,bodyBob=idle?Math.sin(angle)*2:seated?0:moving?-3-Math.cos(angle*2)*5:0;
  const hip=hipH+bodyBob,shoulder=hip+78,headTop=30+56*seatBlend+bodyBob;
- const angle=phase*2*Math.PI;
+
  const positions={};
  for(const name of ['left','right']){
   const lat=name==='right'?26:-26,foot=feet[name];
   let depth=foot.depth,lift=foot.lift;
   if(seated){depth=30*seatBlend;lift=0;}
-  const ankleH=14+lift,deltaH=ankleH-hip,dist=Math.hypot(depth,deltaH),L=64;
-  const theta=Math.atan2(deltaH,depth)+Math.acos(Math.min(1,dist/(2*L)));
-  const knee={depth:Math.cos(theta)*L,height:hip+Math.sin(theta)*L};
-  positions[name]={lat,depth,lift,H:project(dir,lat,0,hip),K:project(dir,lat,knee.depth,knee.height),A:project(dir,lat,depth,ankleH),sole:project(dir,lat,depth,lift)};
+  const ankleH=14+lift,deltaH=ankleH-hip,dist=Math.hypot(depth-lean,deltaH),L=64;
+  const theta=Math.atan2(deltaH,depth-lean)+Math.acos(Math.min(1,dist/(2*L)));
+  const knee={depth:lean+Math.cos(theta)*L,height:hip+Math.sin(theta)*L};
+  positions[name]={lat,depth,lift,H:project(dir,lat+sway,lean,hip),K:project(dir,lat,knee.depth,knee.height),A:project(dir,lat,depth,ankleH),sole:project(dir,lat,depth,lift)};
  }
  if(!mask){
   // Farther leg first. The anatomical left/right identities never flip.
@@ -52,6 +54,9 @@ function draw(g,opt={}){
    const s=dir==='right'?1:dir==='left'?-1:0;
    path(g,[[x-13,y-24],[x+12,y-24],[x+16+s*5,y-10],[x+15+s*5,y],[x-15+s*3,y],[x-17,y-7]],col.boot,4);limb(g,[x-10,y-9],[x+10,y-9],2,'#957a52');
   }
+ }
+ g.save();const offset=project(dir,sway,lean,0);g.translate(offset[0]-P.x,offset[1]-P.y);
+ if(!mask){
   // Rifle belongs to anatomical LEFT shoulder in every direction, including left.
   const rifle=project(dir,(dir==='up'||dir==='down')?-60:-43,(dir==='left'||dir==='right')?-55:-8,shoulder);limb(g,[rifle[0],rifle[1]-62],[rifle[0]+8,rifle[1]+76],9,col.strap);limb(g,[rifle[0],rifle[1]-62],[rifle[0]+2,rifle[1]-35],6,col.metal);
  }
@@ -65,8 +70,8 @@ function draw(g,opt={}){
   if(dir!=='up'){for(const x of side?[122]:[104,139])path(g,[[x,330-hip-12],[x+18,330-hip-12],[x+18,330-hip+11],[x,330-hip+11]],col.strap,3);}
  }
  for(const name of ['left','right']){
-  const lat=name==='right'?46:-46,swing=idle?0:seated?0:Math.sin(angle+(name==='left'?Math.PI:0))*24;
-  const S=project(dir,lat,0,shoulder-3),E=project(dir,lat,swing*.4,hip+35),hand=project(dir,lat,swing,hip-1);
+  const lat=name==='right'?46:-46,swing=moving?Math.cos(angle+(name==='left'?Math.PI:0)-.35)*28:0;
+  const S=project(dir,lat,0,shoulder-3),E=project(dir,lat,swing*.4,hip+40+Math.abs(swing)*.12),hand=project(dir,lat,swing,hip-1);
   if(pose==='carry'||pose==='collect'){hand.splice(0,2,...project(dir,lat*.55,24,hip+15));E.splice(0,2,...project(dir,lat,10,hip+24));}
   if(pose==='collect'||pose==='serve'){hand.splice(0,2,...project(dir,lat*.5,88,82));E.splice(0,2,...project(dir,lat,40,130));}
   if(seated){const eating=pose==='eat'?(.5+.5*Math.sin(phase*2*Math.PI)):0;hand.splice(0,2,...project(dir,lat*.45,35,hip+25+eating*34));}
@@ -74,7 +79,9 @@ function draw(g,opt={}){
   else{limb(g,S,E,23,col.coat);limb(g,E,hand,21,col.coat);oval(g,hand[0],hand[1]+3,10,11,col.skin,3);}
  }
  if(!mask&&['carry','collect','serve'].includes(pose)){const c=pose==='carry'?project(dir,0,24,hip+11):project(dir,0,88,82);path(g,[[c[0]-32,c[1]-3],[c[0]+32,c[1]-3],[c[0]+27,c[1]+9],[c[0]-27,c[1]+9]],'#cbd7c7',3);oval(g,c[0]-5,c[1],15,4,'#f1dcad',2);oval(g,c[0]+17,c[1],5,5,'#bd7950',2);}
+ g.save();g.translate(128,headTop+70);g.rotate(moving?Math.sin(angle-.4)*.025:0);g.translate(-128,-headTop-70);
  head(g,dir,headTop,opt.accent||'#dba852',mask);
+ g.restore();g.restore();
  return{feet:positions,headTop};
 }
 function portrait(g,accent){g.save();g.translate(-60,-25);g.scale(1.45,1.45);draw(g,{direction:'down',pose:'idle',phase:0,accent});g.restore();}

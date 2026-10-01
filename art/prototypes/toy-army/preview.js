@@ -8,10 +8,15 @@ const stages=[
  [2,[325,195],[325,195],'collect','up'],[2,[325,195],[325,265],'carry','down'],[2,[325,265],[450,265],'carry','right'],[1,[450,265],[450,265],'sit','up'],
  [5,[450,265],[450,265],'eat','up'],[1,[450,265],[450,265],'rise','up'],[2,[450,265],[450,310],'walk','down'],[3,[450,310],[105,310],'walk','left'],[2,[105,310],[105,250],'walk','up']
 ];
+// A consistent 26 world px/s avoids hurried, mechanical steps on long legs.
+for(const s of stages)if(s[3]==='walk'||s[3]==='carry')s[0]=Math.hypot(s[2][0]-s[1][0],s[2][1]-s[1][1])/26+.3;
 let cursor=0,distance=0;for(const s of stages){s.start=cursor;s.distance=distance;s.travel=Math.hypot(s[2][0]-s[1][0],s[2][1]-s[1][1]);cursor+=s[0];distance+=s.travel;}const duration=cursor,mealStart=stages[5].start,mealEnd=stages[14].start,walkEnd=stages[4].start;
 let time=0,last=null,paused=false,mode='routine',accent='#dba852',callsign='Kestrel';
 function stateAt(t){let lo=mode==='walk'?0:mode==='meal'?mealStart:0,hi=mode==='walk'?walkEnd:mode==='meal'?mealEnd:duration;
- t=lo+((t-lo)%(hi-lo)+(hi-lo))%(hi-lo);const i=stages.findIndex(s=>t<s.start+s[0]);const s=stages[i],u=Math.max(0,Math.min(1,(t-s.start)/s[0]));
+ t=lo+((t-lo)%(hi-lo)+(hi-lo))%(hi-lo);const i=stages.findIndex(s=>t<s.start+s[0]);const s=stages[i],elapsed=Math.max(0,Math.min(s[0],t-s.start)),ramp=.3;
+ const moving=s.travel>0,total=s[0]-ramp;
+ const covered=elapsed<ramp?elapsed*elapsed/(2*ramp):elapsed>s[0]-ramp?total-(s[0]-elapsed)**2/(2*ramp):elapsed-ramp/2;
+ const u=moving?Math.max(0,Math.min(1,covered/total)):elapsed/s[0];
  return{x:s[1][0]+(s[2][0]-s[1][0])*u,y:s[1][1]+(s[2][1]-s[1][1])*u,pose:s[3],direction:s[4],phase:((s.distance+s.travel*u)/R.STRIDE)%1,u,index:i,time:t};}
 function round(x,y,w,h,r,fill,stroke='#55694b',line=1.5){g.beginPath();g.roundRect(x,y,w,h,r);g.fillStyle=fill;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=line;g.stroke();}}
 function ellipse(x,y,rx,ry,fill,stroke){g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fillStyle=fill;g.fill();if(stroke){g.strokeStyle=stroke;g.lineWidth=1.5;g.stroke();}}
@@ -62,6 +67,8 @@ function render(){const st=stateAt(time),css=scene.getBoundingClientRect(),ratio
  round(389,253,110,7,2,'#b4986a');
  if(st.pose==='eat'||st.pose==='sit'||st.pose==='rise'){round(438,243,23,7,2,'#d2ddcb');ellipse(446,245,5,2,'#e9c675');}
  g.restore();
+ // Close-up exposes weight shifts while the scene preserves game-size scale.
+ if(!mobile){g.save();g.translate(18,18);round(0,0,148,177,12,'#f0e7cf','#879867');g.fillStyle='#536b42';g.font='bold 11px Trebuchet MS';g.textAlign='center';g.fillText('MOVEMENT STUDY',74,20);g.translate(74,163);g.scale(.43,.43);g.translate(-R.P.x,-R.P.y);R.draw(g,{direction:st.direction,pose,phase:pose==='eat'?st.time*.55:st.phase,accent,seatBlend:seat});g.restore();}
  const label=names[st.pose]||names.walk;document.getElementById('step').textContent=(callsign||'Omar')+' · '+label;document.getElementById('record').textContent=label;
  document.getElementById('detail').textContent=st.pose==='queue'?'Waiting for the person ahead to finish.':st.pose==='eat'?'A proper meal, a little rest, then back to training.':st.pose==='collect'?'The cook hands over a tray.':st.pose==='carry'?'Taking lunch to an available seat.':'Same face, same kit, wherever they go.';
  pg.clearRect(0,0,256,256);R.portrait(pg,accent);

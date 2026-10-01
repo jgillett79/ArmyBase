@@ -4,7 +4,7 @@ Open https://jgillett79.github.io/ArmyBase/art/prototypes/toy-army/ .
 
 This isolated preview explores a friendly cartoon direction: larger helmet and face, shorter limbs, broad boots, quiet terrain, rounded trees and an open-front Mess Hall. It retains the elevated oblique camera. One continuous jointed Canvas character supplies all four walking directions, idle, collecting food, carrying a tray and sitting/eating; its portrait uses the same drawing and accent. Both anatomical legs alternate, and the rifle remains on the same shoulder. Callsign and four accent controls illustrate personal attachment.
 
-The 37-second loop demonstrates walking, a queue, service and table use. Walking and Mealtime buttons isolate those sections. Phone framing follows the soldier. This is a staged visual demonstration, not the base simulation: its layout and timing are not station contracts or gameplay changes.
+The routine loop demonstrates walking, a queue, service and table use. Walking and Mealtime buttons isolate those sections. Phone framing follows the soldier. This is a staged visual demonstration, not the base simulation: its layout and timing are not station contracts or gameplay changes.
 
 ## Review before replacement
 
@@ -15,3 +15,7 @@ The original game's asset manifest, cache, saves, motion and walking release gat
 ## Checks
 
 `node tools/check-toy-army-proof.cjs <output-folder>` uses `@napi-rs/canvas`. It checks continuous stance cancellation for both legs in four directions, renders every routine state at desktop and phone sizes, and checks callsign, accent and scene controls through a stub DOM. These are native Canvas integration checks, not a full browser or gameplay playtest.
+
+## Motion revision
+
+Consistent travel pace, shorter 18-world-pixel gait cycle, eased starts and stops, hip sway and vertical weight transfer, softer arm timing, and a lifted-foot arc with continuous toe-off/landing velocity. A desktop close-up shows the same live rig at enlarged size. Straight-path planted soles still cancel body travel exactly. Turns currently change directional view at corners; continuous facing interpolation remains a limitation to review before game integration.
