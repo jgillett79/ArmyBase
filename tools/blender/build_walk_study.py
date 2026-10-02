@@ -1,4 +1,4 @@
-"""Deforming skeleton walk study (pass 2). Open a COPY of a local soldier study.
+"""Deforming skeleton walk study (pass 3). Open a COPY of a local soldier study.
 Run: blender --background soldier_study.blend --python-exit-code 1 --python
  tools/blender/build_walk_study.py -- --output NEW_DIRECTORY [--render-step N]
 
@@ -7,6 +7,9 @@ pelvis rides the stance leg so it can straighten, arms swing opposite the
 legs at preserved lengths, thigh pockets deform with the trousers, the
 harness is rebuilt on the final chest surface, and the stop finishes on
 planted feet. Bones keep their rest roll (the pass-1 twist fix).
+Pass 3 (Claude, 2 Oct): the uniform's chest and back follow only the torso
+bones, blending into the sleeves over the shoulder cap (sleeve_amount);
+motion is unchanged from pass 2.
 """
 import argparse, json, math, sys
 from pathlib import Path
@@ -140,6 +143,42 @@ def rigid_group(name):
     # below, so they bend with the cloth instead of flapping off the leg.
 
 TROUSER_BONES=['pelvis','thigh.R','thigh.L','shin.R','shin.L']
+
+def nearest_two(point,names):
+    close=sorted((distance(point,*rest[n]),n) for n in names)[:2]
+    w=[1/max(.015,d)**4 for d,n in close];total=sum(w)
+    return {n:weight/total for (_,n),weight in zip(close,w)}
+
+def smoothstep(e0,e1,x):
+    t=max(0,min(1,(x-e0)/(e1-e0)));return t*t*(3-2*t)
+
+# Measured on the rest uniform (pass 3): below the armpit the flank and the
+# sleeve are separate surfaces with a gap in |x| centred here (z -> x).
+ARMPIT_GAP=[(1.00,.193),(1.05,.200),(1.10,.191),(1.15,.181),(1.20,.178)]
+def sleeve_amount(point):
+    """0 = torso, 1 = arm. Pass 2 weighted the uniform to its two nearest
+    bones, so the flank under the armpit (closer to the upper arm than the
+    spine) followed the arm swing: the chest/back warped and the harness
+    stood 3.2 cm off. Now the chest and back belong to the torso bones; below
+    the armpit the split runs down the flank/sleeve gap, and over the
+    shoulder cap it blends smoothly across |x| 0.165-0.225."""
+    x,z=abs(point.x),point.z
+    zs=[g[0] for g in ARMPIT_GAP];k=max(0,min(len(zs)-2,sum(1 for q in zs if q<=z)-1))
+    (z0,c0),(z1,c1)=ARMPIT_GAP[k],ARMPIT_GAP[k+1]
+    c=c0+(c1-c0)*max(0,min(1,(z-z0)/(z1-z0)))
+    low=smoothstep(c-.008,c+.008,x)
+    high=smoothstep(.165,.225,x)
+    w=smoothstep(1.17,1.30,z)
+    return low+(high-low)*w
+
+def uniform_weights(point):
+    side='R' if point.x<0 else 'L'
+    a=sleeve_amount(point)
+    out={}
+    for part,names in [(1-a,['pelvis','spine']),(a,['upper_arm.'+side,'forearm.'+side])]:
+        if part<=0: continue
+        for n,w in nearest_two(point,names).items(): out[n]=out.get(n,0)+part*w
+    return out
 for obj in list(scene.objects):
     if obj.type not in ('MESH','CURVE') or obj==rig: continue
     if obj.type=='CURVE':
@@ -153,12 +192,10 @@ for obj in list(scene.objects):
     for vertex in obj.data.vertices:
         point=obj.matrix_world@vertex.co
         if fixed: groups[fixed].add([vertex.index],1,'REPLACE');continue
-        names=['pelvis','spine','head']
-        if obj.name.startswith(('Trousers','Cargo')): names=TROUSER_BONES
-        elif obj.name.startswith('Uniform'): names=['pelvis','spine','upper_arm.R','upper_arm.L','forearm.R','forearm.L']
-        close=sorted((distance(point,*rest[n]),n) for n in names)[:2]
-        w=[1/max(.015,d)**4 for d,n in close];total=sum(w)
-        for (_,n),weight in zip(close,w): groups[n].add([vertex.index],weight/total,'REPLACE')
+        if obj.name.startswith('Uniform'): weights=uniform_weights(point)
+        elif obj.name.startswith(('Trousers','Cargo')): weights=nearest_two(point,TROUSER_BONES)
+        else: weights=nearest_two(point,['pelvis','spine','head'])
+        for n,weight in weights.items(): groups[n].add([vertex.index],weight,'REPLACE')
     modifier=obj.modifiers.new('Soldier deformation','ARMATURE');modifier.object=rig
 
 # --- Motion -------------------------------------------------------------------
@@ -261,7 +298,7 @@ for frame in range(1,73):
     frames.append(row)
 scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'soldier_walk_study.blend'))
-(out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 2; not approved',
+(out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 3 (torso/sleeve weights); not approved',
     'fps':24,'walkFrames':list(WALK_FRAMES),'stopFrames':list(STOP),'idleFrames':[61,72],
     'modelHeightMetres':round(HEIGHT,4),'cycleMetres':round(CYCLE,4),'stepMetres':round(CYCLE/2,4),'cycleSeconds':1,
     'gameStride':'22 world px per full cycle on a 44 px figure (js/asset-manifest.js strideWorld; js/animation.js)',
