@@ -1,0 +1,15 @@
+{
+  "session": "2026-10-03-morning",
+  "deadline": "2026-10-03T12:00:00+10:00",
+  "timezone": "Australia/Sydney",
+  "status": "CLAUDE_READY",
+  "owner": "CLAUDE",
+  "iteration": 1,
+  "task": "Preview readability and frame-selection comparison; see AGENT_HANDOFF.md",
+  "baselineCommit": "e1752d339b6669641a70e2d3164d14a5ba94f186",
+  "implementationCommit": null,
+  "reportPath": null,
+  "evidencePaths": [],
+  "lastReviewedCommit": "e1752d339b6669641a70e2d3164d14a5ba94f186",
+  "blocker": null
+}
