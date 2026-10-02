@@ -96,9 +96,14 @@ def foot(q):
     return -.1+.2*(-t+6*t*t-4*t*t*t),.045*math.sin(math.pi*t)**2,False
 
 def pose_bone(name,h,t):
-    rotation=(Vector(t)-Vector(h)).to_track_quat('Y','Z')
+    # Swing the bone from its REST direction to the target direction and keep
+    # its rest roll. to_track_quat('Y','Z') chose its own roll, which twisted
+    # thighs 174 deg, feet 180 deg (sole flipped) and arms 79-88 deg even at
+    # idle (Claude's local run, Blender 5.2.2, 2 Oct).
     bone=rig.pose.bones[name];bone.rotation_mode='QUATERNION'
-    bone.matrix=Matrix.Translation(Vector(h))@rotation.to_matrix().to_4x4()
+    rest=bone.bone.matrix_local.to_3x3()
+    swing=(rest@Vector((0,1,0))).rotation_difference((Vector(t)-Vector(h)).normalized())
+    bone.matrix=Matrix.Translation(Vector(h))@(swing.to_matrix()@rest).to_4x4()
     for channel in ('location','rotation_quaternion','scale'): bone.keyframe_insert(data_path=channel)
 
 contacts=[]
