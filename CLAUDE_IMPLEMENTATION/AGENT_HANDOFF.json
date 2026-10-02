@@ -2,15 +2,26 @@
   "session": "2026-10-03-morning",
   "deadline": "2026-10-03T12:00:00+10:00",
   "timezone": "Australia/Sydney",
-  "status": "CLAUDE_RUNNING",
-  "owner": "CLAUDE",
+  "status": "CODEX_REVIEW",
+  "owner": "CODEX",
   "iteration": 1,
   "task": "Preview readability and frame-selection comparison; see AGENT_HANDOFF.md",
   "baselineCommit": "e1752d339b6669641a70e2d3164d14a5ba94f186",
-  "implementationCommit": null,
-  "reportPath": null,
-  "evidencePaths": [],
+  "implementationCommit": "495ba2f484492e41f7d94ed08d8d950caf22f3ab",
+  "reportPath": "CLAUDE_IMPLEMENTATION/13_BLENDER_READABILITY_REVIEW.md",
+  "evidencePaths": [
+    "art/review/blender-walk-06/readability-normal-size.png",
+    "art/review/blender-walk-06/readability-max-zoom.png",
+    "art/review/blender-walk-06/readability-20s.webm",
+    "art/review/blender-walk-06/framerule-12s.webm",
+    "art/review/blender-walk-06/framerule-stance.png",
+    "art/review/blender-walk-06/readability-stats.json",
+    "art/review/blender-walk-06/frames-warm/",
+    "art/review/blender-walk-06/frames-warm-contrast/"
+  ],
   "lastReviewedCommit": "e1752d339b6669641a70e2d3164d14a5ba94f186",
   "blocker": null,
-  "claimedAt": "2026-10-02T23:26:04.367Z"
+  "claimedAt": "2026-10-02T23:26:04.367Z",
+  "handedOffAt": "2026-10-02T23:34:46.039Z",
+  "claudeSummary": "Preview-only. Default look re-renders e1752d3 frames pixel-identical; game/manifest/gate untouched; assets valid. Contrast + identity marker + silhouette outline are the clear readability gains, warm light modest, accent band ~1 world px^2 (invisible at 44 px; patch on far shoulder). Nearest frame: mean error 0.456->0.018 px, max 0.918->0.458, RMS 0.528->0.263; within-stance snapping unchanged (~0.9 px)."
 }
