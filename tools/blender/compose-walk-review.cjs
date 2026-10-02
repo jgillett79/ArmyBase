@@ -8,7 +8,7 @@
 //   contact-sheet.png    every rendered loop frame per view, one shared crop,
 //                        the ground line, and which leg is planted (report)
 //   travel-overlay.png   right view: the loop frames laid over each other,
-//                        each shifted by the virtual travel (0.4 m/s), so a
+//                        each shifted by its virtual travel (motion report), so a
 //                        planted boot that truly stays put stacks into one
 //   game-size-44px.png   the loop scaled to a 44 px figure, 1x and 4x
 //   walk-loop.webm       both views plus the 44 px figure, looping at the
@@ -66,14 +66,14 @@ const PAGE = `(async () => {
     g.fillText('Blender walk study — not game art. Red line: lowest sole pixel over all frames (ground). Rendered every ' + step + ' frame(s) of 24 fps; "R"/"L" = planted anatomical leg (motion report).', 10, c.height - 14);
     out.sheet = c.toDataURL('image/png'); }
   // Travel overlay (right view): each frame shifted by its virtual travel.
-  { const k = crop.right, S = 0.75, travel = f => 0.4 * (f - 1) / 24 * PX_PER_M;
+  { const k = crop.right, S = 0.75, travel = f => contacts.find(c => c.frame === f).virtualTravelMetres * PX_PER_M, speed = contacts.find(c => c.frame === 25).virtualTravelMetres;
     const span = travel(loop[loop.length - 1]) + (k.x1 - k.x0);
     const c = document.createElement('canvas'); c.width = Math.max(1180, Math.ceil(span * S + 40)); c.height = Math.ceil((k.y1 - k.y0) * S + 70); const g = c.getContext('2d');
     g.fillStyle = BG; g.fillRect(0, 0, c.width, c.height);
     loop.forEach((f, i) => { g.globalAlpha = 0.22; g.drawImage(img.right[f], k.x0, k.y0, k.x1 - k.x0, k.y1 - k.y0, 20 + travel(f) * S, 20, (k.x1 - k.x0) * S, (k.y1 - k.y0) * S); });
     g.globalAlpha = 1; g.strokeStyle = 'rgba(200,40,40,0.8)'; g.beginPath(); g.moveTo(0, 20 + (k.ground - k.y0) * S + 0.5); g.lineTo(c.width, 20 + (k.ground - k.y0) * S + 0.5); g.stroke();
     g.fillStyle = INK; g.font = '13px sans-serif';
-    g.fillText('Right view, frames ' + loop[0] + '-' + loop[loop.length - 1] + ' each shifted by the virtual travel (0.4 m/s = ' + (0.4 / 24 * PX_PER_M).toFixed(1) + ' render px per frame). Planted boots should stack into single dark boots.', 10, c.height - 14);
+    g.fillText('Right view, frames ' + loop[0] + '-' + loop[loop.length - 1] + ' each shifted by the virtual travel (' + speed.toFixed(3) + ' m/s = ' + (speed / 24 * PX_PER_M).toFixed(1) + ' render px per frame). Planted boots should stack into single dark boots.', 10, c.height - 14);
     out.overlay = c.toDataURL('image/png'); }
   // 44 px strip.
   const small = {}; // view -> frame -> 44 px canvas

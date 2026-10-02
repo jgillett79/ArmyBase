@@ -1,0 +1,2482 @@
+{
+  "status": "weighted motion candidate, pass 2; not approved",
+  "fps": 24,
+  "walkFrames": [
+    1,
+    48
+  ],
+  "stopFrames": [
+    49,
+    60
+  ],
+  "idleFrames": [
+    61,
+    72
+  ],
+  "modelHeightMetres": 1.889,
+  "cycleMetres": 0.9445,
+  "stepMetres": 0.4723,
+  "cycleSeconds": 1,
+  "gameStride": "22 world px per full cycle on a 44 px figure (js/asset-manifest.js strideWorld; js/animation.js)",
+  "stanceKneeDegrees": 172,
+  "legLengthMetres": 0.7881,
+  "frames": [
+    {
+      "frame": 1,
+      "R": {
+        "depth": 0.2361,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2361,
+        "lift": 0.0,
+        "planted": false,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9219,
+      "sway": -0.0,
+      "virtualTravelMetres": 0.0
+    },
+    {
+      "frame": 2,
+      "R": {
+        "depth": 0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9331,
+      "sway": -0.0047,
+      "virtualTravelMetres": 0.0394
+    },
+    {
+      "frame": 3,
+      "R": {
+        "depth": 0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9421,
+      "sway": -0.009,
+      "virtualTravelMetres": 0.0787
+    },
+    {
+      "frame": 4,
+      "R": {
+        "depth": 0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "hip": 0.9491,
+      "sway": -0.0127,
+      "virtualTravelMetres": 0.1181
+    },
+    {
+      "frame": 5,
+      "R": {
+        "depth": 0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "hip": 0.954,
+      "sway": -0.0156,
+      "virtualTravelMetres": 0.1574
+    },
+    {
+      "frame": 6,
+      "R": {
+        "depth": 0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "hip": 0.9569,
+      "sway": -0.0174,
+      "virtualTravelMetres": 0.1968
+    },
+    {
+      "frame": 7,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.05,
+        "planted": false,
+        "kneeAngle": 138.2
+      },
+      "hip": 0.9579,
+      "sway": -0.018,
+      "virtualTravelMetres": 0.2361
+    },
+    {
+      "frame": 8,
+      "R": {
+        "depth": -0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "hip": 0.9569,
+      "sway": -0.0174,
+      "virtualTravelMetres": 0.2755
+    },
+    {
+      "frame": 9,
+      "R": {
+        "depth": -0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "hip": 0.954,
+      "sway": -0.0156,
+      "virtualTravelMetres": 0.3148
+    },
+    {
+      "frame": 10,
+      "R": {
+        "depth": -0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "hip": 0.9491,
+      "sway": -0.0127,
+      "virtualTravelMetres": 0.3542
+    },
+    {
+      "frame": 11,
+      "R": {
+        "depth": -0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9421,
+      "sway": -0.009,
+      "virtualTravelMetres": 0.3935
+    },
+    {
+      "frame": 12,
+      "R": {
+        "depth": -0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9331,
+      "sway": -0.0047,
+      "virtualTravelMetres": 0.4329
+    },
+    {
+      "frame": 13,
+      "R": {
+        "depth": -0.2361,
+        "lift": 0.0,
+        "planted": false,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2361,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9219,
+      "sway": 0.0,
+      "virtualTravelMetres": 0.4723
+    },
+    {
+      "frame": 14,
+      "R": {
+        "depth": -0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": 0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9331,
+      "sway": 0.0047,
+      "virtualTravelMetres": 0.5116
+    },
+    {
+      "frame": 15,
+      "R": {
+        "depth": -0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": 0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9421,
+      "sway": 0.009,
+      "virtualTravelMetres": 0.551
+    },
+    {
+      "frame": 16,
+      "R": {
+        "depth": -0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "L": {
+        "depth": 0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9491,
+      "sway": 0.0127,
+      "virtualTravelMetres": 0.5903
+    },
+    {
+      "frame": 17,
+      "R": {
+        "depth": -0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "L": {
+        "depth": 0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.954,
+      "sway": 0.0156,
+      "virtualTravelMetres": 0.6297
+    },
+    {
+      "frame": 18,
+      "R": {
+        "depth": -0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "L": {
+        "depth": 0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9569,
+      "sway": 0.0174,
+      "virtualTravelMetres": 0.669
+    },
+    {
+      "frame": 19,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.05,
+        "planted": false,
+        "kneeAngle": 138.2
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9579,
+      "sway": 0.018,
+      "virtualTravelMetres": 0.7084
+    },
+    {
+      "frame": 20,
+      "R": {
+        "depth": 0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "L": {
+        "depth": -0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9569,
+      "sway": 0.0174,
+      "virtualTravelMetres": 0.7477
+    },
+    {
+      "frame": 21,
+      "R": {
+        "depth": 0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "L": {
+        "depth": -0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.954,
+      "sway": 0.0156,
+      "virtualTravelMetres": 0.7871
+    },
+    {
+      "frame": 22,
+      "R": {
+        "depth": 0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "L": {
+        "depth": -0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9491,
+      "sway": 0.0127,
+      "virtualTravelMetres": 0.8264
+    },
+    {
+      "frame": 23,
+      "R": {
+        "depth": 0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": -0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9421,
+      "sway": 0.009,
+      "virtualTravelMetres": 0.8658
+    },
+    {
+      "frame": 24,
+      "R": {
+        "depth": 0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": -0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9331,
+      "sway": 0.0047,
+      "virtualTravelMetres": 0.9051
+    },
+    {
+      "frame": 25,
+      "R": {
+        "depth": 0.2361,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2361,
+        "lift": 0.0,
+        "planted": false,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9219,
+      "sway": -0.0,
+      "virtualTravelMetres": 0.9445
+    },
+    {
+      "frame": 26,
+      "R": {
+        "depth": 0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9331,
+      "sway": -0.0047,
+      "virtualTravelMetres": 0.9839
+    },
+    {
+      "frame": 27,
+      "R": {
+        "depth": 0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9421,
+      "sway": -0.009,
+      "virtualTravelMetres": 1.0232
+    },
+    {
+      "frame": 28,
+      "R": {
+        "depth": 0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "hip": 0.9491,
+      "sway": -0.0127,
+      "virtualTravelMetres": 1.0626
+    },
+    {
+      "frame": 29,
+      "R": {
+        "depth": 0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "hip": 0.954,
+      "sway": -0.0156,
+      "virtualTravelMetres": 1.1019
+    },
+    {
+      "frame": 30,
+      "R": {
+        "depth": 0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "hip": 0.9569,
+      "sway": -0.0174,
+      "virtualTravelMetres": 1.1413
+    },
+    {
+      "frame": 31,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.05,
+        "planted": false,
+        "kneeAngle": 138.2
+      },
+      "hip": 0.9579,
+      "sway": -0.018,
+      "virtualTravelMetres": 1.1806
+    },
+    {
+      "frame": 32,
+      "R": {
+        "depth": -0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "hip": 0.9569,
+      "sway": -0.0174,
+      "virtualTravelMetres": 1.22
+    },
+    {
+      "frame": 33,
+      "R": {
+        "depth": -0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "hip": 0.954,
+      "sway": -0.0156,
+      "virtualTravelMetres": 1.2593
+    },
+    {
+      "frame": 34,
+      "R": {
+        "depth": -0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "hip": 0.9491,
+      "sway": -0.0127,
+      "virtualTravelMetres": 1.2987
+    },
+    {
+      "frame": 35,
+      "R": {
+        "depth": -0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9421,
+      "sway": -0.009,
+      "virtualTravelMetres": 1.338
+    },
+    {
+      "frame": 36,
+      "R": {
+        "depth": -0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9331,
+      "sway": -0.0047,
+      "virtualTravelMetres": 1.3774
+    },
+    {
+      "frame": 37,
+      "R": {
+        "depth": -0.2361,
+        "lift": 0.0,
+        "planted": false,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.2361,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9219,
+      "sway": 0.0,
+      "virtualTravelMetres": 1.4168
+    },
+    {
+      "frame": 38,
+      "R": {
+        "depth": -0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": 0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9331,
+      "sway": 0.0047,
+      "virtualTravelMetres": 1.4561
+    },
+    {
+      "frame": 39,
+      "R": {
+        "depth": -0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": 0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9421,
+      "sway": 0.009,
+      "virtualTravelMetres": 1.4955
+    },
+    {
+      "frame": 40,
+      "R": {
+        "depth": -0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "L": {
+        "depth": 0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9491,
+      "sway": 0.0127,
+      "virtualTravelMetres": 1.5348
+    },
+    {
+      "frame": 41,
+      "R": {
+        "depth": -0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "L": {
+        "depth": 0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.954,
+      "sway": 0.0156,
+      "virtualTravelMetres": 1.5742
+    },
+    {
+      "frame": 42,
+      "R": {
+        "depth": -0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "L": {
+        "depth": 0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9569,
+      "sway": 0.0174,
+      "virtualTravelMetres": 1.6135
+    },
+    {
+      "frame": 43,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.05,
+        "planted": false,
+        "kneeAngle": 138.2
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9579,
+      "sway": 0.018,
+      "virtualTravelMetres": 1.6529
+    },
+    {
+      "frame": 44,
+      "R": {
+        "depth": 0.0776,
+        "lift": 0.0467,
+        "planted": false,
+        "kneeAngle": 140.9
+      },
+      "L": {
+        "depth": -0.0394,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9569,
+      "sway": 0.0174,
+      "virtualTravelMetres": 1.6922
+    },
+    {
+      "frame": 45,
+      "R": {
+        "depth": 0.1487,
+        "lift": 0.0375,
+        "planted": false,
+        "kneeAngle": 149.0
+      },
+      "L": {
+        "depth": -0.0787,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.954,
+      "sway": 0.0156,
+      "virtualTravelMetres": 1.7316
+    },
+    {
+      "frame": 46,
+      "R": {
+        "depth": 0.2066,
+        "lift": 0.025,
+        "planted": false,
+        "kneeAngle": 163.6
+      },
+      "L": {
+        "depth": -0.1181,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9491,
+      "sway": 0.0127,
+      "virtualTravelMetres": 1.7709
+    },
+    {
+      "frame": 47,
+      "R": {
+        "depth": 0.2449,
+        "lift": 0.0125,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": -0.1574,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9421,
+      "sway": 0.009,
+      "virtualTravelMetres": 1.8103
+    },
+    {
+      "frame": 48,
+      "R": {
+        "depth": 0.2569,
+        "lift": 0.0033,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "L": {
+        "depth": -0.1968,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9331,
+      "sway": 0.0047,
+      "virtualTravelMetres": 1.8496
+    },
+    {
+      "frame": 49,
+      "R": {
+        "depth": 0.2361,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2361,
+        "lift": 0.0,
+        "planted": false,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9219,
+      "sway": -0.0,
+      "virtualTravelMetres": 1.889
+    },
+    {
+      "frame": 50,
+      "R": {
+        "depth": 0.1951,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2466,
+        "lift": 0.0028,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9335,
+      "sway": -0.0088,
+      "virtualTravelMetres": 1.93
+    },
+    {
+      "frame": 51,
+      "R": {
+        "depth": 0.1581,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2379,
+        "lift": 0.0102,
+        "planted": false,
+        "kneeAngle": 178.2
+      },
+      "hip": 0.9419,
+      "sway": -0.0134,
+      "virtualTravelMetres": 1.9671
+    },
+    {
+      "frame": 52,
+      "R": {
+        "depth": 0.1249,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.2143,
+        "lift": 0.02,
+        "planted": false,
+        "kneeAngle": 171.5
+      },
+      "hip": 0.948,
+      "sway": -0.013,
+      "virtualTravelMetres": 2.0002
+    },
+    {
+      "frame": 53,
+      "R": {
+        "depth": 0.0956,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.1801,
+        "lift": 0.029,
+        "planted": false,
+        "kneeAngle": 157.3
+      },
+      "hip": 0.9522,
+      "sway": -0.0087,
+      "virtualTravelMetres": 2.0295
+    },
+    {
+      "frame": 54,
+      "R": {
+        "depth": 0.0703,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.1394,
+        "lift": 0.0343,
+        "planted": false,
+        "kneeAngle": 150.2
+      },
+      "hip": 0.9549,
+      "sway": -0.0028,
+      "virtualTravelMetres": 2.0549
+    },
+    {
+      "frame": 55,
+      "R": {
+        "depth": 0.0488,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.0967,
+        "lift": 0.0343,
+        "planted": false,
+        "kneeAngle": 147.5
+      },
+      "hip": 0.9566,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.0763
+    },
+    {
+      "frame": 56,
+      "R": {
+        "depth": 0.0312,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.0561,
+        "lift": 0.029,
+        "planted": false,
+        "kneeAngle": 148.6
+      },
+      "hip": 0.9575,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.0939
+    },
+    {
+      "frame": 57,
+      "R": {
+        "depth": 0.0176,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": -0.0218,
+        "lift": 0.02,
+        "planted": false,
+        "kneeAngle": 153.0
+      },
+      "hip": 0.9579,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.1076
+    },
+    {
+      "frame": 58,
+      "R": {
+        "depth": 0.0078,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0018,
+        "lift": 0.0102,
+        "planted": false,
+        "kneeAngle": 159.8
+      },
+      "hip": 0.958,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.1173
+    },
+    {
+      "frame": 59,
+      "R": {
+        "depth": 0.002,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0105,
+        "lift": 0.0028,
+        "planted": false,
+        "kneeAngle": 167.6
+      },
+      "hip": 0.9581,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.1232
+    },
+    {
+      "frame": 60,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": -0.0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 61,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 62,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 63,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 64,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 65,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 66,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 67,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 68,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 69,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 70,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 71,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    },
+    {
+      "frame": 72,
+      "R": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "L": {
+        "depth": 0.0,
+        "lift": 0.0,
+        "planted": true,
+        "kneeAngle": 172.0
+      },
+      "hip": 0.9581,
+      "sway": 0,
+      "virtualTravelMetres": 2.1251
+    }
+  ],
+  "contacts": [
+    {
+      "frame": 1,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.0
+    },
+    {
+      "frame": 1,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.0
+    },
+    {
+      "frame": 2,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.19677083939313889,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.03935416787862778
+    },
+    {
+      "frame": 2,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.25689526254104245,
+      "liftMetres": 0.0033493649053890277,
+      "virtualTravelMetres": 0.03935416787862778
+    },
+    {
+      "frame": 3,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.1574166715145111,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.07870833575725555
+    },
+    {
+      "frame": 3,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.2448703779114617,
+      "liftMetres": 0.012500000000000006,
+      "virtualTravelMetres": 0.07870833575725555
+    },
+    {
+      "frame": 4,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.11806250363588333
+    },
+    {
+      "frame": 4,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 0.11806250363588333
+    },
+    {
+      "frame": 5,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.07870833575725555,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.1574166715145111
+    },
+    {
+      "frame": 5,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.1486713008748161,
+      "liftMetres": 0.037499999999999985,
+      "virtualTravelMetres": 0.1574166715145111
+    },
+    {
+      "frame": 6,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.03935416787862778,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.19677083939313889
+    },
+    {
+      "frame": 6,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.07761516442729363,
+      "liftMetres": 0.046650635094610975,
+      "virtualTravelMetres": 0.19677083939313889
+    },
+    {
+      "frame": 7,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.23612500727176666
+    },
+    {
+      "frame": 7,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.05,
+      "virtualTravelMetres": 0.23612500727176666
+    },
+    {
+      "frame": 8,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.03935416787862778,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.27547917515039444
+    },
+    {
+      "frame": 8,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.07761516442729388,
+      "liftMetres": 0.04665063509461096,
+      "virtualTravelMetres": 0.27547917515039444
+    },
+    {
+      "frame": 9,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.07870833575725555,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.3148333430290222
+    },
+    {
+      "frame": 9,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.14867130087481595,
+      "liftMetres": 0.03750000000000003,
+      "virtualTravelMetres": 0.3148333430290222
+    },
+    {
+      "frame": 10,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.35418751090765
+    },
+    {
+      "frame": 10,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 0.35418751090765
+    },
+    {
+      "frame": 11,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.1574166715145111,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.39354167878627777
+    },
+    {
+      "frame": 11,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.24487037791146177,
+      "liftMetres": 0.012499999999999978,
+      "virtualTravelMetres": 0.39354167878627777
+    },
+    {
+      "frame": 12,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.19677083939313889,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.43289584666490555
+    },
+    {
+      "frame": 12,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.2568952625410424,
+      "liftMetres": 0.003349364905389052,
+      "virtualTravelMetres": 0.43289584666490555
+    },
+    {
+      "frame": 13,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.4722500145435333
+    },
+    {
+      "frame": 13,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.4722500145435333
+    },
+    {
+      "frame": 14,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.25689526254104245,
+      "liftMetres": 0.0033493649053890277,
+      "virtualTravelMetres": 0.5116041824221611
+    },
+    {
+      "frame": 14,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.19677083939313902,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.5116041824221611
+    },
+    {
+      "frame": 15,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.2448703779114617,
+      "liftMetres": 0.012500000000000006,
+      "virtualTravelMetres": 0.5509583503007889
+    },
+    {
+      "frame": 15,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.15741667151451097,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.5509583503007889
+    },
+    {
+      "frame": 16,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 0.5903125181794167
+    },
+    {
+      "frame": 16,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.5903125181794167
+    },
+    {
+      "frame": 17,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.1486713008748161,
+      "liftMetres": 0.037499999999999985,
+      "virtualTravelMetres": 0.6296666860580444
+    },
+    {
+      "frame": 17,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.07870833575725569,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.6296666860580444
+    },
+    {
+      "frame": 18,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.07761516442729363,
+      "liftMetres": 0.046650635094610975,
+      "virtualTravelMetres": 0.6690208539366722
+    },
+    {
+      "frame": 18,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.03935416787862764,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.6690208539366722
+    },
+    {
+      "frame": 19,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.05,
+      "virtualTravelMetres": 0.7083750218153
+    },
+    {
+      "frame": 19,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.7083750218153
+    },
+    {
+      "frame": 20,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.07761516442729355,
+      "liftMetres": 0.04665063509461098,
+      "virtualTravelMetres": 0.7477291896939278
+    },
+    {
+      "frame": 20,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.03935416787862761,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.7477291896939278
+    },
+    {
+      "frame": 21,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.1486713008748159,
+      "liftMetres": 0.0375,
+      "virtualTravelMetres": 0.7870833575725555
+    },
+    {
+      "frame": 21,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.07870833575725572,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.7870833575725555
+    },
+    {
+      "frame": 22,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 0.8264375254511833
+    },
+    {
+      "frame": 22,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.8264375254511833
+    },
+    {
+      "frame": 23,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.244870377911462,
+      "liftMetres": 0.012500000000000018,
+      "virtualTravelMetres": 0.8657916933298111
+    },
+    {
+      "frame": 23,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.15741667151451094,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.8657916933298111
+    },
+    {
+      "frame": 24,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.25689526254104217,
+      "liftMetres": 0.003349364905389029,
+      "virtualTravelMetres": 0.9051458612084389
+    },
+    {
+      "frame": 24,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.19677083939313905,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.9051458612084389
+    },
+    {
+      "frame": 25,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.9445000290870667
+    },
+    {
+      "frame": 25,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.9445000290870667
+    },
+    {
+      "frame": 26,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.19677083939313883,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 0.9838541969656945
+    },
+    {
+      "frame": 26,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.25689526254104245,
+      "liftMetres": 0.0033493649053890464,
+      "virtualTravelMetres": 0.9838541969656945
+    },
+    {
+      "frame": 27,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.15741667151451116,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.0232083648443222
+    },
+    {
+      "frame": 27,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.24487037791146177,
+      "liftMetres": 0.012499999999999978,
+      "virtualTravelMetres": 1.0232083648443222
+    },
+    {
+      "frame": 28,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.06256253272295
+    },
+    {
+      "frame": 28,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 1.06256253272295
+    },
+    {
+      "frame": 29,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.07870833575725547,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.1019167006015778
+    },
+    {
+      "frame": 29,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.14867130087481592,
+      "liftMetres": 0.03750000000000002,
+      "virtualTravelMetres": 1.1019167006015778
+    },
+    {
+      "frame": 30,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.03935416787862786,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.1412708684802055
+    },
+    {
+      "frame": 30,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.07761516442729383,
+      "liftMetres": 0.04665063509461096,
+      "virtualTravelMetres": 1.1412708684802055
+    },
+    {
+      "frame": 31,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.1806250363588333
+    },
+    {
+      "frame": 31,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.05,
+      "virtualTravelMetres": 1.1806250363588333
+    },
+    {
+      "frame": 32,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.03935416787862783,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.219979204237461
+    },
+    {
+      "frame": 32,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.07761516442729388,
+      "liftMetres": 0.04665063509461096,
+      "virtualTravelMetres": 1.219979204237461
+    },
+    {
+      "frame": 33,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.0787083357572555,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.2593333721160889
+    },
+    {
+      "frame": 33,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.14867130087481595,
+      "liftMetres": 0.03750000000000003,
+      "virtualTravelMetres": 1.2593333721160889
+    },
+    {
+      "frame": 34,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.2986875399947166
+    },
+    {
+      "frame": 34,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 1.2986875399947166
+    },
+    {
+      "frame": 35,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.15741667151451116,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.3380417078733444
+    },
+    {
+      "frame": 35,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.24487037791146177,
+      "liftMetres": 0.012499999999999978,
+      "virtualTravelMetres": 1.3380417078733444
+    },
+    {
+      "frame": 36,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": -0.19677083939313883,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.3773958757519722
+    },
+    {
+      "frame": 36,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.2568952625410424,
+      "liftMetres": 0.003349364905389052,
+      "virtualTravelMetres": 1.3773958757519722
+    },
+    {
+      "frame": 37,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.4167500436306
+    },
+    {
+      "frame": 37,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.4167500436306
+    },
+    {
+      "frame": 38,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.25689526254104245,
+      "liftMetres": 0.0033493649053890464,
+      "virtualTravelMetres": 1.4561042115092278
+    },
+    {
+      "frame": 38,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.19677083939313883,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.4561042115092278
+    },
+    {
+      "frame": 39,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.24487037791146177,
+      "liftMetres": 0.012499999999999978,
+      "virtualTravelMetres": 1.4954583793878555
+    },
+    {
+      "frame": 39,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.15741667151451116,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.4954583793878555
+    },
+    {
+      "frame": 40,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 1.5348125472664833
+    },
+    {
+      "frame": 40,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.5348125472664833
+    },
+    {
+      "frame": 41,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.14867130087481592,
+      "liftMetres": 0.03750000000000002,
+      "virtualTravelMetres": 1.574166715145111
+    },
+    {
+      "frame": 41,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.07870833575725547,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.574166715145111
+    },
+    {
+      "frame": 42,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": -0.07761516442729383,
+      "liftMetres": 0.04665063509461096,
+      "virtualTravelMetres": 1.6135208830237389
+    },
+    {
+      "frame": 42,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.03935416787862786,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.6135208830237389
+    },
+    {
+      "frame": 43,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.05,
+      "virtualTravelMetres": 1.6528750509023666
+    },
+    {
+      "frame": 43,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.6528750509023666
+    },
+    {
+      "frame": 44,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.07761516442729388,
+      "liftMetres": 0.04665063509461096,
+      "virtualTravelMetres": 1.6922292187809944
+    },
+    {
+      "frame": 44,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.03935416787862783,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.6922292187809944
+    },
+    {
+      "frame": 45,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.14867130087481595,
+      "liftMetres": 0.03750000000000003,
+      "virtualTravelMetres": 1.7315833866596222
+    },
+    {
+      "frame": 45,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.0787083357572555,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.7315833866596222
+    },
+    {
+      "frame": 46,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.20660938136279583,
+      "liftMetres": 0.02500000000000001,
+      "virtualTravelMetres": 1.77093755453825
+    },
+    {
+      "frame": 46,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.11806250363588333,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.77093755453825
+    },
+    {
+      "frame": 47,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.24487037791146177,
+      "liftMetres": 0.012499999999999978,
+      "virtualTravelMetres": 1.8102917224168777
+    },
+    {
+      "frame": 47,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.15741667151451116,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.8102917224168777
+    },
+    {
+      "frame": 48,
+      "leg": "R",
+      "planted": false,
+      "soleDepthMetres": 0.2568952625410424,
+      "liftMetres": 0.003349364905389052,
+      "virtualTravelMetres": 1.8496458902955055
+    },
+    {
+      "frame": 48,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": -0.19677083939313883,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.8496458902955055
+    },
+    {
+      "frame": 49,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.8890000581741333
+    },
+    {
+      "frame": 49,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.23612500727176666,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.8890000581741333
+    },
+    {
+      "frame": 50,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.19514463410889807,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.929980431337002
+    },
+    {
+      "frame": 50,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.24659185582851664,
+      "liftMetres": 0.0027780631754543285,
+      "virtualTravelMetres": 1.929980431337002
+    },
+    {
+      "frame": 51,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.15806715362820745,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 1.9670579118176925
+    },
+    {
+      "frame": 51,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.23789904940002937,
+      "liftMetres": 0.010230237272466986,
+      "virtualTravelMetres": 1.9670579118176925
+    },
+    {
+      "frame": 52,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.12489256582969477,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.0002324996162053
+    },
+    {
+      "frame": 52,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.21430428909413535,
+      "liftMetres": 0.019990509669782486,
+      "virtualTravelMetres": 2.0002324996162053
+    },
+    {
+      "frame": 53,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.09562087071336006,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.02950419473254
+    },
+    {
+      "frame": 53,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.18006527601866507,
+      "liftMetres": 0.028960062844042483,
+      "virtualTravelMetres": 2.02950419473254
+    },
+    {
+      "frame": 54,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0702520682792033,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.054872997166697
+    },
+    {
+      "frame": 54,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.139439711281449,
+      "liftMetres": 0.034291127038253696,
+      "virtualTravelMetres": 2.054872997166697
+    },
+    {
+      "frame": 55,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.04878615852722451,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.0763389069186755
+    },
+    {
+      "frame": 55,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.09668529599031767,
+      "liftMetres": 0.0342911270382537,
+      "virtualTravelMetres": 2.0763389069186755
+    },
+    {
+      "frame": 56,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.031223141457423692,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.093901923988476
+    },
+    {
+      "frame": 56,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.0560597312531016,
+      "liftMetres": 0.028960062844042487,
+      "virtualTravelMetres": 2.093901923988476
+    },
+    {
+      "frame": 57,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.017563017069800818,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1075620483760993
+    },
+    {
+      "frame": 57,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": -0.0218207181776314,
+      "liftMetres": 0.019990509669782486,
+      "virtualTravelMetres": 2.1075620483760993
+    },
+    {
+      "frame": 58,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.007805785364355916,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.117319280081544
+    },
+    {
+      "frame": 58,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.001774042128262654,
+      "liftMetres": 0.010230237272466981,
+      "virtualTravelMetres": 2.117319280081544
+    },
+    {
+      "frame": 59,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.001951446341088986,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.123173619104811
+    },
+    {
+      "frame": 59,
+      "leg": "L",
+      "planted": false,
+      "soleDepthMetres": 0.010466848556749953,
+      "liftMetres": 0.0027780631754543363,
+      "virtualTravelMetres": 2.123173619104811
+    },
+    {
+      "frame": 60,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 60,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 5.2491592393165015e-34,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 61,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 61,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 62,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 62,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 63,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 63,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 64,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 64,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 65,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 65,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 66,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 66,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 67,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 67,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 68,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 68,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 69,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 69,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 70,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 70,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 71,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 71,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 72,
+      "leg": "R",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    },
+    {
+      "frame": 72,
+      "leg": "L",
+      "planted": true,
+      "soleDepthMetres": 0.0,
+      "liftMetres": 0.0,
+      "virtualTravelMetres": 2.1251250654459
+    }
+  ],
+  "limitations": [
+    "Distance-based weights, not hand-painted",
+    "No production control hierarchy",
+    "Flat-footed stance (no heel-strike/toe-off roll)",
+    "Projection uncalibrated",
+    "No runtime integration"
+  ]
+}
