@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Walk Readability Comparison</title>
+<!-- Preview-only readability comparison for the Blender walk (follow-up to
+     tools/blender-walk-preview.html, whose calibration and motion it keeps:
+     e1752d3 frames, 38 px/s, 22 px per cycle, trail t1 -> t4, stop on phase).
+     Variants are cumulative: current -> warm map light -> stronger uniform
+     contrast -> accent colour (game-style mask fill) -> subtle outline. Each
+     soldier runs in its own in-memory GameState (never saved) drawn by the
+     game's renderFrame(); frame selection can be the game's floor rule or
+     nearest-frame. Nothing here changes the game, its manifest or the walk
+     release gate; tools/ is not deployed.
+       tools/blender-walk-readability.html?layout=readability|framerule
+-->
+<style>
+  body { margin: 0; background: #151b17; color: #e8e4d4; font: 13px/1.4 system-ui, sans-serif; }
+  canvas { display: block; max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<canvas id="out" width="1600" height="780"></canvas>
+<script src="../js/utils.js"></script>
+<script src="../js/world.js"></script>
+<script src="../js/asset-manifest.js"></script>
+<script src="../js/camera.js"></script>
+<script src="../js/unit.js"></script>
+<script src="../js/building.js"></script>
+<script src="../js/mission.js"></script>
+<script src="../js/routine.js"></script>
+<script src="../js/state.js"></script>
+<script src="../js/daily.js"></script>
+<script src="../js/save.js"></script>
+<script src="../js/scenery.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/animation.js"></script>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load ' + src)); i.src = src; });
+  const json = src => fetch(src).then(r => r.json());
+  const SETS = { current: '../art/review/blender-walk-05/game-frames', warm: '../art/review/blender-walk-06/frames-warm', contrast: '../art/review/blender-walk-06/frames-warm-contrast' };
+  const motion = await json(`${SETS.current}/motion-report.json`);
+  const sets = {};
+  for (const [key, dir] of Object.entries(SETS)) {
+    const proj = await json(`${dir}/projection.json`), body = {}, accent = {};
+    for (const f of proj.frames) {
+      body[f] = await load(`${dir}/right/${String(f).padStart(3, '0')}.png`);
+      if (proj.accentMask) accent[f] = await load(`${dir}/accent/${String(f).padStart(3, '0')}.png`);
+    }
+    sets[key] = { proj, body, accent };
+  }
+  const proj = sets.current.proj;
+  for (const s of Object.values(sets)) for (const k of ['pivot', 'worldPxPerMetre', 'renderPxPerMetre', 'verticalStretch', 'size'])
+    if (JSON.stringify(s.proj[k]) !== JSON.stringify(proj[k])) throw new Error('calibration differs between frame sets: ' + k);
+
+  // Calibration and motion constants, exactly as tools/blender-walk-preview.html.
+  const K = proj.worldPxPerMetre / proj.renderPxPerMetre, S = proj.verticalStretch, [PX, PY] = proj.pivot;
+  const WPM = proj.worldPxPerMetre, STRIDE = ASSET_MANIFEST.units.soldier.walk.strideWorld, LOOP = motion.walkFrames[1] / 2;
+  const CYCLE_PX = motion.cycleMetres * WPM, [STOP0, STOP1] = motion.stopFrames, IDLE_FRAME = Math.max(...proj.frames);
+  const travelAt = f => motion.frames[f - 1].virtualTravelMetres;
+  const STOP_PX = (travelAt(STOP1) - travelAt(STOP0)) * WPM, STOP_START_RATE = CYCLE_PX * (STOP1 - STOP0) / LOOP;
+  const stopPx = u => { const x = u * (STOP1 - STOP0), i = Math.min(STOP1 - STOP0 - 1, Math.floor(x)), t = x - i;
+    return ((travelAt(STOP0 + i) * (1 - t) + travelAt(STOP0 + i + 1) * t) - travelAt(STOP0)) * WPM; };
+  const SPEED = 38, IDLE_SECONDS = 4, START = worldNodePosition('t1'), END_NODE = 't4';
+  const ACCENT = ACCENT_COLOURS.find(c => c.id === (params.get('accent') || 'red'));
+  const OUTLINE_WORLD_PX = Number(params.get('outline')) || 0.8, OUTLINE_COLOUR = 'rgba(22, 26, 16, 0.85)';
+
+  // Variants (cumulative). Each frame canvas is built once: body, then the
+  // accent fill through its mask (as js/animation.js accentStrip does), with
+  // an outline canvas underneath when asked.
+  const VARIANTS = {
+    current: { label: 'Current (e1752d3)', set: 'current' },
+    warm: { label: '+ warm map light', set: 'warm' },
+    contrast: { label: '+ stronger contrast', set: 'contrast' },
+    accent: { label: '+ accent (' + ACCENT.label.toLowerCase() + ')', set: 'contrast', accent: true },
+    marker: { label: '+ identity marker', set: 'contrast', accent: true, marker: true },
+    readable: { label: '+ subtle outline', set: 'contrast', accent: true, marker: true, outline: true },
+  };
+  const canvasOf = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
+  const filled = (img, colour) => { const c = canvasOf(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0);
+    g.globalCompositeOperation = 'source-in'; g.fillStyle = colour; g.fillRect(0, 0, c.width, c.height); return c; };
+  for (const v of Object.values(VARIANTS)) {
+    v.frames = {};
+    const set = sets[v.set];
+    for (const f of proj.frames) {
+      const c = canvasOf(proj.size[0], proj.size[1]), g = c.getContext('2d');
+      if (v.outline) {
+        // Dilate the silhouette by OUTLINE_WORLD_PX in world px: in render px
+        // that is wider horizontally than vertically (the draw stretches y).
+        const rx = OUTLINE_WORLD_PX / K, ry = OUTLINE_WORLD_PX / (K * S), sil = filled(set.body[f], OUTLINE_COLOUR);
+        for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; g.drawImage(sil, Math.cos(a) * rx, Math.sin(a) * ry); }
+      }
+      g.drawImage(set.body[f], 0, 0);
+      if (v.accent) g.drawImage(filled(set.accent[f], ACCENT.hex), 0, 0);
+      v.frames[f] = c;
+    }
+  }
+
+  // One walker = one soldier in its own unsaved GameState.
+  const remainingOf = unit => { let d = Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y), p = { x: unit.targetX, y: unit.targetY };
+    for (const q of unit.path) { d += Math.hypot(q.x - p.x, q.y - p.y); p = q; } return d; };
+  const moveAlong = (unit, px) => { while (px > 1e-9) { const dx = unit.targetX - unit.x, dy = unit.targetY - unit.y, d = Math.hypot(dx, dy);
+    if (d <= px) { unit.x = unit.targetX; unit.y = unit.targetY; px -= d; const n = unit.path.shift(); if (!n) break; unit.targetX = n.x; unit.targetY = n.y; continue; }
+    unit.x += dx / d * px; unit.y += dy / d * px; px = 0; } };
+  const walkFrameFor = (distance, rule) => { const phase = ((distance % STRIDE) + STRIDE) % STRIDE / STRIDE;
+    return 1 + (rule === 'nearest' ? Math.round(phase * LOOP) : Math.floor(phase * LOOP)) % LOOP; };
+  function makeWalker(variantKey, rule) {
+    const state = new GameState(); state.simSpeed = 0; state.units = [];
+    const unit = new Unit({ x: START.x, y: START.y, isCivilian: false });
+    unit.name = 'Preview'; unit.speed = SPEED; unit.accent = ACCENT.id; state.units.push(unit);
+    const w = { state, unit, variant: VARIANTS[variantKey], rule, mode: 'walk', u: 0, idleUntil: 0, frame: 1 };
+    w.begin = () => { unit.x = START.x; unit.y = START.y; unit.targetX = unit.x; unit.targetY = unit.y; unit.path = [];
+      state.routeToNode(unit, END_NODE); const toStop = remainingOf(unit) - STOP_PX; unit.walkDistance = -(((toStop % STRIDE) + STRIDE) % STRIDE); w.mode = 'walk'; };
+    w.advance = (dt, now) => {
+      if (w.mode === 'walk') { const toStop = remainingOf(unit) - STOP_PX;
+        if (SPEED * dt >= toStop) { unit.step(toStop / SPEED); w.mode = 'stop'; w.u = 0; dt -= toStop / SPEED; }
+        else { unit.step(dt); w.frame = walkFrameFor(unit.walkDistance, rule); return; } }
+      if (w.mode === 'stop') { const before = stopPx(w.u); w.u = Math.min(1, w.u + dt * SPEED / STOP_START_RATE); moveAlong(unit, stopPx(w.u) - before);
+        w.frame = STOP0 + (rule === 'nearest' ? Math.round(w.u * (STOP1 - STOP0)) : Math.floor(w.u * (STOP1 - STOP0)));
+        if (w.u >= 1) { w.mode = 'idle'; w.idleUntil = now + IDLE_SECONDS * 1000; } return; }
+      if (w.mode === 'idle') { w.frame = IDLE_FRAME; if (now >= w.idleUntil) w.begin(); }
+    };
+    w.begin();
+    return w;
+  }
+
+  // Draw: the walker's soldier from its variant frames; contact shadow as the game's.
+  let drawing = null;
+  // Screen-space UI (labels over the boots, the clock and the placeholder
+  // legend) would sit on top of small crops of the soldier: off here.
+  drawUnitLabels = () => {}; drawClock = () => {}; drawPlaceholderLegend = () => {};
+  const gameDrawUnit = drawUnit;
+  drawUnit = function (ctx, u, isSelected, now) {
+    if (!drawing || u !== drawing.unit) return gameDrawUnit(ctx, u, isSelected, now);
+    const img = drawing.variant.frames[drawing.frame];
+    ctx.save(); ctx.fillStyle = 'rgba(8, 20, 17, 0.3)'; ctx.beginPath(); ctx.ellipse(u.x + 3, u.y - 1, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.drawImage(img, u.x - PX * K, u.y - PY * K * S, img.width * K, img.height * K * S);
+    if (drawing.variant.marker) {
+      // Identity marker: the soldier's accent as a small pip above the helmet,
+      // constant on screen (px() = screen px at this zoom), instead of the
+      // name/level labels that sit over the boots. Nothing near the feet.
+      ctx.fillStyle = ACCENT.hex; ctx.strokeStyle = 'rgba(20, 22, 16, 0.9)'; ctx.lineWidth = px(1.2);
+      ctx.beginPath(); ctx.arc(u.x, u.y - UNIT_H - px(7), px(3.4), 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    }
+    ctx.restore();
+  };
+  const renderWalker = (ctx, w, camera, now) => { drawing = w; renderFrame(ctx, w.state, null, { camera, dpr: 1, now }); drawing = null; };
+
+  // Layouts: panels = (walker, zoom) following the soldier.
+  const layout = params.get('layout') || 'readability';
+  const out = document.getElementById('out'), g = out.getContext('2d');
+  const panelW = 800, panelH = layout === 'readability' ? 340 : 420, captionH = 26;
+  const walkers = layout === 'readability'
+    ? { current: makeWalker('current', 'floor'), readable: makeWalker('readable', 'floor') }
+    : { floor: makeWalker('readable', 'floor'), nearest: makeWalker('readable', 'nearest') };
+  const panels = layout === 'readability'
+    ? [['current', 1, 0, 0], ['readable', 1, 1, 0], ['current', CAMERA_MAX_ZOOM, 0, 1], ['readable', CAMERA_MAX_ZOOM, 1, 1]]
+    : [['floor', CAMERA_MAX_ZOOM, 0, 0], ['nearest', CAMERA_MAX_ZOOM, 1, 0]];
+  const panelLabel = (key, zoom) => layout === 'readability'
+    ? `${key === 'current' ? 'Current (e1752d3)' : 'Readable: warm light + contrast + accent + outline'} · ${zoom === 1 ? 'game size (zoom 1)' : 'max zoom ' + zoom}`
+    : `${key === 'floor' ? 'Floor frame (the game\'s rule)' : 'Nearest frame'} · readable look · max zoom ${zoom}`;
+  const rows = Math.max(...panels.map(p => p[3])) + 1;
+  out.width = panelW * 2; out.height = rows * (panelH + captionH) + 24;
+  const cams = panels.map(([, zoom]) => { const c = new Camera(panelW, panelH); c.zoom = zoom; return c; });
+  const scratch = panels.map(() => canvasOf(panelW, panelH));
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    for (const w of Object.values(walkers)) w.advance(dt, now);
+    g.fillStyle = '#151b17'; g.fillRect(0, 0, out.width, out.height);
+    panels.forEach(([key, zoom, col, row], i) => { const w = walkers[key], cam = cams[i];
+      cam.zoom = zoom; cam.centreOn(w.unit.x, w.unit.y - UNIT_H / 2);
+      renderWalker(scratch[i].getContext('2d'), w, cam, now);
+      const y = row * (panelH + captionH); g.drawImage(scratch[i], col * panelW, y);
+      g.fillStyle = '#e8e4d4'; g.font = 'bold 13px system-ui, sans-serif'; g.fillText(panelLabel(key, zoom), col * panelW + 8, y + panelH + 18); });
+    g.fillStyle = '#9aa392'; g.font = '12px system-ui, sans-serif';
+    g.fillText(`Preview only — Blender walk (motion e6a99e4, calibration e1752d3) on trail t1→t4 · ${SPEED} px/s · ${STRIDE} px per cycle · game, manifest and walk gate unchanged`, 8, out.height - 8);
+    requestAnimationFrame(frame);
+  }
+
+  // Deterministic measurements (no rendering): walk the whole route at a
+  // fine step and compare the drawn planted foot with the true planted spot.
+  // True: depth interpolated at the continuous phase; drawn: depth of the
+  // selected frame. Error in world px; flat-planted feet only (walk + stop).
+  function measureRule(rule, dt = 1 / 240) {
+    const w = makeWalker('current', rule), errs = [], spans = []; let span = null, t = 0;
+    const depthAt = (fFloat, side) => { const i = Math.floor(fFloat), k = fFloat - i, a = motion.frames[i - 1][side].depth, b = motion.frames[Math.min(i, motion.frames.length - 1)][side].depth; return a + (b - a) * k; };
+    while (w.mode !== 'idle' && t < 60) {
+      w.advance(dt, t * 1000); t += dt;
+      let fTrue;
+      if (w.mode === 'walk') { const phase = ((w.unit.walkDistance % STRIDE) + STRIDE) % STRIDE / STRIDE; fTrue = 1 + phase * LOOP; if (fTrue >= LOOP + 1) fTrue -= LOOP; }
+      else if (w.mode === 'stop') fTrue = STOP0 + w.u * (STOP1 - STOP0); else break;
+      const row = motion.frames[w.frame - 1];
+      const side = ['R', 'L'].find(s => row[s].planted && row[s].contact !== 'toe' && motion.frames[Math.floor(fTrue) - 1][s].planted && motion.frames[Math.floor(fTrue) - 1][s].contact !== 'toe' && fTrue < (w.mode === 'walk' ? LOOP : STOP1));
+      if (!side) { span = null; continue; }
+      // At a cycle wrap the true phase is near frame 25 = frame 1.
+      const err = (row[side].depth - depthAt(Math.min(fTrue, w.mode === 'walk' ? LOOP : STOP1), side)) * WPM;
+      errs.push(err);
+      const footX = w.unit.x + row[side].depth * WPM;
+      if (!span || span.side !== side) { span = { side, min: footX, max: footX }; spans.push(span); }
+      span.min = Math.min(span.min, footX); span.max = Math.max(span.max, footX);
+    }
+    const abs = errs.map(Math.abs), rms = Math.sqrt(errs.reduce((a, e) => a + e * e, 0) / errs.length);
+    const creep = spans.map(s => s.max - s.min).filter(c => c < 5);
+    return { rule, samples: errs.length, meanErrorPx: +(errs.reduce((a, e) => a + e, 0) / errs.length).toFixed(3), maxAbsErrorPx: +Math.max(...abs).toFixed(3),
+      rmsErrorPx: +rms.toFixed(3), plantedSpans: creep.length, maxCreepWithinStancePx: +Math.max(...creep).toFixed(3), meanCreepWithinStancePx: +(creep.reduce((a, c) => a + c, 0) / creep.length).toFixed(3) };
+  }
+
+  // Still crops for the ladder / frame-rule sheets.
+  function stillCrop(variantKey, frameNo, zoom, worldX, worldY, cw, ch) {
+    const w = makeWalker(variantKey, 'floor'); w.unit.x = worldX; w.unit.y = worldY; w.unit.path = []; w.unit.targetX = worldX; w.unit.targetY = worldY; w.frame = frameNo;
+    const cam = new Camera(cw, ch); cam.zoom = zoom; cam.centreOn(worldX, worldY - UNIT_H / 2 - 4);
+    const c = canvasOf(cw, ch); renderWalker(c.getContext('2d'), w, cam, 0); return c;
+  }
+
+  // Frame-rule sheet: for each rule, one flat right-foot stance crossed in
+  // 0.75 px steps. Every crop is centred on the boot's TRUE planted spot
+  // (fixed in the world), magnified M x without smoothing, with a red line at
+  // that spot: the drawn boot should sit still against it; how far it creeps
+  // and when it snaps back is the frame rule's quantisation.
+  function ruleSheet(steps = 11, stepPx = 0.75, zoom = CAMERA_MAX_ZOOM, M = 6) {
+    const cw = 30, ch = 20, cellW = cw * M + 6, rows = ['floor', 'nearest'];
+    const sheet = canvasOf(cellW * steps + 120, rows.length * (ch * M + 22) + 34), sg = sheet.getContext('2d');
+    sg.fillStyle = '#151b17'; sg.fillRect(0, 0, sheet.width, sheet.height); sg.imageSmoothingEnabled = false;
+    rows.forEach((rule, r) => {
+      const w = makeWalker('readable', rule); let t = 0;
+      // Advance to the start of a right-foot stance (true phase ~0) past 100 px.
+      while (!(w.mode === 'walk' && w.unit.walkDistance > 100 && ((w.unit.walkDistance % STRIDE) + STRIDE) % STRIDE < 0.3)) { w.advance(0.3 / SPEED, t); t += 8; }
+      const phase = ((w.unit.walkDistance % STRIDE) + STRIDE) % STRIDE / STRIDE, fTrue = 1 + phase * LOOP;
+      const d0 = motion.frames[0].R.depth, d1 = motion.frames[1].R.depth, trueX = w.unit.x + (d0 + (d1 - d0) * (fTrue - 1)) * WPM;
+      const footY = w.unit.y + 0.105 * WPM, y = 20 + r * (ch * M + 22);
+      sg.fillStyle = '#e8e4d4'; sg.font = 'bold 13px sans-serif'; sg.fillText(rule === 'floor' ? 'Floor (game rule)' : 'Nearest frame', 6, y + ch * M / 2);
+      for (let i = 0; i < steps; i++) {
+        const cam = new Camera(cw, ch); cam.zoom = zoom; cam.centreOn(trueX + 2, footY - 4);
+        const c = canvasOf(cw, ch); renderWalker(c.getContext('2d'), w, cam, 0);
+        const x = 120 + i * cellW; sg.drawImage(c, x, y, cw * M, ch * M);
+        const p = cam.worldToScreen(trueX, footY); sg.fillStyle = 'rgba(255, 50, 50, 0.9)'; sg.fillRect(x + p.x * M - 1, y, 2, ch * M);
+        sg.fillStyle = '#e8e4d4'; sg.font = '11px sans-serif'; sg.fillText('f' + w.frame + '  +' + (i * stepPx).toFixed(2) + ' px', x + 3, y + ch * M + 14);
+        w.advance(stepPx / SPEED, t); t += 8;
+      }
+    });
+    sg.fillStyle = '#9aa392'; sg.font = '11px sans-serif';
+    sg.fillText('Max zoom ' + zoom + ', ' + M + 'x without smoothing; red line = the true planted spot of the right boot (fixed in the world); steps of ' + stepPx + ' px travelled at 38 px/s. Preview only.', 6, sheet.height - 6);
+    return sheet;
+  }
+
+  window.readability = { ruleSheet, VARIANTS, walkers, measureRule, stillCrop, makeWalker, renderWalker, constants: { K, S, STRIDE, CYCLE_PX: +CYCLE_PX.toFixed(3), STOP_PX: +STOP_PX.toFixed(3), SPEED, OUTLINE_WORLD_PX, accent: ACCENT } };
+  requestAnimationFrame(frame);
+  window.readabilityReady = true;
+})().catch(error => { window.readabilityError = String(error.stack || error); document.body.prepend(document.createTextNode('error: ' + error.message)); });
+</script>
+</body>
+</html>

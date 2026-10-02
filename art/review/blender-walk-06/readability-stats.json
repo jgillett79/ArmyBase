@@ -1,0 +1,36 @@
+{
+  "constants": {
+    "K": 0.19430416666666667,
+    "S": 1.4142135623730951,
+    "STRIDE": 22,
+    "CYCLE_PX": 22.022,
+    "STOP_PX": 5.505,
+    "SPEED": 38,
+    "OUTLINE_WORLD_PX": 0.8,
+    "accent": {
+      "id": "red",
+      "label": "Signal red",
+      "hex": "#c9483c"
+    }
+  },
+  "floor": {
+    "rule": "floor",
+    "samples": 2196,
+    "meanErrorPx": 0.456,
+    "maxAbsErrorPx": 0.918,
+    "rmsErrorPx": 0.528,
+    "plantedSpans": 47,
+    "maxCreepWithinStancePx": 0.985,
+    "meanCreepWithinStancePx": 0.901
+  },
+  "nearest": {
+    "rule": "nearest",
+    "samples": 2062,
+    "meanErrorPx": 0.018,
+    "maxAbsErrorPx": 0.458,
+    "rmsErrorPx": 0.263,
+    "plantedSpans": 47,
+    "maxCreepWithinStancePx": 1.07,
+    "meanCreepWithinStancePx": 0.906
+  }
+}
