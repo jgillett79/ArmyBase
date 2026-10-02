@@ -38,6 +38,14 @@ def bone_point(name,tail=False):
 def stats(xs):
     return {'min':round(min(xs),4),'max':round(max(xs),4),'mean':round(sum(xs)/len(xs),4)}
 
+# Front edge of each sole's flat bottom (rest mesh): the heel-off pivot. A
+# planted foot keeps this edge still through flat stance AND heel-off.
+def toe_edge_indices(name):
+    o=bpy.data.objects[name];vs=[(o.matrix_world@v.co,v.index) for v in o.data.vertices]
+    zmin=min(p.z for p,_ in vs);flat=[(p,i) for p,i in vs if p.z<zmin+.004];ymin=min(p.y for p,_ in flat)
+    return [i for p,i in flat if p.y<ymin+.006]
+TOE_EDGE={s:toe_edge_indices('Sole_'+s) for s in 'RL'}
+
 frames=[]
 for frame in range(1,73):
     scene.frame_set(frame);dg=bpy.context.evaluated_depsgraph_get()
@@ -47,12 +55,14 @@ for frame in range(1,73):
         bottom=[v for v in sole if v.z<min(s.z for s in sole)+.004]
         heel=max(sole,key=lambda v:v.y);toe=min(sole,key=lambda v:v.y)
         c=sum(sole,Vector())/len(sole)
+        edge=sum((sole[i] for i in TOE_EDGE[side]),Vector())/len(TOE_EDGE[side])
         upper=world_verts('Boot shaped upper_'+side,dg)
         hip,knee,ankle=bone_point('thigh.'+side),bone_point('shin.'+side),bone_point('shin.'+side,True)
         row[side]={
             # Soldier faces -Y; travelling forward moves the body by -travel in Y,
             # so a truly planted sole keeps y - travel constant.
             'soleWorldY':round(c.y-travel[frame],4),'soleX':round(c.x,4),
+            'toeEdgeWorldY':round(edge.y-travel[frame],4),'toeEdgeZ':round(edge.z,4),
             'soleMinZ':round(min(v.z for v in sole),4),
             'soleBottomZ':round(sum(v.z for v in bottom)/len(bottom),4),
             'toeMinusHeelZ':round(min(v.z for v in sole if v.y<toe.y+.02)-min(v.z for v in sole if v.y>heel.y-.02),4),
@@ -103,10 +113,16 @@ def slide(side,lo,hi):
     if cur: spans.append(cur)
     out=[]
     for s in spans:
-        ys=[frames[f-1][side]['soleWorldY'] for f in s];xs=[frames[f-1][side]['soleX'] for f in s]
-        zs=[frames[f-1][side]['soleBottomZ'] for f in s];tilt=[abs(frames[f-1][side]['toeMinusHeelZ']) for f in s]
-        out.append({'frames':[s[0],s[-1]],'slideY':round(max(ys)-min(ys),4),'slideX':round(max(xs)-min(xs),4),
-                    'bottomZ':stats(zs),'maxToeHeelTilt':round(max(tilt),4)})
+        # Flat frames: the whole sole must stay put and level. Heel-off frames
+        # ('toe' contact, pass 4+): only the front edge stays planted.
+        flat=[f for f in s if planted[f][side].get('contact','flat')=='flat'] or s[:1]
+        toe=[f for f in s if planted[f][side].get('contact')=='toe']
+        ys=[frames[f-1][side]['soleWorldY'] for f in flat];xs=[frames[f-1][side]['soleX'] for f in flat]
+        zs=[frames[f-1][side]['soleBottomZ'] for f in flat];tilt=[abs(frames[f-1][side]['toeMinusHeelZ']) for f in flat]
+        ey=[frames[f-1][side]['toeEdgeWorldY'] for f in s];ez=[frames[f-1][side]['toeEdgeZ'] for f in s]
+        out.append({'frames':[s[0],s[-1]],'flatFrames':len(flat),'heelOffFrames':len(toe),'slideY':round(max(ys)-min(ys),4),'slideX':round(max(xs)-min(xs),4),
+                    'bottomZ':stats(zs),'maxToeHeelTilt':round(max(tilt),4),'toeEdgeSlideY':round(max(ey)-min(ey),4),'toeEdgeZ':stats(ez),
+                    'maxHeelOffPitchDeg':max([planted[f][side].get('pitchDeg',0) for f in toe] or [0])})
     return out
 
 walk=range(1,49)
@@ -128,7 +144,9 @@ summary={
     'chestDriftMax':max(r['chestDrift']['max'] for r in frames),
     'armExtremes':{f:{'harnessMax':frames[f-1]['harnessToChest']['max'],'harnessSignedMin':frames[f-1]['harnessSigned']['min'],'chestDriftMax':frames[f-1]['chestDrift']['max']} for f in (1,7,13,19)},
     'harnessMaxTurnDeg':max(r['harnessMaxTurnDeg'] for r in frames),
-    'bootSoleGap':stats([r[s]['upperBottomMinusSoleTop'] for r in frames for s in 'RL']),
+    # World-height gap is only meaningful with the boot level (boot and sole are
+    # rigid on the foot bone, so it cannot change while pitched).
+    'bootSoleGap':stats([r[s]['upperBottomMinusSoleTop'] for r in frames for s in 'RL' if abs(planted[r['frame']][s].get('pitchDeg',0))<.01]),
     'soleMinZ':min(r[s]['soleMinZ'] for r in frames for s in 'RL'),
 }
 json.dump({'source':a.report,'summary':summary,'frames':frames},open(a.output,'w'),indent=2)

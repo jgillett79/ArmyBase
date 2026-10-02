@@ -1,4 +1,4 @@
-"""Deforming skeleton walk study (pass 3). Open a COPY of a local soldier study.
+"""Deforming skeleton walk study (pass 4). Open a COPY of a local soldier study.
 Run: blender --background soldier_study.blend --python-exit-code 1 --python
  tools/blender/build_walk_study.py -- --output NEW_DIRECTORY [--render-step N]
 
@@ -10,6 +10,11 @@ planted feet. Bones keep their rest roll (the pass-1 twist fix).
 Pass 3 (Claude, 2 Oct): the uniform's chest and back follow only the torso
 bones, blending into the sleeves over the shoulder cap (sleeve_amount);
 motion is unchanged from pass 2.
+Pass 4 (Claude, 3 Oct), motion only: the pelvis trough at each footfall is
+flattened (no V), the trailing heel lifts and the boot pivots on the sole's
+front edge so the knee flexes progressively from heel-off through swing, the
+swing leg length follows smooth keys, and the stop decelerates and steps in
+without overshoot. Model, materials, weights, stride and cycle unchanged.
 """
 import argparse, json, math, sys
 from pathlib import Path
@@ -49,6 +54,14 @@ LEG=math.sqrt(UPPER*UPPER+LOWER*LOWER-2*UPPER*LOWER*math.cos(KNEE_STANCE))
 LIFT=.05                      # swing foot clearance at mid-swing
 SWAY=.018                     # pelvis shift over the stance foot
 ARM_SWING=math.radians(20)    # shoulder pitch amplitude, opposite to the legs
+# Pass 4 motion: hip trough rounding window (stance-foot depth either side of
+# a footfall), heel-off start phase, swing leg length keys. Tuned headlessly
+# (smallest hip jolt that keeps the support knee near 172 deg mid-stance).
+ROUND_WINDOW=.7*D
+HEEL_OFF=.5-ROUND_WINDOW/(4*D)  # leg phase (stance 0-.5) where the heel lifts
+SWING_MIN_LEG=.728              # shortest hip-ankle distance in swing (~134 deg knee)
+SWING_PEAK,SWING_EXTENDED=.68,.96   # phases of peak knee flexion / full extension
+FOOT=Vector((0,-.15,-.12))      # ankle -> foot bone tail at rest
 WALK_FRAMES,STOP=(1,48),(49,60)   # two cycles; a half-cycle planted stop; idle 61-72
 
 # --- Contact repairs on the final (smoothed) surfaces ----------------------
@@ -199,17 +212,88 @@ for obj in list(scene.objects):
     modifier=obj.modifiers.new('Soldier deformation','ARMATURE');modifier.object=rig
 
 # --- Motion -------------------------------------------------------------------
-def ease(t):
-    """Swing path 0->1 whose start speed equals the stance foot's backward
-    speed (no velocity jump at toe-off); it overshoots slightly at both ends."""
-    return -t+6*t*t-4*t*t*t
+def hermite(t,p0,m0,p1,m1):
+    t2=t*t;t3=t2*t
+    return (2*t3-3*t2+1)*p0+(t3-2*t2+t)*m0+(-2*t3+3*t2)*p1+(t3-t2)*m1
 
-def walk_foot(q):
-    """Local foot depth (+ = in front of the hip) and lift at cycle phase q."""
-    q%=1
-    if q<.5: return D-4*D*q,0.0,True
-    t=(q-.5)*2
-    return -D+2*D*ease(t),LIFT*math.sin(math.pi*t)**2,False
+def keys(x,ks):
+    """Piecewise cubic Hermite through (x, value, slope) keys."""
+    for (x0,y0,m0),(x1,y1,m1) in zip(ks,ks[1:]):
+        if x<=x1:
+            w=x1-x0;return hermite((x-x0)/w,y0,m0*w,y1,m1*w)
+    return ks[-1][1]
+
+def rot_x(v,angle): return Matrix.Rotation(angle,3,'X')@v
+
+# The sole's flat bottom, measured on the final mesh: its front edge is the
+# heel-off pivot (relative to the rest ankle, which sits at y 0).
+_sole=[bpy.data.objects['Sole_R'].matrix_world@v.co for v in bpy.data.objects['Sole_R'].data.vertices]
+_zmin=min(v.z for v in _sole)
+PIVOT=Vector((0,min(v.y for v in _sole if v.z<_zmin+.004),_zmin-ANKLE))
+
+def hip_over(depth,sway,lift=0):
+    """Pelvis height that keeps the stance leg at LEG length over its foot."""
+    return ANKLE+lift+math.sqrt(LEG*LEG-depth*depth-sway*sway)
+
+SLOPE=D/math.sqrt(LEG*LEG-D*D)
+def hip_at(depth,sway):
+    """Pass 4: the compass height with its V at each footfall flattened. Near a
+    changeover (stance foot within ROUND_WINDOW of +-D) the pelvis sits below
+    the compass by SLOPE*e*(1-e/W)^2, so its vertical speed is zero at the
+    changeover and it rejoins the compass smoothly; never above the compass,
+    so the planted leg always reaches without sliding."""
+    e=D-abs(depth)
+    return hip_over(depth,sway)-(SLOPE*e*(1-e/ROUND_WINDOW)**2 if e<ROUND_WINDOW else 0)
+
+def swing_length(p):
+    return keys(p,[(HEEL_OFF,LEG,0),(SWING_PEAK,SWING_MIN_LEG,0),(SWING_EXTENDED,LEG,0),(1,LEG,0)])
+
+def heel_off(x,p,hip,sway):
+    """Late stance: the toe edge stays where it was planted and the boot pitches
+    up about it until the hip-ankle distance equals the swing length (or the
+    flat-foot distance, whichever is shorter). Returns ankle, foot tail, pitch."""
+    depth=D-4*D*p
+    ankle0=Vector((x,-depth,ANKLE));pivot=ankle0+PIVOT;h=Vector((x+sway,0,hip))
+    at=lambda th:pivot+rot_x(ankle0-pivot,th)
+    want=min(swing_length(p),(ankle0-h).length)
+    lo,hi=0.0,1.2
+    for _ in range(60):
+        m=(lo+hi)/2
+        if (at(m)-h).length>want: lo=m
+        else: hi=m
+    th=(lo+hi)/2
+    return at(th),pivot+rot_x(ankle0+FOOT-pivot,th),th
+
+def body_at(q):
+    """Stance-leg depth, sway and pelvis height at walk phase q (R leg phase)."""
+    qs=q%.5;d=D-4*D*qs;s=SWAY*(-1 if q%1<.5 else 1)*math.sin(math.pi*qs/.5)
+    return d,s,hip_at(d,s)
+
+# Toe-off state (same every step): ankle depth and pitch, and their rates per
+# unit of leg phase, so swing and stop leave the ground without a jump. The
+# leg leaving is the left one at walk phase .5 (its leg phase .5-).
+def _toe_state(p):
+    _,s,hip=body_at(p)
+    ankle,_,th=heel_off(.105,p,hip,s);return -ankle.y,th
+_E=1e-5
+TOE_DEPTH,TOE_PITCH=_toe_state(.5-_E/10)
+_d2,_t2=_toe_state(.5-_E)
+TOE_DEPTH_RATE=(TOE_DEPTH-_d2)/(_E*.9);TOE_PITCH_RATE=(TOE_PITCH-_t2)/(_E*.9)
+TOE_LEN_RATE=(swing_length(.5)-swing_length(.5-_E))/_E
+
+def walk_foot(x,p,hip,sway):
+    """Ankle, foot tail, pitch, contact ('flat'|'toe'|None) at leg phase p."""
+    p%=1
+    if p<HEEL_OFF:
+        ankle=Vector((x,-(D-4*D*p),ANKLE));return ankle,ankle+FOOT,0.0,'flat'
+    if p<.5:
+        ankle,tail,th=heel_off(x,p,hip,sway);return ankle,tail,th,'toe'
+    t=(p-.5)/.5
+    depth=hermite(t,TOE_DEPTH,TOE_DEPTH_RATE*.5,D,-4*D*.5)
+    r=swing_length(p)
+    ankle=Vector((x,-depth,hip-math.sqrt(max(0,r*r-depth*depth-sway*sway))))
+    th=keys(p,[(.5,TOE_PITCH,TOE_PITCH_RATE),(.8,0,0),(1,0,0)])
+    return ankle,ankle+rot_x(FOOT,th),th,None
 
 def pose_bone(name,h,t):
     # Swing the bone from its REST direction to the target direction and keep
@@ -221,19 +305,17 @@ def pose_bone(name,h,t):
     bone.matrix=Matrix.Translation(Vector(h))@(swing.to_matrix()@rest_m).to_4x4()
     for channel in ('location','rotation_quaternion','scale'): bone.keyframe_insert(data_path=channel)
 
-def leg(side,sign,hip,depth,lift,sway,planted):
-    h=Vector((sign*.105+sway,0,hip));ankle=Vector((sign*.105,-depth,ANKLE+lift))
+def leg(side,sign,hip,ankle,tail,sway):
+    h=Vector((sign*.105+sway,0,hip))
     delta=ankle-h;length=delta.length
-    if length>UPPER+LOWER-1e-4:
-        if planted: raise RuntimeError(f'Unreachable planted {side} foot ({length:.4f} m)')
-        ankle=h+delta.normalized()*(UPPER+LOWER-1e-4);delta=ankle-h;length=delta.length  # swing only
+    if length>UPPER+LOWER-1e-4: raise RuntimeError(f'Unreachable {side} ankle ({length:.4f} m)')
     along=(UPPER*UPPER-LOWER*LOWER+length*length)/(2*length)
     bend=math.sqrt(max(0,UPPER*UPPER-along*along))
     forward=Vector((0,-1,0));perp=(forward-delta.normalized()*forward.dot(delta.normalized())).normalized()
     knee=h+delta.normalized()*along+perp*bend
     pose_bone('thigh.'+side,h,knee);pose_bone('shin.'+side,knee,ankle)
-    pose_bone('foot.'+side,ankle,ankle+Vector((0,-.15,-.12)))
-    return math.degrees((h-knee).angle(ankle-knee)),ankle
+    pose_bone('foot.'+side,ankle,tail)
+    return math.degrees((h-knee).angle(ankle-knee))
 
 def arm(side,sign,pitch,body_y,hip_offset,sway):
     """Pendulum arm about the shoulder: bone lengths preserved; forward pitch
@@ -253,9 +335,12 @@ def body(hip,sway,lean):
     pose_bone('head',(sway,-lean*.53,1.49+off),(sway,-lean*.53,1.85+off))
     return off
 
-def hip_over(depth,sway,lift=0):
-    """Pelvis height that keeps the stance leg at LEG length over its foot."""
-    return ANKLE+lift+math.sqrt(LEG*LEG-depth*depth-sway*sway)
+STOP_SPAN=STOP[1]-STOP[0]
+DP_DU=STOP_SPAN/24            # leg phase per unit of stop progress
+def stop_moved(u):
+    """Body travel during the stop: starts at walking speed (4D per cycle),
+    ends at rest, never reverses (cubic Hermite)."""
+    return hermite(u,0,4*D*DP_DU,D,0)
 
 contacts=[];frames=[]
 for frame in range(1,73):
@@ -264,47 +349,50 @@ for frame in range(1,73):
     if frame<=WALK_FRAMES[1]:
         phase=(frame-1)/24;q=phase%1
         travel=CYCLE*phase
-        feet={s:walk_foot(q+o) for s,o in [('R',0),('L',.5)]}
-        stance='R' if feet['R'][2] else 'L'
-        sway=SWAY*(-1 if stance=='R' else 1)*math.sin(math.pi*((q%.5)/.5))
-        hip=hip_over(feet[stance][0],sway)
+        _,sway,hip=body_at(q)
+        feet={side:walk_foot(sign*.105,q+o,hip,sway) for side,sign,o in [('R',-1,0),('L',1,.5)]}
         arm_amount=1;lean=.015
     elif frame<=STOP[1]:
-        # Planted stop: the right foot (just landed in front) stays planted
-        # while the body decelerates over it; the left foot steps in beside it.
-        u=(frame-STOP[0])/(STOP[1]-STOP[0])
-        moved=D*(2*u-u*u)                      # same speed as walking at u=0, still at u=1
-        travel=CYCLE*2+moved
-        feet={'R':(D-moved,0.0,True),
-              'L':(-D+D*ease(u),.7*LIFT*math.sin(math.pi*u)**2,u>=1)}
-        stance='R'
+        # Planted stop: the right foot (just landed in front) stays flat while
+        # the body decelerates over it; the left leaves from its toe-off and
+        # steps in beside it, decelerating to rest without passing its spot.
+        u=(frame-STOP[0])/STOP_SPAN
+        moved=stop_moved(u);travel=CYCLE*2+moved
         sway=-SWAY*math.sin(math.pi*min(1,u*2))*(1-u)
-        hip=hip_over(feet['R'][0],sway)
+        hip=hip_at(D-moved,sway)
+        rank=Vector((-.105,-(D-moved),ANKLE))
+        depth=hermite(u,TOE_DEPTH,TOE_DEPTH_RATE*DP_DU,0,0)
+        r=keys(u,[(0,swing_length(.5),TOE_LEN_RATE*DP_DU),(.45,SWING_MIN_LEG+.01,0),(1,hip_at(0,0)-ANKLE,0)])
+        lank=Vector((.105,-depth,hip-math.sqrt(max(0,r*r-depth*depth-sway*sway))))
+        if u>=1: lank.z=ANKLE
+        th=keys(u,[(0,TOE_PITCH,TOE_PITCH_RATE*DP_DU),(.55,0,0),(1,0,0)])
+        feet={'R':(rank,rank+FOOT,0.0,'flat'),'L':(lank,lank+rot_x(FOOT,th),th,'flat' if u>=1 else None)}
         arm_amount=1-u;lean=.015*(1-u)
     else:
-        travel=CYCLE*2+D
-        feet={'R':(0.0,0.0,True),'L':(0.0,0.0,True)}
-        stance='both';sway=0;hip=hip_over(0,0);arm_amount=0;lean=0
+        travel=CYCLE*2+D;sway=0;hip=hip_at(0,0)
+        feet={side:(Vector((sign*.105,0,ANKLE)),Vector((sign*.105,0,ANKLE))+FOOT,0.0,'flat') for side,sign in [('R',-1),('L',1)]}
+        arm_amount=0;lean=0
     off=body(hip,sway,lean)
     for side,sign,o in [('R',-1,0),('L',1,.5)]:
-        depth,lift,planted=feet[side]
-        angle,ankle=leg(side,sign,hip,depth,lift,sway,planted)
+        ankle,tail,th,contact=feet[side]
+        angle=leg(side,sign,hip,ankle,tail,sway)
         # Opposite arm swing: right arm back when the right foot is forward.
         pitch=ARM_SWING*arm_amount*math.cos(math.tau*(((frame-1)/24)+o)) if frame<=STOP[1] else 0
         arm(side,sign,pitch,-lean*.53,off,sway)
-        row[side]={'depth':round(depth,4),'lift':round(lift,4),'planted':planted,'kneeAngle':round(angle,1)}
-        contacts.append({'frame':frame,'leg':side,'planted':planted,'soleDepthMetres':depth,'liftMetres':lift,'virtualTravelMetres':travel})
+        depth=-ankle.y;lift=ankle.z-ANKLE;planted=contact is not None
+        row[side]={'depth':round(depth,4),'lift':round(lift,4),'planted':planted,'contact':contact,'pitchDeg':round(math.degrees(th),2),'kneeAngle':round(angle,1)}
+        contacts.append({'frame':frame,'leg':side,'planted':planted,'contact':contact,'soleDepthMetres':depth,'liftMetres':lift,'virtualTravelMetres':travel})
     row.update({'hip':round(hip,4),'sway':round(sway,4),'virtualTravelMetres':round(travel,4)})
     frames.append(row)
 scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'soldier_walk_study.blend'))
-(out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 3 (torso/sleeve weights); not approved',
+(out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 4 (motion: hip trough, heel-off, stop); not approved',
     'fps':24,'walkFrames':list(WALK_FRAMES),'stopFrames':list(STOP),'idleFrames':[61,72],
     'modelHeightMetres':round(HEIGHT,4),'cycleMetres':round(CYCLE,4),'stepMetres':round(CYCLE/2,4),'cycleSeconds':1,
     'gameStride':'22 world px per full cycle on a 44 px figure (js/asset-manifest.js strideWorld; js/animation.js)',
     'stanceKneeDegrees':172,'legLengthMetres':round(LEG,4),'frames':frames,'contacts':contacts,
     'limitations':['Distance-based weights, not hand-painted','No production control hierarchy',
-                   'Flat-footed stance (no heel-strike/toe-off roll)','Projection uncalibrated','No runtime integration']},indent=2))
+                   'Heel-off pivots on the rigid sole edge (no toe bend); flat-foot landing (no heel strike)','Projection uncalibrated','No runtime integration']},indent=2))
 if a.render_step:
     camera=scene.camera
     for name,degrees in [('right',-90),('three_quarter',35)]:
