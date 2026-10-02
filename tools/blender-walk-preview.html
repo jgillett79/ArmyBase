@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blender Walk Preview</title>
+<!-- Isolated preview of the Blender walk study on a real game path (brief 11
+     follow-up). It loads the game's own scripts EXCEPT js/main.js, builds an
+     in-memory GameState that is never saved, and draws the real map with the
+     game's renderFrame() through two cameras: game size (zoom 1) and the
+     maximum zoom (1.6). One soldier walks right along the authored trail
+     t1 -> t4 with the game's routing and Unit.step() at game speed, stops and
+     idles. Only that soldier is drawn from the calibrated Blender frames
+     (tools/blender/render_game_projection.py); everything else is the game.
+     Nothing here changes the game, its manifest or the walk release gate, and
+     tools/ is not deployed. Open from a local server at the repo root:
+       tools/blender-walk-preview.html[?frames=<dir>&speed=38]
+-->
+<style>
+  :root { --bg: #151b17; --ink: #e8e4d4; --muted: #9aa392; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 13px/1.4 system-ui, sans-serif; }
+  header { padding: 8px 16px; display: flex; gap: 16px; flex-wrap: wrap; align-items: baseline; }
+  h1 { font-size: 15px; margin: 0; }
+  #stats { color: var(--muted); }
+  canvas { display: block; max-width: 100%; height: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Blender walk preview — not game art</h1>
+  <span id="stats">loading…</span>
+</header>
+<canvas id="preview" width="1600" height="500"></canvas>
+<script src="../js/utils.js"></script>
+<script src="../js/world.js"></script>
+<script src="../js/asset-manifest.js"></script>
+<script src="../js/camera.js"></script>
+<script src="../js/unit.js"></script>
+<script src="../js/building.js"></script>
+<script src="../js/mission.js"></script>
+<script src="../js/routine.js"></script>
+<script src="../js/state.js"></script>
+<script src="../js/daily.js"></script>
+<script src="../js/save.js"></script>
+<script src="../js/scenery.js"></script>
+<script src="../js/render.js"></script>
+<script src="../js/animation.js"></script>
+<script>
+(async () => {
+  const params = new URLSearchParams(location.search);
+  const dir = params.get('frames') || '../art/review/blender-walk-05/game-frames';
+  const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load ' + src)); i.src = src; });
+  const [proj, motion] = await Promise.all(['projection.json', 'motion-report.json'].map(f => fetch(`${dir}/${f}`).then(r => r.json())));
+  const frames = {};
+  for (const f of proj.frames) frames[f] = await load(`${dir}/right/${String(f).padStart(3, '0')}.png`);
+
+  // Calibration (projection.json): render px -> world px, and the vertical
+  // stretch that turns the 45 degree ortho render into the game's oblique view.
+  const K = proj.worldPxPerMetre / proj.renderPxPerMetre, S = proj.verticalStretch;
+  const [PX, PY] = proj.pivot;
+  const STRIDE = ASSET_MANIFEST.units.soldier.walk.strideWorld;            // the game's 22 px per cycle
+  const CYCLE_PX = motion.cycleMetres * proj.worldPxPerMetre;              // the study's own cycle, for the report
+  const LOOP = motion.walkFrames[1] / 2;                                    // 24 frames per cycle
+  const [STOP0, STOP1] = motion.stopFrames, IDLE_FRAME = Math.max(...proj.frames);
+  const travelAt = f => motion.frames[f - 1].virtualTravelMetres;
+  const STOP_PX = (travelAt(STOP1) - travelAt(STOP0)) * proj.worldPxPerMetre; // distance covered by the stop
+  // px per unit of stop progress at its start: the render's stop leaves at
+  // walking speed (one cycle per LOOP frames), over STOP1-STOP0 frames.
+  const STOP_START_RATE = CYCLE_PX * (STOP1 - STOP0) / LOOP;
+  const stopPx = u => { // distance moved after u of the stop, interpolated from the report
+    const x = u * (STOP1 - STOP0), i = Math.min(STOP1 - STOP0 - 1, Math.floor(x)), t = x - i;
+    return ((travelAt(STOP0 + i) * (1 - t) + travelAt(STOP0 + i + 1) * t) - travelAt(STOP0)) * proj.worldPxPerMetre; };
+
+  // Game state: in memory only (never .save()d), no visitors, no ticking.
+  gameState = new GameState();
+  gameState.simSpeed = 0;
+  gameState.units = [];
+  const start = worldNodePosition('t1'), END_NODE = 't4';
+  const unit = new Unit({ x: start.x, y: start.y, isCivilian: false });
+  unit.name = 'Preview Walker'; unit.soldierVariant = 1; unit.energy = 100;
+  unit.speed = Number(params.get('speed')) || 38; // inside the game's 30-46 px/s range
+  gameState.units.push(unit);
+  const WALK_SPEED = unit.speed, IDLE_SECONDS = 4;
+
+  const remaining = () => { let d = Math.hypot(unit.targetX - unit.x, unit.targetY - unit.y), p = { x: unit.targetX, y: unit.targetY };
+    for (const q of unit.path) { d += Math.hypot(q.x - p.x, q.y - p.y); p = q; } return d; };
+  const stats = { loops: 0, frames: { walk: 0, stop: 0, idle: 0 }, notRight: 0, plantedDrift: [], phaseAtStop: [], stopEndError: [], stopSeconds: [] };
+  const sim = { mode: 'walk', u: 0, idleUntil: 0, frame: 1, plant: null };
+  const begin = () => {
+    unit.x = start.x; unit.y = start.y; unit.targetX = unit.x; unit.targetY = unit.y; unit.path = [];
+    gameState.routeToNode(unit, END_NODE);
+    // Phase: start mid-stride so that the stop begins on the stop's own phase
+    // (frame STOP0 = walk frame 1) exactly where the remaining path equals
+    // the stop distance. walkDistance then drives frames exactly as in-game.
+    const toStop = remaining() - STOP_PX;
+    unit.walkDistance = -(((toStop % STRIDE) + STRIDE) % STRIDE);
+    sim.mode = 'walk'; sim.u = 0; sim.plant = null; stats.loops++;
+  };
+  begin();
+
+  const walkFrame = () => { const phase = ((unit.walkDistance % STRIDE) + STRIDE) % STRIDE / STRIDE; return 1 + Math.floor(phase * LOOP) % LOOP; };
+  // Stop: move exactly along the remaining route polyline. Unit.step() treats
+  // a target within 1 px as reached, which would end the 5.5 px stop early
+  // and leave the last stop frames sliding on the spot.
+  const moveBy = px => {
+    while (px > 1e-9) {
+      const dx = unit.targetX - unit.x, dy = unit.targetY - unit.y, d = Math.hypot(dx, dy);
+      if (d <= px) { unit.x = unit.targetX; unit.y = unit.targetY; px -= d;
+        const next = unit.path.shift(); if (!next) break; unit.targetX = next.x; unit.targetY = next.y; continue; }
+      unit.x += dx / d * px; unit.y += dy / d * px; px = 0;
+    }
+  };
+
+  // Planted-foot check in world px: a planted foot's ground x is unit.x plus
+  // its depth in the drawn frame; it should stay put while planted.
+  const footX = (f, side) => unit.x + motion.frames[f - 1][side].depth * proj.worldPxPerMetre * (unit.facing === 'left' ? -1 : 1);
+  const trackPlant = f => { const row = motion.frames[f - 1];
+    const side = ['R', 'L'].find(s => row[s].planted && row[s].contact !== 'toe');
+    if (!side) { sim.plant = null; return; }
+    if (!sim.plant || sim.plant.side !== side) sim.plant = { side, x: footX(f, side), drift: 0 };
+    sim.plant.drift = Math.max(sim.plant.drift, Math.abs(footX(f, side) - sim.plant.x)); stats.plantedDrift.push(+sim.plant.drift.toFixed(3)); };
+
+  function advance(dt) {
+    if (sim.mode === 'walk') {
+      const rem = remaining(), toStop = rem - STOP_PX;
+      if (WALK_SPEED * dt >= toStop) {
+        unit.step(toStop / WALK_SPEED);
+        const phase = ((unit.walkDistance % STRIDE) + STRIDE) % STRIDE;
+        stats.phaseAtStop.push(+Math.min(phase, STRIDE - phase).toFixed(4));
+        sim.mode = 'stop'; sim.u = 0; sim.stopStarted = performance.now(); dt -= toStop / WALK_SPEED;
+      } else { unit.step(dt); sim.frame = walkFrame(); stats.frames.walk++; if (unit.facing !== 'right') stats.notRight++; trackPlant(sim.frame); return; }
+    }
+    if (sim.mode === 'stop') {
+      // Same deceleration curve as the render, time-scaled so the stop
+      // starts at this soldier's walking speed (phase by distance).
+      const before = stopPx(sim.u);
+      sim.u = Math.min(1, sim.u + dt * WALK_SPEED / STOP_START_RATE);
+      moveBy(stopPx(sim.u) - before);
+      sim.frame = STOP0 + Math.floor(sim.u * (STOP1 - STOP0)); stats.frames.stop++; trackPlant(sim.frame);
+      if (sim.u >= 1) { sim.mode = 'idle'; sim.idleUntil = performance.now() + IDLE_SECONDS * 1000; stats.stopEndError.push(+remaining().toFixed(3)); stats.stopSeconds.push(+((performance.now() - sim.stopStarted) / 1000).toFixed(3)); sim.plant = null; }
+      return;
+    }
+    if (sim.mode === 'idle') { sim.frame = IDLE_FRAME; stats.frames.idle++; if (performance.now() >= sim.idleUntil) begin(); }
+  }
+
+  // Name/level labels sit over the feet at this size; off unless ?labels=1.
+  if (params.get('labels') !== '1') drawUnitLabels = () => {};
+
+  // Draw the preview soldier from the Blender frames; everyone else (no one,
+  // here) through the game's own drawUnit. Contact shadow as the game draws it.
+  const gameDrawUnit = drawUnit;
+  drawUnit = function (ctx, u, isSelected, now) {
+    if (u !== unit) return gameDrawUnit(ctx, u, isSelected, now);
+    const img = frames[sim.frame];
+    ctx.save();
+    ctx.fillStyle = 'rgba(8, 20, 17, 0.3)';
+    ctx.beginPath(); ctx.ellipse(u.x + 3, u.y - 1, 14, 5, 0, 0, Math.PI * 2); ctx.fill();
+    const w = img.width * K, h = img.height * K * S;
+    if (u.facing === 'left') { ctx.translate(u.x, 0); ctx.scale(-1, 1); ctx.drawImage(img, -PX * K, u.y - PY * K * S, w, h); }
+    else ctx.drawImage(img, u.x - PX * K, u.y - PY * K * S, w, h);
+    ctx.restore();
+  };
+
+  // Two views on one canvas: game size with a fixed camera over the trail,
+  // and the game's maximum zoom following the soldier.
+  const out = document.getElementById('preview'), g = out.getContext('2d');
+  const panelW = 800, panelH = 450;
+  const views = [
+    { label: 'Game size (zoom 1), fixed camera', camera: new Camera(panelW, panelH), follow: false },
+    { label: `Max game zoom (${CAMERA_MAX_ZOOM}), following`, camera: new Camera(panelW, panelH), follow: true },
+  ];
+  views[0].camera.zoom = 1; views[0].camera.centreOn(505, 560);
+  views[1].camera.zoom = CAMERA_MAX_ZOOM;
+  for (const v of views) { v.canvas = document.createElement('canvas'); v.canvas.width = panelW; v.canvas.height = panelH; v.ctx = v.canvas.getContext('2d'); }
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.1, (now - last) / 1000); last = now;
+    advance(dt);
+    g.fillStyle = '#151b17'; g.fillRect(0, 0, out.width, out.height);
+    views.forEach((v, i) => {
+      if (v.follow) v.camera.centreOn(unit.x, unit.y - UNIT_H / 2);
+      renderFrame(v.ctx, gameState, null, { camera: v.camera, dpr: 1, now });
+      g.drawImage(v.canvas, i * panelW, 0);
+      g.fillStyle = '#e8e4d4'; g.font = 'bold 14px system-ui, sans-serif';
+      g.fillText(v.label, i * panelW + 10, panelH + 22);
+    });
+    g.fillStyle = '#9aa392'; g.font = '12px system-ui, sans-serif';
+    g.fillText(`Blender walk study (e6a99e4 motion) on trail t1→t4 · ${WALK_SPEED} px/s · frame ${sim.frame} (${sim.mode}) · walk frames by distance, ${STRIDE} px per cycle · not game art; game, manifest and walk gate unchanged`, 10, panelH + 44);
+    document.getElementById('stats').textContent = `${sim.mode} · frame ${sim.frame} · walked ${unit.walkDistance.toFixed(1)} px`;
+    requestAnimationFrame(frame);
+  }
+
+  // Frame/pivot check: lowest opaque row of each frame vs the pivot row, in
+  // world px after the stretch (planted soles sit 3 mm above the ground).
+  const soleCheck = {};
+  for (const f of proj.frames) {
+    const c = document.createElement('canvas'); c.width = frames[f].width; c.height = frames[f].height; const x = c.getContext('2d'); x.drawImage(frames[f], 0, 0);
+    const d = x.getImageData(0, 0, c.width, c.height).data; let low = -1;
+    for (let y = c.height - 1; y >= 0 && low < 0; y--) for (let i = 0; i < c.width; i++) if (d[(y * c.width + i) * 4 + 3] > 128) { low = y; break; }
+    const edge = [0, c.width - 1].some(col => { for (let y = 0; y < c.height; y++) if (d[(y * c.width + col) * 4 + 3] > 8) return true; return false; })
+      || [0, c.height - 1].some(row => { for (let i = 0; i < c.width; i++) if (d[(row * c.width + i) * 4 + 3] > 8) return true; return false; });
+    soleCheck[f] = { lowestRowAbovePivotWorldPx: +((PY - (low + 1)) * K * S).toFixed(3), touchesFrameEdge: edge };
+  }
+
+  window.preview = { proj, motion, unit, sim, stats, soleCheck, constants: { K, S, STRIDE, CYCLE_PX: +CYCLE_PX.toFixed(3), STOP_PX: +STOP_PX.toFixed(3), WALK_SPEED }, views };
+  requestAnimationFrame(frame);
+  window.previewReady = true;
+})().catch(error => { document.getElementById('stats').textContent = 'error: ' + error.message; window.previewError = String(error.stack || error); });
+</script>
+</body>
+</html>

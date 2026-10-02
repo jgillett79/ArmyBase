@@ -1,0 +1,74 @@
+{
+  "status": "calibrated preview frames; not game art, not in the manifest",
+  "projection": "ortho camera at 45 deg elevation, azimuth: right side of the soldier (facing screen-right); draw with verticalStretch to get the game's top-down oblique view (06_GATE0_VISUAL_CONTRACT.md)",
+  "elevationDeg": 45,
+  "verticalStretch": 1.4142135623730951,
+  "size": [
+    176,
+    256
+  ],
+  "pivot": [
+    88.0,
+    195.882
+  ],
+  "pivotMeaning": "render px of the rig origin on the ground (pre-stretch): the unit's x/y",
+  "renderPxPerMetre": 120.0,
+  "modelHeightMetres": 1.8871,
+  "gameHeightPx": 44,
+  "worldPxPerMetre": 23.3165,
+  "checks": {
+    "head (0,0,H) -> straight up by 44": [
+      -0.0,
+      -44.0
+    ],
+    "1 m forward (-Y, east) -> right by world_per_m": [
+      23.316,
+      0.0
+    ],
+    "1 m toward camera (-X, south) -> down by world_per_m": [
+      -0.0,
+      23.316
+    ]
+  },
+  "frames": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    72
+  ],
+  "direction": "right",
+  "mirrorForLeft": true
+}

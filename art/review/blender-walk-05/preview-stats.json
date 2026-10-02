@@ -1,0 +1,206 @@
+{
+  "projection": {
+    "pivot": [
+      88,
+      195.882
+    ],
+    "verticalStretch": 1.4142135623730951,
+    "worldPxPerMetre": 23.3165,
+    "checks": {
+      "head (0,0,H) -> straight up by 44": [
+        0,
+        -44
+      ],
+      "1 m forward (-Y, east) -> right by world_per_m": [
+        23.316,
+        0
+      ],
+      "1 m toward camera (-X, south) -> down by world_per_m": [
+        0,
+        23.316
+      ]
+    }
+  },
+  "constants": {
+    "K": 0.19430416666666667,
+    "S": 1.4142135623730951,
+    "STRIDE": 22,
+    "CYCLE_PX": 22.022,
+    "STOP_PX": 5.505,
+    "WALK_SPEED": 38,
+    "START_PATH_PX": null
+  },
+  "loops": 3,
+  "framesDrawn": {
+    "walk": 2393,
+    "stop": 51,
+    "idle": 594
+  },
+  "framesNotFacingRight": 0,
+  "phaseErrorAtStopPx": [
+    0.027,
+    0.0213,
+    0.0213
+  ],
+  "stopEndRemainingPx": [
+    0,
+    0,
+    0
+  ],
+  "stopSeconds": [
+    0.267,
+    0.266,
+    0.267
+  ],
+  "plantedFootDriftMaxPx": 0.829,
+  "soleCheck": {
+    "1": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "2": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "3": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "4": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "5": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "6": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "7": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "8": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "9": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "10": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "11": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "12": {
+      "lowestRowAbovePivotWorldPx": -3.605,
+      "touchesFrameEdge": false
+    },
+    "13": {
+      "lowestRowAbovePivotWorldPx": -3.605,
+      "touchesFrameEdge": false
+    },
+    "14": {
+      "lowestRowAbovePivotWorldPx": -3.33,
+      "touchesFrameEdge": false
+    },
+    "15": {
+      "lowestRowAbovePivotWorldPx": -3.055,
+      "touchesFrameEdge": false
+    },
+    "16": {
+      "lowestRowAbovePivotWorldPx": -2.78,
+      "touchesFrameEdge": false
+    },
+    "17": {
+      "lowestRowAbovePivotWorldPx": -2.506,
+      "touchesFrameEdge": false
+    },
+    "18": {
+      "lowestRowAbovePivotWorldPx": -2.78,
+      "touchesFrameEdge": false
+    },
+    "19": {
+      "lowestRowAbovePivotWorldPx": -2.78,
+      "touchesFrameEdge": false
+    },
+    "20": {
+      "lowestRowAbovePivotWorldPx": -2.78,
+      "touchesFrameEdge": false
+    },
+    "21": {
+      "lowestRowAbovePivotWorldPx": -3.055,
+      "touchesFrameEdge": false
+    },
+    "22": {
+      "lowestRowAbovePivotWorldPx": -3.055,
+      "touchesFrameEdge": false
+    },
+    "23": {
+      "lowestRowAbovePivotWorldPx": -3.33,
+      "touchesFrameEdge": false
+    },
+    "24": {
+      "lowestRowAbovePivotWorldPx": -3.605,
+      "touchesFrameEdge": false
+    },
+    "49": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "50": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "51": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "52": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "53": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "54": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "55": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "56": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "57": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "58": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "59": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "60": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    },
+    "72": {
+      "lowestRowAbovePivotWorldPx": -3.879,
+      "touchesFrameEdge": false
+    }
+  }
+}
