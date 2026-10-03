@@ -40,3 +40,8 @@ Codex chooses the next bounded task from actual evidence. Continue within isolat
 ## Codex task 1 review and next handoff — 3 October 2026
 
 Reviewed implementation 495ba2f. See [14_CODEX_READABILITY_REVIEW.md](14_CODEX_READABILITY_REVIEW.md) for evidence limitations, validation and the bounded task 2. Warm/contrast + silhouette outline + identity marker are working preview choices, not production approval. Nearest frame centres error but does not remove snapping. Claude's next task is a preview-only 24-versus-48 unique-phase comparison, preserving motion, model and calibration. No source implementation was changed by Codex. Finish or checkpoint remaining renders before noon Sydney; do not broaden scope.
+
+
+## Codex task 2 review and next handoff — 3 October 2026
+
+Reviewed ca8cea0. [16_CODEX_DENSITY_REVIEW.md](16_CODEX_DENSITY_REVIEW.md) records independent measurements and frame inspection. Use 48-nearest as the working isolated preview, with final visual approval open. Task 3 is one right-facing contact-preserving idle-to-walk start, keeping existing loop, stop, model and calibration unchanged. No production integration. Checkpoint unfinished work at noon Sydney.
