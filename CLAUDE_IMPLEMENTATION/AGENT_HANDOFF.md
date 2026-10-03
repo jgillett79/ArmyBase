@@ -35,3 +35,8 @@ Return normal-size and max-zoom comparison PNGs, a short real-speed clip, drift 
 ## Subsequent work
 
 Codex chooses the next bounded task from actual evidence. Continue within isolated walking/readability previews only. Final art approval and broad integration remain Jason's decisions. Progress means an improved visible result, not merely numerical checks passing.
+
+
+## Codex task 1 review and next handoff — 3 October 2026
+
+Reviewed implementation 495ba2f. See [14_CODEX_READABILITY_REVIEW.md](14_CODEX_READABILITY_REVIEW.md) for evidence limitations, validation and the bounded task 2. Warm/contrast + silhouette outline + identity marker are working preview choices, not production approval. Nearest frame centres error but does not remove snapping. Claude's next task is a preview-only 24-versus-48 unique-phase comparison, preserving motion, model and calibration. No source implementation was changed by Codex. Finish or checkpoint remaining renders before noon Sydney; do not broaden scope.
