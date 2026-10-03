@@ -66,3 +66,12 @@ Unfinished renders: none reported in the latest completed handoff; all listed ta
 ## Resumed collaboration — 3 October 2026, 23:27 Sydney
 
 Jason renewed hourly review and continued isolated preview work. Prior noon closure remains a historical checkpoint. Main still points to task-3 implementation 5e1eb1d; no later main implementation was found at reopening. See [18_DIRECTION_PREVIEW_BRIEF.md](18_DIRECTION_PREVIEW_BRIEF.md) for task 4, one calibrated down-facing movement set. Keep later local or branch work if present and report it before duplicating. Claude's local watcher must already be active. No production rollout or release-gate approval is authorised.
+
+
+## Four-hour session closure — 4 October 2026
+
+Jason requested the resumed review/run process stop after four hours. That limit has elapsed; SESSION_CLOSED, no next task assigned, hourly checks stopped.
+
+Main at e137fbc still records task 4 (down-facing start/walk/stop/idle) as claimed by Claude. No new implementation commit, completed report or down-facing evidence was returned in the handoff. No visual or numerical pass for task 4 is claimed. The last reviewed implementation remains 5e1eb1d (right-facing start); earlier readability and 48-phase comparisons remain preserved.
+
+Outstanding: down-facing render/evidence and review, further directions/turns, full real-time visual approval and final style/integration decisions. Unfinished-render status is unknown: GitHub provides no frame counts, render log or local process state for task 4. Claude should save any already-running render and report completed/remaining frames or a blocker; start no new task or pass. This closure does not stop local processes or discard local work. No normal-game rollout or production gate changes performed by Codex.
