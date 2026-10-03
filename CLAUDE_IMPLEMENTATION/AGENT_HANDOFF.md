@@ -45,3 +45,19 @@ Reviewed implementation 495ba2f. See [14_CODEX_READABILITY_REVIEW.md](14_CODEX_R
 ## Codex task 2 review and next handoff — 3 October 2026
 
 Reviewed ca8cea0. [16_CODEX_DENSITY_REVIEW.md](16_CODEX_DENSITY_REVIEW.md) records independent measurements and frame inspection. Use 48-nearest as the working isolated preview, with final visual approval open. Task 3 is one right-facing contact-preserving idle-to-walk start, keeping existing loop, stop, model and calibration unchanged. No production integration. Checkpoint unfinished work at noon Sydney.
+
+
+## Session checkpoint — 3 October 2026, after noon Sydney
+
+Session closed; no new task assigned. The governing request for this review run ends at 12:00 Sydney. JSON also contains a 12:30 extension note; that note is preserved, but this reviewer has no direct updated instruction authorising further task assignment.
+
+Completed and committed:
+- Task 1 readability comparison (495ba2f): contrast, silhouette outline and marker improve visibility; warm lighting modest. Final style approval open.
+- Task 2 density comparison (ca8cea0): 48 distinct phases with nearest selection halve measured planted-foot quantization, about 0.92 to 0.46 world px. Working preview baseline only; walking PNG cost doubles to about 1.43 MB per direction.
+- Task 3 start transition (5e1eb1d): 20 rendered start frames and a 25-second comparison clip are committed under art/review/blender-walk-08. Claude reports zero continuous support slide, intact torso/harness and unchanged loop/stop/idle. Idle-to-start image difference is zero; start-to-loop boundary difference 1.099 versus ordinary loop steps 0.859–0.928, far below the old abrupt start's 9.89. Start heel-off quantization remains up to 0.95 world px, coarser than the 48-phase loop.
+
+Final evidence review: read report 17, inspected the committed transition strip and a frame extracted from the actual start clip. The strip shows a gradual first step instead of the old abrupt pose jump. This is a limited frame review, not full real-time video approval. Re-ran world and routine tests: both pass. Claude reports asset validation clean; Codex cannot independently run its browser pixel stage in this environment. Implementation paths remain Blender/preview tools and evidence, not normal-game integration.
+
+Remaining for a future authorised session (not assigned now): real-time visual judgement of the complete start/walk/stop clip, final model/lighting/outline style approval, other directions and turn transitions, and eventual production gate validation. No final art or release approval given.
+
+Unfinished renders: none reported in the latest completed handoff; all listed task-3 frames and clip are committed. Claude's local process state is not remotely observable, so this is not a claim that every local Blender process has stopped. Preserve any in-flight render output; do not start another pass under this closed session.
