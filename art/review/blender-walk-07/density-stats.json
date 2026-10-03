@@ -1,0 +1,141 @@
+{
+  "method": "nearest-frame selection; 1D travel; deformed contacts (inspect_walk_study.py); step 0.01 px over 20 cycles from 3.3 px; stride 22 px; 23.3162 world px/m",
+  "sets": {
+    "24": {
+      "phases": 24,
+      "heelOffPhase": 0.3333333333333333,
+      "phaseErrorPx": {
+        "mean": 0,
+        "rms": 0.2646,
+        "maxAbs": 0.4567
+      },
+      "contactIntervals": {
+        "R-flat": {
+          "occurrences": 21,
+          "peakToPeakPx": {
+            "mean": 0.918,
+            "max": 0.919,
+            "min": 0.915
+          },
+          "samples": 13746,
+          "excludedSamples": 920,
+          "excludedFraction": 0.0627
+        },
+        "R-toe": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.915,
+            "max": 0.915,
+            "min": 0.915
+          },
+          "samples": 6420,
+          "excludedSamples": 915,
+          "excludedFraction": 0.1247
+        },
+        "L-flat": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.919,
+            "max": 0.919,
+            "min": 0.919
+          },
+          "samples": 13745,
+          "excludedSamples": 920,
+          "excludedFraction": 0.0627
+        },
+        "L-toe": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.915,
+            "max": 0.915,
+            "min": 0.915
+          },
+          "samples": 6420,
+          "excludedSamples": 915,
+          "excludedFraction": 0.1247
+        }
+      },
+      "samplesPerSet": 44001,
+      "plantedSamplesCounted": 40331,
+      "plantedSamplesExcluded": 3670,
+      "deformedContactHeightsM": {
+        "soleZ": [
+          0.003,
+          0.003
+        ],
+        "toeEdgeZ": [
+          0.003,
+          0.0031
+        ]
+      }
+    },
+    "48": {
+      "phases": 48,
+      "heelOffPhase": 0.3333333333333333,
+      "phaseErrorPx": {
+        "mean": 0,
+        "rms": 0.1323,
+        "maxAbs": 0.2283
+      },
+      "contactIntervals": {
+        "R-flat": {
+          "occurrences": 21,
+          "peakToPeakPx": {
+            "mean": 0.46,
+            "max": 0.46,
+            "min": 0.456
+          },
+          "samples": 14206,
+          "excludedSamples": 460,
+          "excludedFraction": 0.0314
+        },
+        "R-toe": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.459,
+            "max": 0.459,
+            "min": 0.459
+          },
+          "samples": 6880,
+          "excludedSamples": 455,
+          "excludedFraction": 0.062
+        },
+        "L-flat": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.46,
+            "max": 0.46,
+            "min": 0.46
+          },
+          "samples": 14205,
+          "excludedSamples": 460,
+          "excludedFraction": 0.0314
+        },
+        "L-toe": {
+          "occurrences": 20,
+          "peakToPeakPx": {
+            "mean": 0.459,
+            "max": 0.459,
+            "min": 0.459
+          },
+          "samples": 6880,
+          "excludedSamples": 455,
+          "excludedFraction": 0.062
+        }
+      },
+      "samplesPerSet": 44001,
+      "plantedSamplesCounted": 42171,
+      "plantedSamplesExcluded": 1830,
+      "deformedContactHeightsM": {
+        "soleZ": [
+          0.003,
+          0.003
+        ],
+        "toeEdgeZ": [
+          0.003,
+          0.0032
+        ]
+      }
+    }
+  }
+}

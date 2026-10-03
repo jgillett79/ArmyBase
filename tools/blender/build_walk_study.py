@@ -23,6 +23,7 @@ from mathutils import Vector, Matrix, Euler
 
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',required=True)
+p.add_argument('--walk-samples',type=int,default=24,choices=[24,48],help='walk phases per cycle in frames 1-48: 24 = two cycles (default, pass 4); 48 = one cycle sampled twice as densely (same motion functions)')
 p.add_argument('--render-step',type=int,default=0,help='0 saves scene only; 3 renders eight loop poses per view; 1 renders every pose')
 a=p.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 out=Path(a.output).expanduser().resolve()
@@ -347,7 +348,7 @@ for frame in range(1,73):
     scene.frame_set(frame)
     row={'frame':frame}
     if frame<=WALK_FRAMES[1]:
-        phase=(frame-1)/24;q=phase%1
+        phase=(frame-1)/a.walk_samples;q=phase%1   # same continuous motion; --walk-samples only changes sampling density
         travel=CYCLE*phase
         _,sway,hip=body_at(q)
         feet={side:walk_foot(sign*.105,q+o,hip,sway) for side,sign,o in [('R',-1,0),('L',1,.5)]}
@@ -377,7 +378,8 @@ for frame in range(1,73):
         ankle,tail,th,contact=feet[side]
         angle=leg(side,sign,hip,ankle,tail,sway)
         # Opposite arm swing: right arm back when the right foot is forward.
-        pitch=ARM_SWING*arm_amount*math.cos(math.tau*(((frame-1)/24)+o)) if frame<=STOP[1] else 0
+        arm_phase=(frame-1)/a.walk_samples if frame<=WALK_FRAMES[1] else (frame-1)/24   # the stop keeps its own (pass-4) timing
+        pitch=ARM_SWING*arm_amount*math.cos(math.tau*(arm_phase+o)) if frame<=STOP[1] else 0
         arm(side,sign,pitch,-lean*.53,off,sway)
         depth=-ankle.y;lift=ankle.z-ANKLE;planted=contact is not None
         row[side]={'depth':round(depth,4),'lift':round(lift,4),'planted':planted,'contact':contact,'pitchDeg':round(math.degrees(th),2),'kneeAngle':round(angle,1)}
@@ -388,7 +390,7 @@ scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'soldier_walk_study.blend'))
 (out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 4 (motion: hip trough, heel-off, stop); not approved',
     'fps':24,'walkFrames':list(WALK_FRAMES),'stopFrames':list(STOP),'idleFrames':[61,72],
-    'modelHeightMetres':round(HEIGHT,4),'cycleMetres':round(CYCLE,4),'stepMetres':round(CYCLE/2,4),'cycleSeconds':1,
+    'modelHeightMetres':round(HEIGHT,4),'cycleMetres':round(CYCLE,4),'stepMetres':round(CYCLE/2,4),'cycleSeconds':1,'walkSamplesPerCycle':a.walk_samples,
     'gameStride':'22 world px per full cycle on a 44 px figure (js/asset-manifest.js strideWorld; js/animation.js)',
     'stanceKneeDegrees':172,'legLengthMetres':round(LEG,4),'frames':frames,'contacts':contacts,
     'limitations':['Distance-based weights, not hand-painted','No production control hierarchy',

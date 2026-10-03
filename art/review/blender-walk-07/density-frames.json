@@ -1,0 +1,25 @@
+{
+  "captureFps": 60,
+  "pageAnimationFramesDuringCapture": 1192,
+  "pageFps": 47.7,
+  "note": "Sprite phases are chosen by distance (24 or 48 per 22 px at 38 px/s = 41.5 or 82.9 phase changes per second), independent of capture fps; the page redraws at its own animation-frame rate.",
+  "sets": {
+    "24": {
+      "walkPhases": 24,
+      "count": 24,
+      "bytes": 712432,
+      "dir": "art/review/blender-walk-06/frames-warm-contrast/right (frames 1-24)"
+    },
+    "48": {
+      "walkPhases": 48,
+      "count": 48,
+      "bytes": 1425437,
+      "dir": "art/review/blender-walk-07/frames-48-warm-contrast/right"
+    },
+    "stopIdleShared": {
+      "count": 37,
+      "bytes": 1086832,
+      "note": "all 37 frames of the 24 set; stop 49-60 and idle 72 are used by both"
+    }
+  }
+}

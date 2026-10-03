@@ -41,7 +41,7 @@
   const params = new URLSearchParams(location.search);
   const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load ' + src)); i.src = src; });
   const json = src => fetch(src).then(r => r.json());
-  const SETS = { current: '../art/review/blender-walk-05/game-frames', warm: '../art/review/blender-walk-06/frames-warm', contrast: '../art/review/blender-walk-06/frames-warm-contrast' };
+  const SETS = { current: '../art/review/blender-walk-05/game-frames', warm: '../art/review/blender-walk-06/frames-warm', contrast: '../art/review/blender-walk-06/frames-warm-contrast', contrast48: '../art/review/blender-walk-07/frames-48-warm-contrast' };
   const motion = await json(`${SETS.current}/motion-report.json`);
   const sets = {};
   for (const [key, dir] of Object.entries(SETS)) {
@@ -78,23 +78,31 @@
     accent: { label: '+ accent (' + ACCENT.label.toLowerCase() + ')', set: 'contrast', accent: true },
     marker: { label: '+ identity marker', set: 'contrast', accent: true, marker: true },
     readable: { label: '+ subtle outline', set: 'contrast', accent: true, marker: true, outline: true },
+    // Task 2 (density): the same look in both (warm + contrast + outline +
+    // marker, no accent fill); only the number of walk phases differs. Stop
+    // and idle are the reviewed 24-set frames in both.
+    readable24: { label: '24 walk phases', set: 'contrast', marker: true, outline: true, loop: 24 },
+    readable48: { label: '48 walk phases', set: 'contrast', walkSet: 'contrast48', marker: true, outline: true, loop: 48 },
   };
   const canvasOf = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const filled = (img, colour) => { const c = canvasOf(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0);
     g.globalCompositeOperation = 'source-in'; g.fillStyle = colour; g.fillRect(0, 0, c.width, c.height); return c; };
   for (const v of Object.values(VARIANTS)) {
-    v.frames = {};
-    const set = sets[v.set];
-    for (const f of proj.frames) {
+    v.frames = {}; v.loop = v.loop || LOOP;
+    const set = sets[v.set], walkSet = v.walkSet ? sets[v.walkSet] : set;
+    // Walk frames 1..loop from the walk set; stop (49-60) and idle (72) always from the reviewed set.
+    const frameList = [...walkSet.proj.frames.filter(n => n <= v.loop), ...proj.frames.filter(n => n > 48)];
+    for (const f of frameList) {
+      const src = v.walkSet && f <= v.loop ? walkSet : set;
       const c = canvasOf(proj.size[0], proj.size[1]), g = c.getContext('2d');
       if (v.outline) {
         // Dilate the silhouette by OUTLINE_WORLD_PX in world px: in render px
         // that is wider horizontally than vertically (the draw stretches y).
-        const rx = OUTLINE_WORLD_PX / K, ry = OUTLINE_WORLD_PX / (K * S), sil = filled(set.body[f], OUTLINE_COLOUR);
+        const rx = OUTLINE_WORLD_PX / K, ry = OUTLINE_WORLD_PX / (K * S), sil = filled(src.body[f], OUTLINE_COLOUR);
         for (let i = 0; i < 24; i++) { const a = i / 24 * Math.PI * 2; g.drawImage(sil, Math.cos(a) * rx, Math.sin(a) * ry); }
       }
-      g.drawImage(set.body[f], 0, 0);
-      if (v.accent) g.drawImage(filled(set.accent[f], ACCENT.hex), 0, 0);
+      g.drawImage(src.body[f], 0, 0);
+      if (v.accent) g.drawImage(filled(src.accent[f], ACCENT.hex), 0, 0);
       v.frames[f] = c;
     }
   }
@@ -105,8 +113,8 @@
   const moveAlong = (unit, px) => { while (px > 1e-9) { const dx = unit.targetX - unit.x, dy = unit.targetY - unit.y, d = Math.hypot(dx, dy);
     if (d <= px) { unit.x = unit.targetX; unit.y = unit.targetY; px -= d; const n = unit.path.shift(); if (!n) break; unit.targetX = n.x; unit.targetY = n.y; continue; }
     unit.x += dx / d * px; unit.y += dy / d * px; px = 0; } };
-  const walkFrameFor = (distance, rule) => { const phase = ((distance % STRIDE) + STRIDE) % STRIDE / STRIDE;
-    return 1 + (rule === 'nearest' ? Math.round(phase * LOOP) : Math.floor(phase * LOOP)) % LOOP; };
+  const walkFrameFor = (distance, rule, loop = LOOP) => { const phase = ((distance % STRIDE) + STRIDE) % STRIDE / STRIDE;
+    return 1 + (rule === 'nearest' ? Math.round(phase * loop) : Math.floor(phase * loop)) % loop; };
   function makeWalker(variantKey, rule) {
     const state = new GameState(); state.simSpeed = 0; state.units = [];
     const unit = new Unit({ x: START.x, y: START.y, isCivilian: false });
@@ -117,7 +125,7 @@
     w.advance = (dt, now) => {
       if (w.mode === 'walk') { const toStop = remainingOf(unit) - STOP_PX;
         if (SPEED * dt >= toStop) { unit.step(toStop / SPEED); w.mode = 'stop'; w.u = 0; dt -= toStop / SPEED; }
-        else { unit.step(dt); w.frame = walkFrameFor(unit.walkDistance, rule); return; } }
+        else { unit.step(dt); w.frame = walkFrameFor(unit.walkDistance, rule, w.variant.loop); return; } }
       if (w.mode === 'stop') { const before = stopPx(w.u); w.u = Math.min(1, w.u + dt * SPEED / STOP_START_RATE); moveAlong(unit, stopPx(w.u) - before);
         w.frame = STOP0 + (rule === 'nearest' ? Math.round(w.u * (STOP1 - STOP0)) : Math.floor(w.u * (STOP1 - STOP0)));
         if (w.u >= 1) { w.mode = 'idle'; w.idleUntil = now + IDLE_SECONDS * 1000; } return; }
@@ -152,16 +160,18 @@
   // Layouts: panels = (walker, zoom) following the soldier.
   const layout = params.get('layout') || 'readability';
   const out = document.getElementById('out'), g = out.getContext('2d');
-  const panelW = 800, panelH = layout === 'readability' ? 340 : 420, captionH = 26;
-  const walkers = layout === 'readability'
-    ? { current: makeWalker('current', 'floor'), readable: makeWalker('readable', 'floor') }
+  const panelW = 800, panelH = layout === 'framerule' ? 420 : 340, captionH = 26;
+  const walkers = layout === 'readability' ? { current: makeWalker('current', 'floor'), readable: makeWalker('readable', 'floor') }
+    : layout === 'density' ? { d24: makeWalker('readable24', 'nearest'), d48: makeWalker('readable48', 'nearest') }
     : { floor: makeWalker('readable', 'floor'), nearest: makeWalker('readable', 'nearest') };
-  const panels = layout === 'readability'
-    ? [['current', 1, 0, 0], ['readable', 1, 1, 0], ['current', CAMERA_MAX_ZOOM, 0, 1], ['readable', CAMERA_MAX_ZOOM, 1, 1]]
+  const panels = layout === 'readability' ? [['current', 1, 0, 0], ['readable', 1, 1, 0], ['current', CAMERA_MAX_ZOOM, 0, 1], ['readable', CAMERA_MAX_ZOOM, 1, 1]]
+    : layout === 'density' ? [['d24', 1, 0, 0], ['d48', 1, 1, 0], ['d24', CAMERA_MAX_ZOOM, 0, 1], ['d48', CAMERA_MAX_ZOOM, 1, 1]]
     : [['floor', CAMERA_MAX_ZOOM, 0, 0], ['nearest', CAMERA_MAX_ZOOM, 1, 0]];
+  const sizeLabel = zoom => zoom === 1 ? 'game size (zoom 1)' : 'max zoom ' + zoom;
   const panelLabel = (key, zoom) => layout === 'readability'
-    ? `${key === 'current' ? 'Current (e1752d3)' : 'Readable: warm light + contrast + accent + outline'} · ${zoom === 1 ? 'game size (zoom 1)' : 'max zoom ' + zoom}`
-    : `${key === 'floor' ? 'Floor frame (the game\'s rule)' : 'Nearest frame'} · readable look · max zoom ${zoom}`;
+    ? (key === 'current' ? 'Current (e1752d3)' : 'Readable: warm light + contrast + accent + outline') + ' · ' + sizeLabel(zoom)
+    : layout === 'density' ? (key === 'd24' ? '24' : '48') + ' walk phases per cycle · nearest frame · same look · ' + sizeLabel(zoom) + ' · stop/idle identical'
+    : (key === 'floor' ? 'Floor frame (the game rule)' : 'Nearest frame') + ' · readable look · max zoom ' + zoom;
   const rows = Math.max(...panels.map(p => p[3])) + 1;
   out.width = panelW * 2; out.height = rows * (panelH + captionH) + 24;
   const cams = panels.map(([, zoom]) => { const c = new Camera(panelW, panelH); c.zoom = zoom; return c; });
@@ -222,18 +232,18 @@
   // (fixed in the world), magnified M x without smoothing, with a red line at
   // that spot: the drawn boot should sit still against it; how far it creeps
   // and when it snaps back is the frame rule's quantisation.
-  function ruleSheet(steps = 11, stepPx = 0.75, zoom = CAMERA_MAX_ZOOM, M = 6) {
-    const cw = 30, ch = 20, cellW = cw * M + 6, rows = ['floor', 'nearest'];
+  function ruleSheet(steps = 11, stepPx = 0.75, zoom = CAMERA_MAX_ZOOM, M = 6, rows = [{ label: 'Floor (game rule)', variant: 'readable', rule: 'floor' }, { label: 'Nearest frame', variant: 'readable', rule: 'nearest' }]) {
+    const cw = 30, ch = 20, cellW = cw * M + 6;
     const sheet = canvasOf(cellW * steps + 120, rows.length * (ch * M + 22) + 34), sg = sheet.getContext('2d');
     sg.fillStyle = '#151b17'; sg.fillRect(0, 0, sheet.width, sheet.height); sg.imageSmoothingEnabled = false;
-    rows.forEach((rule, r) => {
-      const w = makeWalker('readable', rule); let t = 0;
+    rows.forEach((spec, r) => {
+      const w = makeWalker(spec.variant, spec.rule); let t = 0;
       // Advance to the start of a right-foot stance (true phase ~0) past 100 px.
       while (!(w.mode === 'walk' && w.unit.walkDistance > 100 && ((w.unit.walkDistance % STRIDE) + STRIDE) % STRIDE < 0.3)) { w.advance(0.3 / SPEED, t); t += 8; }
       const phase = ((w.unit.walkDistance % STRIDE) + STRIDE) % STRIDE / STRIDE, fTrue = 1 + phase * LOOP;
       const d0 = motion.frames[0].R.depth, d1 = motion.frames[1].R.depth, trueX = w.unit.x + (d0 + (d1 - d0) * (fTrue - 1)) * WPM;
       const footY = w.unit.y + 0.105 * WPM, y = 20 + r * (ch * M + 22);
-      sg.fillStyle = '#e8e4d4'; sg.font = 'bold 13px sans-serif'; sg.fillText(rule === 'floor' ? 'Floor (game rule)' : 'Nearest frame', 6, y + ch * M / 2);
+      sg.fillStyle = '#e8e4d4'; sg.font = 'bold 13px sans-serif'; sg.fillText(spec.label, 6, y + ch * M / 2);
       for (let i = 0; i < steps; i++) {
         const cam = new Camera(cw, ch); cam.zoom = zoom; cam.centreOn(trueX + 2, footY - 4);
         const c = canvasOf(cw, ch); renderWalker(c.getContext('2d'), w, cam, 0);
@@ -244,7 +254,7 @@
       }
     });
     sg.fillStyle = '#9aa392'; sg.font = '11px sans-serif';
-    sg.fillText('Max zoom ' + zoom + ', ' + M + 'x without smoothing; red line = the true planted spot of the right boot (fixed in the world); steps of ' + stepPx + ' px travelled at 38 px/s. Preview only.', 6, sheet.height - 6);
+    sg.fillText('Max zoom ' + zoom + ', ' + M + 'x without smoothing; red line = the true planted spot of the right boot (fixed in the world); steps of ' + stepPx.toFixed(3) + ' px travelled at 38 px/s. Preview only.', 6, sheet.height - 6);
     return sheet;
   }
 
