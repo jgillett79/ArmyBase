@@ -1,0 +1,491 @@
+{
+  "method": "deterministic, dt 1/960 s; root curve as in the preview; deformed contacts from inspect_walk_study.py; world px (23.3165/m)",
+  "timing": {
+    "shiftSeconds": 0.125,
+    "travelSeconds": 0.28977,
+    "startSeconds": 0.41477,
+    "startDistancePx": 5.5056,
+    "renderedStartFrames": 20,
+    "renderedFps": 48
+  },
+  "handover": {
+    "loopPhase": 0.5,
+    "loopFrame": 25,
+    "speedBefore": 38,
+    "speedAfter": 38,
+    "accelerationPxPerS2AtEnd": 0,
+    "rootPxAtHandover": 5.5056
+  },
+  "rootTimeline48fps": [
+    {
+      "t": 0,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 101,
+      "kind": "start"
+    },
+    {
+      "t": 0.0208,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 102,
+      "kind": "start"
+    },
+    {
+      "t": 0.0417,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 103,
+      "kind": "start"
+    },
+    {
+      "t": 0.0625,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 104,
+      "kind": "start"
+    },
+    {
+      "t": 0.0833,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 105,
+      "kind": "start"
+    },
+    {
+      "t": 0.1042,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 106,
+      "kind": "start"
+    },
+    {
+      "t": 0.125,
+      "rootPx": 0,
+      "speedPxPerS": 0,
+      "frame": 107,
+      "kind": "start"
+    },
+    {
+      "t": 0.1458,
+      "rootPx": 0.0039,
+      "speedPxPerS": 0.561,
+      "frame": 108,
+      "kind": "start"
+    },
+    {
+      "t": 0.1667,
+      "rootPx": 0.0304,
+      "speedPxPerS": 2.131,
+      "frame": 109,
+      "kind": "start"
+    },
+    {
+      "t": 0.1875,
+      "rootPx": 0.0986,
+      "speedPxPerS": 4.541,
+      "frame": 110,
+      "kind": "start"
+    },
+    {
+      "t": 0.2083,
+      "rootPx": 0.2242,
+      "speedPxPerS": 7.621,
+      "frame": 111,
+      "kind": "start"
+    },
+    {
+      "t": 0.2292,
+      "rootPx": 0.4196,
+      "speedPxPerS": 11.201,
+      "frame": 112,
+      "kind": "start"
+    },
+    {
+      "t": 0.25,
+      "rootPx": 0.6933,
+      "speedPxPerS": 15.113,
+      "frame": 113,
+      "kind": "start"
+    },
+    {
+      "t": 0.2708,
+      "rootPx": 1.0504,
+      "speedPxPerS": 19.187,
+      "frame": 114,
+      "kind": "start"
+    },
+    {
+      "t": 0.2917,
+      "rootPx": 1.4927,
+      "speedPxPerS": 23.252,
+      "frame": 115,
+      "kind": "start"
+    },
+    {
+      "t": 0.3125,
+      "rootPx": 2.018,
+      "speedPxPerS": 27.141,
+      "frame": 116,
+      "kind": "start"
+    },
+    {
+      "t": 0.3333,
+      "rootPx": 2.6211,
+      "speedPxPerS": 30.683,
+      "frame": 117,
+      "kind": "start"
+    },
+    {
+      "t": 0.3542,
+      "rootPx": 3.2929,
+      "speedPxPerS": 33.709,
+      "frame": 118,
+      "kind": "start"
+    },
+    {
+      "t": 0.375,
+      "rootPx": 4.0209,
+      "speedPxPerS": 36.049,
+      "frame": 119,
+      "kind": "start"
+    },
+    {
+      "t": 0.3958,
+      "rootPx": 4.789,
+      "speedPxPerS": 37.534,
+      "frame": 120,
+      "kind": "start"
+    },
+    {
+      "t": 0.4167,
+      "rootPx": 5.5777,
+      "speedPxPerS": 38,
+      "frame": 25,
+      "kind": "loop"
+    },
+    {
+      "t": 0.4375,
+      "rootPx": 6.3694,
+      "speedPxPerS": 38,
+      "frame": 27,
+      "kind": "loop"
+    },
+    {
+      "t": 0.4583,
+      "rootPx": 7.1611,
+      "speedPxPerS": 38,
+      "frame": 29,
+      "kind": "loop"
+    },
+    {
+      "t": 0.4792,
+      "rootPx": 7.9527,
+      "speedPxPerS": 38,
+      "frame": 30,
+      "kind": "loop"
+    },
+    {
+      "t": 0.5,
+      "rootPx": 8.7444,
+      "speedPxPerS": 38,
+      "frame": 32,
+      "kind": "loop"
+    },
+    {
+      "t": 0.5208,
+      "rootPx": 9.5361,
+      "speedPxPerS": 38,
+      "frame": 34,
+      "kind": "loop"
+    },
+    {
+      "t": 0.5417,
+      "rootPx": 10.3277,
+      "speedPxPerS": 38,
+      "frame": 36,
+      "kind": "loop"
+    },
+    {
+      "t": 0.5625,
+      "rootPx": 11.1194,
+      "speedPxPerS": 38,
+      "frame": 37,
+      "kind": "loop"
+    },
+    {
+      "t": 0.5833,
+      "rootPx": 11.9111,
+      "speedPxPerS": 38,
+      "frame": 39,
+      "kind": "loop"
+    },
+    {
+      "t": 0.6042,
+      "rootPx": 12.7027,
+      "speedPxPerS": 38,
+      "frame": 41,
+      "kind": "loop"
+    },
+    {
+      "t": 0.625,
+      "rootPx": 13.4944,
+      "speedPxPerS": 38,
+      "frame": 42,
+      "kind": "loop"
+    },
+    {
+      "t": 0.6458,
+      "rootPx": 14.2861,
+      "speedPxPerS": 38,
+      "frame": 44,
+      "kind": "loop"
+    },
+    {
+      "t": 0.6667,
+      "rootPx": 15.0777,
+      "speedPxPerS": 38,
+      "frame": 46,
+      "kind": "loop"
+    },
+    {
+      "t": 0.6875,
+      "rootPx": 15.8694,
+      "speedPxPerS": 38,
+      "frame": 48,
+      "kind": "loop"
+    },
+    {
+      "t": 0.7083,
+      "rootPx": 16.6611,
+      "speedPxPerS": 38,
+      "frame": 1,
+      "kind": "loop"
+    },
+    {
+      "t": 0.7292,
+      "rootPx": 17.4527,
+      "speedPxPerS": 38,
+      "frame": 3,
+      "kind": "loop"
+    },
+    {
+      "t": 0.75,
+      "rootPx": 18.2444,
+      "speedPxPerS": 38,
+      "frame": 5,
+      "kind": "loop"
+    },
+    {
+      "t": 0.7708,
+      "rootPx": 19.0361,
+      "speedPxPerS": 38,
+      "frame": 7,
+      "kind": "loop"
+    },
+    {
+      "t": 0.7917,
+      "rootPx": 19.8277,
+      "speedPxPerS": 38,
+      "frame": 8,
+      "kind": "loop"
+    },
+    {
+      "t": 0.8125,
+      "rootPx": 20.6194,
+      "speedPxPerS": 38,
+      "frame": 10,
+      "kind": "loop"
+    },
+    {
+      "t": 0.8333,
+      "rootPx": 21.4111,
+      "speedPxPerS": 38,
+      "frame": 12,
+      "kind": "loop"
+    },
+    {
+      "t": 0.8542,
+      "rootPx": 22.2027,
+      "speedPxPerS": 38,
+      "frame": 13,
+      "kind": "loop"
+    },
+    {
+      "t": 0.875,
+      "rootPx": 22.9944,
+      "speedPxPerS": 38,
+      "frame": 15,
+      "kind": "loop"
+    },
+    {
+      "t": 0.8958,
+      "rootPx": 23.7861,
+      "speedPxPerS": 38,
+      "frame": 17,
+      "kind": "loop"
+    }
+  ],
+  "contacts": {
+    "rightFlatSpreadPx": 0.4621,
+    "rightFlatSamples": 291,
+    "rightToeEdgeSpreadPx": 0.9507,
+    "rightToeSamples": 108,
+    "rightToeEdgeSpreadStartOnlyPx": 1.059,
+    "leftPlantedInShiftSpreadPx": 0.0005,
+    "note": "Spreads include nearest-frame time quantisation of the 48 fps start frames (up to half a frame of travel: 0.4 px at 38 px/s) and the 48-phase loop after handover."
+  },
+  "inspection": {
+    "frames": [
+      101,
+      120
+    ],
+    "supportR": {
+      "flatFrames": 15,
+      "heelOffFrames": 5,
+      "flatSoleSlideY": 0,
+      "toeEdgeVsPlantedSpotY": [
+        0,
+        0
+      ],
+      "toeEdgeZ": {
+        "min": 0.003,
+        "max": 0.0031,
+        "mean": 0.003
+      },
+      "flatBottomZ": {
+        "min": 0.003,
+        "max": 0.003,
+        "mean": 0.003
+      }
+    },
+    "leftWhilePlanted": {
+      "frames": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107
+      ],
+      "soleSlideY": 0
+    },
+    "leftSwingMinSoleZ": 0.003,
+    "soleMinZ": 0.003,
+    "chestDriftMax": 0,
+    "harnessToChest": {
+      "min": 0.0088,
+      "max": 0.0088,
+      "mean": 0.0088
+    },
+    "harnessSignedMin": 0.0001,
+    "kneeR": [
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      171.1,
+      167.8,
+      162.9,
+      157.5,
+      152.1
+    ],
+    "kneeL": [
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      172,
+      171.5,
+      169.9,
+      166.1,
+      160.4,
+      153.3,
+      145.9,
+      140,
+      138.4,
+      143.8,
+      155.7,
+      170.9
+    ]
+  },
+  "boundaries": {
+    "idle72_to_start101": {
+      "hipPx": 0,
+      "R": {
+        "depthWorldPx": 0,
+        "liftPx": 0,
+        "kneeDeg": 0,
+        "pitchDeg": 0
+      },
+      "L": {
+        "depthWorldPx": 0,
+        "liftPx": 0,
+        "kneeDeg": 0,
+        "pitchDeg": 0
+      }
+    },
+    "start120_to_loop25": {
+      "hipPx": -0.058,
+      "R": {
+        "depthWorldPx": 0.256,
+        "liftPx": 0.261,
+        "kneeDeg": -4.5,
+        "pitchDeg": 3.4
+      },
+      "L": {
+        "depthWorldPx": 0.496,
+        "liftPx": -0.14,
+        "kneeDeg": 1.1,
+        "pitchDeg": 0
+      }
+    },
+    "reference_loop25_to_26": {
+      "hipPx": 0.026,
+      "R": {
+        "depthWorldPx": 0.297,
+        "liftPx": 0.203,
+        "kneeDeg": -2.6,
+        "pitchDeg": 2.23
+      },
+      "L": {
+        "depthWorldPx": -0.001,
+        "liftPx": 0,
+        "kneeDeg": -6.8,
+        "pitchDeg": 0
+      }
+    },
+    "reference_loop24_to_25": {
+      "hipPx": -0.026,
+      "R": {
+        "depthWorldPx": 0.181,
+        "liftPx": 0.18,
+        "kneeDeg": -2.9,
+        "pitchDeg": 2.37
+      },
+      "L": {
+        "depthWorldPx": 0.099,
+        "liftPx": -0.142,
+        "kneeDeg": 0,
+        "pitchDeg": 0
+      }
+    },
+    "note": "Pose differences in world px/degrees between the boundary frames, with root travel between them added to foot depths; compare with the reference loop steps. start120 is the last rendered start frame (t 0.39583 s); the handover is 0.0187 s later."
+  }
+}

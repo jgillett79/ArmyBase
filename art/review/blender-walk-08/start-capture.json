@@ -1,0 +1,34 @@
+{
+  "captureFpsRequested": 60,
+  "pageRedrawsDuringCapture": 1481,
+  "pageFps": 59.2,
+  "handoverRemainingRoutePx": {
+    "remaining": 500.505
+  },
+  "meanAbsRGBADiff0to255": {
+    "idle72 -> start101": 0,
+    "start101 -> start102": 0.089,
+    "start119 -> start120": 1.86,
+    "start120 -> loop25 (handover)": 1.099,
+    "loop25 -> loop26 (reference)": 0.859,
+    "loop24 -> loop25 (reference)": 0.928,
+    "idle72 -> loop25 (old abrupt start)": 9.89
+  },
+  "frames": {
+    "start": {
+      "count": 20,
+      "bytes": 564504,
+      "dir": "art/review/blender-walk-08/frames-start-warm-contrast/right"
+    },
+    "loop48": {
+      "count": 48,
+      "bytes": 1425437,
+      "dir": "art/review/blender-walk-07/frames-48-warm-contrast/right (reused)"
+    },
+    "stopIdle24set": {
+      "count": 13,
+      "bytes": 374400,
+      "dir": "art/review/blender-walk-06/frames-warm-contrast/right 49-60, 72 (reused, 24-phase timing unchanged)"
+    }
+  }
+}

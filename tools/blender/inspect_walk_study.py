@@ -18,9 +18,15 @@ from mathutils.bvhtree import BVHTree
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--report',required=True)
 p.add_argument('--output',required=True)
+p.add_argument('--frames',default='',help='e.g. 101-120: measure only these frames (start study rows); writes per-frame rows and a contact summary')
 a=p.parse_args(sys.argv[sys.argv.index('--')+1:])
 report=json.load(open(a.report))
-travel={row['frame']:row['virtualTravelMetres'] for row in report['frames']}
+rows=report['frames']+report.get('start',{}).get('rows',[])
+travel={row['frame']:row['virtualTravelMetres'] for row in rows}
+report_row={row['frame']:row for row in rows}
+only=[]
+for part in [p for p in a.frames.split(',') if p]:
+    lo,_,hi=part.partition('-');only+=list(range(int(lo),int(hi or lo)+1))
 scene=bpy.context.scene
 rig=bpy.data.objects['Soldier motion skeleton']
 
@@ -47,7 +53,7 @@ def toe_edge_indices(name):
 TOE_EDGE={s:toe_edge_indices('Sole_'+s) for s in 'RL'}
 
 frames=[]
-for frame in range(1,73):
+for frame in (only or range(1,73)):
     scene.frame_set(frame);dg=bpy.context.evaluated_depsgraph_get()
     row={'frame':frame,'travel':travel[frame]}
     for side in 'RL':
@@ -101,6 +107,31 @@ for frame in range(1,73):
             if s0.length>1e-6 and s1.length>1e-6: turn=max(turn,math.degrees(s0.angle(s1)))
     row['harnessMaxTurnDeg']=round(turn,1)
     frames.append(row)
+
+if only:
+    # Start-study summary: the support (right) contact must stay put in the
+    # travelling frame - sole centroid while flat, front edge while heel-off -
+    # and nothing may go below the ground; torso as in the loop.
+    def contact_y(r,side):
+        c=report_row[r['frame']][side].get('contact')
+        return r[side]['toeEdgeWorldY'] if c=='toe' else r[side]['soleWorldY']
+    flatR=[r for r in frames if report_row[r['frame']]['R'].get('contact')=='flat']
+    toeR=[r for r in frames if report_row[r['frame']]['R'].get('contact')=='toe']
+    first=frames[0]
+    summary={'frames':[only[0],only[-1]],
+      'supportR':{'flatFrames':len(flatR),'heelOffFrames':len(toeR),
+        'flatSoleSlideY':round(max(r['R']['soleWorldY'] for r in flatR)-min(r['R']['soleWorldY'] for r in flatR),4) if flatR else None,
+        'toeEdgeVsPlantedSpotY':[round(min(r['R']['toeEdgeWorldY'] for r in frames)-first['R']['toeEdgeWorldY'],4),round(max(r['R']['toeEdgeWorldY'] for r in frames)-first['R']['toeEdgeWorldY'],4)],
+        'toeEdgeZ':stats([r['R']['toeEdgeZ'] for r in frames]),'flatBottomZ':stats([r['R']['soleBottomZ'] for r in flatR]) if flatR else None},
+      'leftWhilePlanted':{'frames':[r['frame'] for r in frames if report_row[r['frame']]['L'].get('contact')=='flat'],
+        'soleSlideY':round(max(r['L']['soleWorldY'] for r in frames if report_row[r['frame']]['L'].get('contact')=='flat')-min(r['L']['soleWorldY'] for r in frames if report_row[r['frame']]['L'].get('contact')=='flat'),4)},
+      'leftSwingMinSoleZ':min([r['L']['soleMinZ'] for r in frames if report_row[r['frame']]['L'].get('contact') is None] or [None]),
+      'soleMinZ':min(r[s]['soleMinZ'] for r in frames for s in 'RL'),
+      'chestDriftMax':max(r['chestDrift']['max'] for r in frames),
+      'harnessToChest':stats([r['harnessToChest']['max'] for r in frames]),'harnessSignedMin':min(r['harnessSigned']['min'] for r in frames),
+      'kneeR':[r['R']['kneeAngle'] for r in frames],'kneeL':[r['L']['kneeAngle'] for r in frames]}
+    json.dump({'source':a.report,'summary':summary,'frames':frames},open(a.output,'w'),indent=2)
+    print('SUMMARY',json.dumps(summary));sys.exit(0)
 
 planted={r['frame']:r for r in report['frames']}
 def slide(side,lo,hi):

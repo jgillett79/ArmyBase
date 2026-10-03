@@ -24,6 +24,7 @@ from mathutils import Vector, Matrix, Euler
 p=argparse.ArgumentParser(description=__doc__)
 p.add_argument('--output',required=True)
 p.add_argument('--walk-samples',type=int,default=24,choices=[24,48],help='walk phases per cycle in frames 1-48: 24 = two cycles (default, pass 4); 48 = one cycle sampled twice as densely (same motion functions)')
+p.add_argument('--start-frames',type=int,default=0,help='task 3 preview study: append N idle-to-walk start frames at 48 fps from frame 101 (default 0: none)')
 p.add_argument('--render-step',type=int,default=0,help='0 saves scene only; 3 renders eight loop poses per view; 1 renders every pose')
 a=p.parse_args(sys.argv[sys.argv.index('--')+1:] if '--' in sys.argv else [])
 out=Path(a.output).expanduser().resolve()
@@ -386,13 +387,65 @@ for frame in range(1,73):
         contacts.append({'frame':frame,'leg':side,'planted':planted,'contact':contact,'soleDepthMetres':depth,'liftMetres':lift,'virtualTravelMetres':travel})
     row.update({'hip':round(hip,4),'sway':round(sway,4),'virtualTravelMetres':round(travel,4)})
     frames.append(row)
+
+# --- Idle-to-walk start (task 3, preview study; only with --start-frames) ----
+# Appended at frames START_FIRST.. so frames 1-72 (loop, stop, idle) are
+# untouched. The start IS the loop's right-foot stance from mid-stance
+# (q 0.25: feet together, arms at zero swing) to toe-off (q 0.5), driven by
+# root distance s with the loop's own hip_at/walk_foot/arm functions; only
+# the left foot is new: it lifts from beside the right and lands at +D with
+# the loop's landing speed, at loop phase 0.5 (handover). Before travel, a
+# weight shift moves the pelvis over the right foot to the loop's sway at
+# q 0.25. Root speed eases from 0 to the game's 38 world px/s
+# (smoothstep velocity), so travel takes 2*D/v.
+START_FIRST,START_FPS,SHIFT_SECONDS,GAME_SPEED_PX=101,48,0.125,38.0
+WORLD_PX_PER_M=44/HEIGHT
+V_WALK=GAME_SPEED_PX/WORLD_PX_PER_M                  # m/s at handover
+TRAVEL_SECONDS=2*D/V_WALK
+START_SECONDS=SHIFT_SECONDS+TRAVEL_SECONDS
+def smooth(x): x=max(0,min(1,x)); return x*x*(3-2*x)
+def start_state(t):
+    """Root distance s (m), speed v (m/s), sway, progress u = s/D, stage."""
+    if t<SHIFT_SECONDS:
+        return 0.0,0.0,-SWAY*smooth(t/SHIFT_SECONDS),0.0,'shift'
+    tau=min(1,(t-SHIFT_SECONDS)/TRAVEL_SECONDS)
+    s=D*(2*tau**3-tau**4);v=V_WALK*(3*tau*tau-2*tau**3)
+    qR=.25+s/(4*D)
+    return s,v,-SWAY*math.sin(math.pi*(qR%.5)/.5),s/D,'travel'
+start_rows=[]
+if a.start_frames:
+    for k in range(a.start_frames):
+        t=k/START_FPS;frame=START_FIRST+k
+        if t>=START_SECONDS: raise RuntimeError('start frames run past the handover; lower --start-frames')
+        scene.frame_set(frame)
+        s,v,sway,u,stage=start_state(t)
+        qR=.25+s/(4*D)
+        hip=hip_at(-s,sway)
+        ankR,tailR,thR,cR=walk_foot(-.105,qR,hip,sway)
+        # Left: from standing beside the right (depth 0, flat) to the loop's
+        # landing at +D (ease: leaves world-still, lands moving back with
+        # the ground); leg length dips and is full again before landing.
+        depthL=D*(-u+6*u*u-4*u**3)
+        rL=keys(u,[(0,LEG,0),(.45,SWING_MIN_LEG+.01,0),(.9,LEG,0),(1,LEG,0)])
+        liftL=max(0.0,hip-ANKLE-math.sqrt(max(0,rL*rL-depthL*depthL-sway*sway))) if u>0 else 0.0
+        ankL=Vector((.105,-depthL,ANKLE+liftL))
+        lean=.015*smooth(t/START_SECONDS)
+        off=body(hip,sway,lean)
+        row={'frame':frame,'startTime':round(t,5),'stage':stage,'u':round(u,5),'rootMetres':round(s,5),'rootPx':round(s*WORLD_PX_PER_M,4),
+             'speedPxPerS':round(v*WORLD_PX_PER_M,3),'loopPhaseR':round(qR,5),'supportLeg':'R','hip':round(hip,4),'sway':round(sway,4),'virtualTravelMetres':round(s,5)}
+        for side,sign,ank,tail,th,contact in [('R',-1,ankR,tailR,thR,cR),('L',1,ankL,ankL+FOOT,0.0,'flat' if u==0 else None)]:
+            angle=leg(side,sign,hip,ank,tail,sway)
+            pitch=ARM_SWING*math.cos(math.tau*(qR+(0 if side=='R' else .5)))
+            arm(side,sign,pitch,-lean*.53,off,sway)
+            row[side]={'depth':round(-ank.y,4),'lift':round(ank.z-ANKLE,4),'planted':contact is not None,'contact':contact,'pitchDeg':round(math.degrees(th),2),'kneeAngle':round(angle,1)}
+        start_rows.append(row)
 scene.frame_set(1)
 bpy.ops.wm.save_as_mainfile(filepath=str(out/'soldier_walk_study.blend'))
 (out/'motion-report.json').write_text(json.dumps({'status':'weighted motion candidate, pass 4 (motion: hip trough, heel-off, stop); not approved',
     'fps':24,'walkFrames':list(WALK_FRAMES),'stopFrames':list(STOP),'idleFrames':[61,72],
     'modelHeightMetres':round(HEIGHT,4),'cycleMetres':round(CYCLE,4),'stepMetres':round(CYCLE/2,4),'cycleSeconds':1,'walkSamplesPerCycle':a.walk_samples,
     'gameStride':'22 world px per full cycle on a 44 px figure (js/asset-manifest.js strideWorld; js/animation.js)',
-    'stanceKneeDegrees':172,'legLengthMetres':round(LEG,4),'frames':frames,'contacts':contacts,
+    'stanceKneeDegrees':172,**({'start':{'firstFrame':START_FIRST,'fps':START_FPS,'shiftSeconds':SHIFT_SECONDS,'travelSeconds':round(TRAVEL_SECONDS,5),'seconds':round(START_SECONDS,5),'handoverLoopPhase':0.5,'speedPxPerS':GAME_SPEED_PX,'rows':start_rows}} if a.start_frames else {}),'legLengthMetres':round(LEG,4),'frames':frames,'contacts':contacts,
     'limitations':['Distance-based weights, not hand-painted','No production control hierarchy',
                    'Heel-off pivots on the rigid sole edge (no toe bend); flat-foot landing (no heel strike)','Projection uncalibrated','No runtime integration']},indent=2))
 if a.render_step:

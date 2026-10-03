@@ -1,0 +1,1255 @@
+{
+  "source": "art/local-blender/walk-study-08-start/motion-report.json",
+  "summary": {
+    "frames": [
+      101,
+      120
+    ],
+    "supportR": {
+      "flatFrames": 15,
+      "heelOffFrames": 5,
+      "flatSoleSlideY": 0.0,
+      "toeEdgeVsPlantedSpotY": [
+        0.0,
+        0.0
+      ],
+      "toeEdgeZ": {
+        "min": 0.003,
+        "max": 0.0031,
+        "mean": 0.003
+      },
+      "flatBottomZ": {
+        "min": 0.003,
+        "max": 0.003,
+        "mean": 0.003
+      }
+    },
+    "leftWhilePlanted": {
+      "frames": [
+        101,
+        102,
+        103,
+        104,
+        105,
+        106,
+        107
+      ],
+      "soleSlideY": 0.0
+    },
+    "leftSwingMinSoleZ": 0.003,
+    "soleMinZ": 0.003,
+    "chestDriftMax": 0.0,
+    "harnessToChest": {
+      "min": 0.0088,
+      "max": 0.0088,
+      "mean": 0.0088
+    },
+    "harnessSignedMin": 0.0001,
+    "kneeR": [
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      171.1,
+      167.8,
+      162.9,
+      157.5,
+      152.1
+    ],
+    "kneeL": [
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      172.0,
+      171.5,
+      169.9,
+      166.1,
+      160.4,
+      153.3,
+      145.9,
+      140.0,
+      138.4,
+      143.8,
+      155.7,
+      170.9
+    ]
+  },
+  "frames": [
+    {
+      "frame": 101,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 102,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 103,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 104,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 105,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 106,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 107,
+      "travel": 0.0,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0376,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 108,
+      "travel": 0.00017,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0379,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0374,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 109,
+      "travel": 0.00131,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0398,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.062,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0359,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 110,
+      "travel": 0.00424,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0447,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.0625,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2036,
+        "toeEdgeZ": 0.0032,
+        "soleMinZ": 0.0032,
+        "soleBottomZ": 0.0032,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 171.5,
+        "wristFromShoulderY": -0.032,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 111,
+      "travel": 0.00965,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0538,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.0643,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2055,
+        "toeEdgeZ": 0.0041,
+        "soleMinZ": 0.0041,
+        "soleBottomZ": 0.0041,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 169.9,
+        "wristFromShoulderY": -0.0249,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0136,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 112,
+      "travel": 0.01805,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0679,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.0699,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.211,
+        "toeEdgeZ": 0.0067,
+        "soleMinZ": 0.0067,
+        "soleBottomZ": 0.0067,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 166.1,
+        "wristFromShoulderY": -0.0138,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0135,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 113,
+      "travel": 0.02982,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.0873,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.0827,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2239,
+        "toeEdgeZ": 0.0121,
+        "soleMinZ": 0.0121,
+        "soleBottomZ": 0.0121,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 160.4,
+        "wristFromShoulderY": 0.0015,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0132,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 114,
+      "travel": 0.04517,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.112,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.1072,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2484,
+        "toeEdgeZ": 0.0212,
+        "soleMinZ": 0.0212,
+        "soleBottomZ": 0.0212,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 153.3,
+        "wristFromShoulderY": 0.0211,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0134,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 115,
+      "travel": 0.06419,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 172.0,
+        "wristFromShoulderY": -0.1411,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.1477,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.2889,
+        "toeEdgeZ": 0.0334,
+        "soleMinZ": 0.0334,
+        "soleBottomZ": 0.0334,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 145.9,
+        "wristFromShoulderY": 0.0445,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0135,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 116,
+      "travel": 0.08677,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.003,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 171.1,
+        "wristFromShoulderY": -0.1729,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0138,
+          "mean": 0.0066
+        }
+      },
+      "L": {
+        "soleWorldY": -0.2065,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.3476,
+        "toeEdgeZ": 0.0457,
+        "soleMinZ": 0.0457,
+        "soleBottomZ": 0.0457,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 140.0,
+        "wristFromShoulderY": 0.0705,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0064
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 117,
+      "travel": 0.11269,
+      "R": {
+        "soleWorldY": -0.062,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.0031,
+        "toeMinusHeelZ": -0.0001,
+        "upperBottomMinusSoleTop": -0.0032,
+        "kneeAngle": 167.8,
+        "wristFromShoulderY": -0.2049,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0136,
+          "mean": 0.0065
+        }
+      },
+      "L": {
+        "soleWorldY": -0.282,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.4232,
+        "toeEdgeZ": 0.0498,
+        "soleMinZ": 0.0498,
+        "soleBottomZ": 0.0498,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 138.4,
+        "wristFromShoulderY": 0.0972,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0064
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 118,
+      "travel": 0.14156,
+      "R": {
+        "soleWorldY": -0.0621,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.004,
+        "toeMinusHeelZ": -0.0018,
+        "upperBottomMinusSoleTop": -0.005,
+        "kneeAngle": 162.9,
+        "wristFromShoulderY": -0.234,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0134,
+          "mean": 0.0065
+        }
+      },
+      "L": {
+        "soleWorldY": -0.3677,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.5089,
+        "toeEdgeZ": 0.0401,
+        "soleMinZ": 0.0401,
+        "soleBottomZ": 0.0401,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 143.8,
+        "wristFromShoulderY": 0.1219,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0136,
+          "mean": 0.0064
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 119,
+      "travel": 0.17284,
+      "R": {
+        "soleWorldY": -0.0623,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.003,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.0044,
+        "toeMinusHeelZ": -0.0069,
+        "upperBottomMinusSoleTop": -0.0105,
+        "kneeAngle": 157.5,
+        "wristFromShoulderY": -0.2572,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0133,
+          "mean": 0.0065
+        }
+      },
+      "L": {
+        "soleWorldY": -0.4507,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.5918,
+        "toeEdgeZ": 0.0227,
+        "soleMinZ": 0.0227,
+        "soleBottomZ": 0.0227,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 155.7,
+        "wristFromShoulderY": 0.142,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0133,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    },
+    {
+      "frame": 120,
+      "travel": 0.20584,
+      "R": {
+        "soleWorldY": -0.0631,
+        "soleX": -0.105,
+        "toeEdgeWorldY": -0.2032,
+        "toeEdgeZ": 0.0031,
+        "soleMinZ": 0.003,
+        "soleBottomZ": 0.0041,
+        "toeMinusHeelZ": -0.0176,
+        "upperBottomMinusSoleTop": -0.0222,
+        "kneeAngle": 152.1,
+        "wristFromShoulderY": -0.2718,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0134,
+          "mean": 0.0065
+        }
+      },
+      "L": {
+        "soleWorldY": -0.5129,
+        "soleX": 0.105,
+        "toeEdgeWorldY": -0.6541,
+        "toeEdgeZ": 0.009,
+        "soleMinZ": 0.009,
+        "soleBottomZ": 0.009,
+        "toeMinusHeelZ": 0.0,
+        "upperBottomMinusSoleTop": -0.003,
+        "kneeAngle": 170.9,
+        "wristFromShoulderY": 0.1549,
+        "upperArmLen": 0.3059,
+        "forearmLen": 0.2701,
+        "pocketToTrousers": {
+          "min": 0.0004,
+          "max": 0.0137,
+          "mean": 0.0065
+        }
+      },
+      "harnessToChest": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "harnessSigned": {
+        "min": 0.0001,
+        "max": 0.0088,
+        "mean": 0.0047
+      },
+      "chestDrift": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0
+      },
+      "harnessMaxTurnDeg": 24.1
+    }
+  ]
+}

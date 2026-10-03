@@ -41,7 +41,7 @@
   const params = new URLSearchParams(location.search);
   const load = src => new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('cannot load ' + src)); i.src = src; });
   const json = src => fetch(src).then(r => r.json());
-  const SETS = { current: '../art/review/blender-walk-05/game-frames', warm: '../art/review/blender-walk-06/frames-warm', contrast: '../art/review/blender-walk-06/frames-warm-contrast', contrast48: '../art/review/blender-walk-07/frames-48-warm-contrast' };
+  const SETS = { current: '../art/review/blender-walk-05/game-frames', warm: '../art/review/blender-walk-06/frames-warm', contrast: '../art/review/blender-walk-06/frames-warm-contrast', contrast48: '../art/review/blender-walk-07/frames-48-warm-contrast', start: '../art/review/blender-walk-08/frames-start-warm-contrast' };
   const motion = await json(`${SETS.current}/motion-report.json`);
   const sets = {};
   for (const [key, dir] of Object.entries(SETS)) {
@@ -65,6 +65,16 @@
   const stopPx = u => { const x = u * (STOP1 - STOP0), i = Math.min(STOP1 - STOP0 - 1, Math.floor(x)), t = x - i;
     return ((travelAt(STOP0 + i) * (1 - t) + travelAt(STOP0 + i + 1) * t) - travelAt(STOP0)) * WPM; };
   const SPEED = 38, IDLE_SECONDS = 4, START = worldNodePosition('t1'), END_NODE = 't4';
+  // Task 3 start (motion report of the start build): a weight shift, then root
+  // travel D px with smoothstep speed 0 -> SPEED, handing over at loop phase 0.5.
+  const startReport = await json(`${SETS.start}/motion-report.json`), START_INFO = startReport.start;
+  const START_D_PX = startReport.cycleMetres / 4 * WPM, SHIFT_S = START_INFO.shiftSeconds, TRAVEL_S = 2 * START_D_PX / SPEED;
+  const startPx = t => { if (t <= SHIFT_S) return 0; const tau = Math.min(1, (t - SHIFT_S) / TRAVEL_S); return START_D_PX * (2 * tau ** 3 - tau ** 4); };
+  const startSpeed = t => { if (t <= SHIFT_S) return 0; const tau = Math.min(1, (t - SHIFT_S) / TRAVEL_S); return SPEED * (3 * tau * tau - 2 * tau ** 3); };
+  const startFrameAt = t => { // preview time -> the rendered start frame nearest in the start's own timeline
+    const tb = t <= SHIFT_S ? t : SHIFT_S + (t - SHIFT_S) / TRAVEL_S * START_INFO.travelSeconds;
+    return START_INFO.firstFrame + Math.max(0, Math.min(START_INFO.rows.length - 1, Math.round(tb * START_INFO.fps))); };
+  const IDLE_BEFORE = 1.5;
   const ACCENT = ACCENT_COLOURS.find(c => c.id === (params.get('accent') || 'red'));
   const OUTLINE_WORLD_PX = Number(params.get('outline')) || 0.8, OUTLINE_COLOUR = 'rgba(22, 26, 16, 0.85)';
 
@@ -83,6 +93,9 @@
     // and idle are the reviewed 24-set frames in both.
     readable24: { label: '24 walk phases', set: 'contrast', marker: true, outline: true, loop: 24 },
     readable48: { label: '48 walk phases', set: 'contrast', walkSet: 'contrast48', marker: true, outline: true, loop: 48 },
+    // Task 3 (start): the 48-phase look, plus the rendered idle-to-walk start
+    // frames (101-120). Stop and idle remain the reviewed 24-set frames.
+    start48: { label: '48 phases + start', set: 'contrast', walkSet: 'contrast48', startSet: 'start', marker: true, outline: true, loop: 48 },
   };
   const canvasOf = (w, h) => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; };
   const filled = (img, colour) => { const c = canvasOf(img.width, img.height), g = c.getContext('2d'); g.drawImage(img, 0, 0);
@@ -91,9 +104,10 @@
     v.frames = {}; v.loop = v.loop || LOOP;
     const set = sets[v.set], walkSet = v.walkSet ? sets[v.walkSet] : set;
     // Walk frames 1..loop from the walk set; stop (49-60) and idle (72) always from the reviewed set.
-    const frameList = [...walkSet.proj.frames.filter(n => n <= v.loop), ...proj.frames.filter(n => n > 48)];
+    const startSet = v.startSet ? sets[v.startSet] : null;
+    const frameList = [...walkSet.proj.frames.filter(n => n <= v.loop), ...proj.frames.filter(n => n > 48), ...(startSet ? startSet.proj.frames : [])];
     for (const f of frameList) {
-      const src = v.walkSet && f <= v.loop ? walkSet : set;
+      const src = startSet && f >= 100 ? startSet : v.walkSet && f <= v.loop ? walkSet : set;
       const c = canvasOf(proj.size[0], proj.size[1]), g = c.getContext('2d');
       if (v.outline) {
         // Dilate the silhouette by OUTLINE_WORLD_PX in world px: in render px
@@ -121,8 +135,22 @@
     unit.name = 'Preview'; unit.speed = SPEED; unit.accent = ACCENT.id; state.units.push(unit);
     const w = { state, unit, variant: VARIANTS[variantKey], rule, mode: 'walk', u: 0, idleUntil: 0, frame: 1 };
     w.begin = () => { unit.x = START.x; unit.y = START.y; unit.targetX = unit.x; unit.targetY = unit.y; unit.path = [];
-      state.routeToNode(unit, END_NODE); const toStop = remainingOf(unit) - STOP_PX; unit.walkDistance = -(((toStop % STRIDE) + STRIDE) % STRIDE); w.mode = 'walk'; };
+      state.routeToNode(unit, END_NODE);
+      if (w.startLayout) {
+        // Same idle spot for old and new: chosen so the new start's handover
+        // (phase 0.5) leads to the stop on its phase (0) at the route end.
+        const off = (((remainingOf(unit) - START_D_PX - STOP_PX - STRIDE / 2) % STRIDE) + STRIDE) % STRIDE; moveAlong(unit, off);
+        w.mode = 'idleBefore'; w.t = 0; w.frame = IDLE_FRAME; return; }
+      const toStop = remainingOf(unit) - STOP_PX; unit.walkDistance = -(((toStop % STRIDE) + STRIDE) % STRIDE); w.mode = 'walk'; };
+    w.startWalking = () => { const toStop = remainingOf(unit) - STOP_PX; unit.walkDistance = -(((toStop % STRIDE) + STRIDE) % STRIDE); w.mode = 'walk'; };
     w.advance = (dt, now) => {
+      if (w.mode === 'idleBefore') { w.t += dt; w.frame = IDLE_FRAME; if (w.t < IDLE_BEFORE) return;
+        dt = w.t - IDLE_BEFORE; w.t = 0; if (w.variant.startSet) { w.mode = 'start'; w.startLog = []; } else { w.startWalking(); w.frame = walkFrameFor(unit.walkDistance, rule, w.variant.loop); return; } }
+      if (w.mode === 'start') {
+        const before = startPx(w.t); w.t += dt; const end = SHIFT_S + TRAVEL_S;
+        if (w.t < end) { moveAlong(unit, startPx(w.t) - before); w.frame = startFrameAt(w.t); w.startLog.push([+w.t.toFixed(4), +startPx(w.t).toFixed(4), +startSpeed(w.t).toFixed(3), w.frame]); return; }
+        moveAlong(unit, START_D_PX - before); unit.walkDistance = STRIDE / 2; dt = w.t - end; w.mode = 'walk';
+        w.handover = { remaining: +remainingOf(unit).toFixed(3) }; }
       if (w.mode === 'walk') { const toStop = remainingOf(unit) - STOP_PX;
         if (SPEED * dt >= toStop) { unit.step(toStop / SPEED); w.mode = 'stop'; w.u = 0; dt -= toStop / SPEED; }
         else { unit.step(dt); w.frame = walkFrameFor(unit.walkDistance, rule, w.variant.loop); return; } }
@@ -131,6 +159,7 @@
         if (w.u >= 1) { w.mode = 'idle'; w.idleUntil = now + IDLE_SECONDS * 1000; } return; }
       if (w.mode === 'idle') { w.frame = IDLE_FRAME; if (now >= w.idleUntil) w.begin(); }
     };
+    w.startLayout = rule === 'nearest' && (variantKey === 'start48' || params.get('layout') === 'start');
     w.begin();
     return w;
   }
@@ -163,14 +192,17 @@
   const panelW = 800, panelH = layout === 'framerule' ? 420 : 340, captionH = 26;
   const walkers = layout === 'readability' ? { current: makeWalker('current', 'floor'), readable: makeWalker('readable', 'floor') }
     : layout === 'density' ? { d24: makeWalker('readable24', 'nearest'), d48: makeWalker('readable48', 'nearest') }
+    : layout === 'start' ? { old: makeWalker('readable48', 'nearest'), new: makeWalker('start48', 'nearest') }
     : { floor: makeWalker('readable', 'floor'), nearest: makeWalker('readable', 'nearest') };
   const panels = layout === 'readability' ? [['current', 1, 0, 0], ['readable', 1, 1, 0], ['current', CAMERA_MAX_ZOOM, 0, 1], ['readable', CAMERA_MAX_ZOOM, 1, 1]]
     : layout === 'density' ? [['d24', 1, 0, 0], ['d48', 1, 1, 0], ['d24', CAMERA_MAX_ZOOM, 0, 1], ['d48', CAMERA_MAX_ZOOM, 1, 1]]
+    : layout === 'start' ? [['old', 1, 0, 0], ['new', 1, 1, 0], ['old', CAMERA_MAX_ZOOM, 0, 1], ['new', CAMERA_MAX_ZOOM, 1, 1]]
     : [['floor', CAMERA_MAX_ZOOM, 0, 0], ['nearest', CAMERA_MAX_ZOOM, 1, 0]];
   const sizeLabel = zoom => zoom === 1 ? 'game size (zoom 1)' : 'max zoom ' + zoom;
   const panelLabel = (key, zoom) => layout === 'readability'
     ? (key === 'current' ? 'Current (e1752d3)' : 'Readable: warm light + contrast + accent + outline') + ' · ' + sizeLabel(zoom)
     : layout === 'density' ? (key === 'd24' ? '24' : '48') + ' walk phases per cycle · nearest frame · same look · ' + sizeLabel(zoom) + ' · stop/idle identical'
+    : layout === 'start' ? (key === 'old' ? 'Old: idle, then instant walk (abrupt)' : 'Candidate: idle, start (rendered), walk') + ' · 48-phase walk · reused 24-set stop · ' + sizeLabel(zoom)
     : (key === 'floor' ? 'Floor frame (the game rule)' : 'Nearest frame') + ' · readable look · max zoom ' + zoom;
   const rows = Math.max(...panels.map(p => p[3])) + 1;
   out.width = panelW * 2; out.height = rows * (panelH + captionH) + 24;
@@ -258,7 +290,7 @@
     return sheet;
   }
 
-  window.readability = { ruleSheet, VARIANTS, walkers, measureRule, stillCrop, makeWalker, renderWalker, constants: { K, S, STRIDE, CYCLE_PX: +CYCLE_PX.toFixed(3), STOP_PX: +STOP_PX.toFixed(3), SPEED, OUTLINE_WORLD_PX, accent: ACCENT } };
+  window.readability = { START: { SHIFT_S, TRAVEL_S, START_D_PX, IDLE_BEFORE, info: START_INFO }, startPx, startSpeed, startFrameAt, ruleSheet, VARIANTS, walkers, measureRule, stillCrop, makeWalker, renderWalker, constants: { K, S, STRIDE, CYCLE_PX: +CYCLE_PX.toFixed(3), STOP_PX: +STOP_PX.toFixed(3), SPEED, OUTLINE_WORLD_PX, accent: ACCENT } };
   requestAnimationFrame(frame);
   window.readabilityReady = true;
 })().catch(error => { window.readabilityError = String(error.stack || error); document.body.prepend(document.createTextNode('error: ' + error.message)); });
