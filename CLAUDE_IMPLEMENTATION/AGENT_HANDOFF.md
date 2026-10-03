@@ -2,7 +2,7 @@
 
 ## Session boundary
 
-Jason authorised this collaboration through **3 October 2026, 12:00 Australia/Sydney (UTC+10)**. Start no new work after the deadline. Preserve completed work and report any unfinished render; never kill unrelated processes. No purchases, new API subscriptions, normal-game rollout or changes to production art gates are authorised by this session.
+Jason renewed this collaboration on **3 October 2026, 23:27 Australia/Sydney**, with hourly GitHub reviews until stopped or a meaningful approval/blocker requires him. The earlier morning deadline is superseded. Historical checkpoints below remain preserved. Preserve completed work and report any unfinished render; never kill unrelated processes. No purchases, new API subscriptions, normal-game rollout or changes to production art gates are authorised by this session.
 
 `AGENT_HANDOFF.json` is the current ownership/state record. This document defines the workflow. Current starting baseline: main e1752d3, motion tag blender-walk-motion-baseline. Local Blender remains Claude's responsibility; Codex cannot launch it remotely.
 
@@ -13,9 +13,9 @@ Jason authorised this collaboration through **3 October 2026, 12:00 Australia/Sy
 3. Codex reads the newest report, code and actual images/clips. It writes a review and the next precise task to the handoff, sets status `CLAUDE_READY`, owner `CLAUDE`. Codex does not simultaneously edit Claude-owned implementation files. Keep a last-reviewed implementation SHA to prevent duplicate reviews.
 4. Claude checks GitHub for the handoff while its local session remains active. Checking a document does not wake an idle Claude session. Jason gives the bootstrap instruction once; no further copy/paste relay should be required for routine iterations.
 5. If no evidence is ready, Codex leaves the state alone and does not notify Jason. If a task is blocked, record exactly what is missing. Bring Jason in only for meaningful visual approval, scope changes or a blocker needing his input.
-6. At noon, stop assigning tasks, set `SESSION_CLOSED` and provide a concise checkpoint. In-flight renders may finish and be saved, but do not start another pass. Keep .blend files local in art/local-blender. Use a new output folder per render.
+6. When Jason stops the resumed session, or the preview is ready for his final approval, stop assigning tasks, set `SESSION_CLOSED` or `AWAITING_JASON` and provide a concise checkpoint. In-flight renders may finish and be saved, but do not start another pass. Keep .blend files local in art/local-blender. Use a new output folder per render.
 
-Codex's scheduled checks are hourly (10:00, 11:00, 12:00); they are not an instant chat or a 15-minute watch. Avoid overlapping reviewers. Re-read the latest GitHub ref before each write; use additive/non-forced commits. Never reset or stash someone else's local changes. On conflict, preserve both reports and reconcile the handoff before continuing.
+Codex's resumed scheduled checks are hourly; they are not an instant chat or a 15-minute watch. Avoid overlapping reviewers. Re-read the latest GitHub ref before each write; use additive/non-forced commits. Never reset or stash someone else's local changes. On conflict, preserve both reports and reconcile the handoff before continuing.
 
 ## Task 1 — preview readability and frame selection
 
@@ -61,3 +61,8 @@ Final evidence review: read report 17, inspected the committed transition strip 
 Remaining for a future authorised session (not assigned now): real-time visual judgement of the complete start/walk/stop clip, final model/lighting/outline style approval, other directions and turn transitions, and eventual production gate validation. No final art or release approval given.
 
 Unfinished renders: none reported in the latest completed handoff; all listed task-3 frames and clip are committed. Claude's local process state is not remotely observable, so this is not a claim that every local Blender process has stopped. Preserve any in-flight render output; do not start another pass under this closed session.
+
+
+## Resumed collaboration — 3 October 2026, 23:27 Sydney
+
+Jason renewed hourly review and continued isolated preview work. Prior noon closure remains a historical checkpoint. Main still points to task-3 implementation 5e1eb1d; no later main implementation was found at reopening. See [18_DIRECTION_PREVIEW_BRIEF.md](18_DIRECTION_PREVIEW_BRIEF.md) for task 4, one calibrated down-facing movement set. Keep later local or branch work if present and report it before duplicating. Claude's local watcher must already be active. No production rollout or release-gate approval is authorised.
